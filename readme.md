@@ -6,7 +6,7 @@ This is a plugin for [Domoticz](https://domoticz.com), to grab data from french 
 
 Domoticz version must be at least 3.9517.
 
-You need to have a Linky meter, create a user account on have [Enedis](http://www.enedis.fr) and accept conditions on the website.
+You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr) and accept conditions on the website.
 
 ## Installing
 
@@ -31,6 +31,8 @@ Restart Domoticz.
 ## Configuration
 
 Add the Linky hardware in Domoticz hardware configuration tab, giving the user name (e-mail address) and password of your Enedis account. You can choose the number of days to collect data for the short log (day) and for the week/month/year log. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup/Settings/Log History, you can increase the value there to get up to 7 days of short log history.
+
+After enabling the hardware, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
 
 ## Authors
 
