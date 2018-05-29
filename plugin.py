@@ -21,11 +21,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
-        <param field="Mode1" label="Number of days to grab for days view (1 min, 7 max)" width="50px" required="false" default="7"/>
+        <param field="Mode1" label="Number of days to grab for hours view (1 min, 7 max)" width="50px" required="false" default="7"/>
         <param field="Mode2" label="Number of days to grab for others view (28 min)" width="50px" required="false" default="366"/>
         <param field="Mode3" label="Debug" width="75px">
             <options>
@@ -72,28 +72,46 @@ HEADERS = {
 }
 
 class BasePlugin:
-    # boolean to check that we are started, to prevent error messages when disabling or restarting the plugin
+    # boolean: to check that we are started, to prevent error messages when disabling or restarting the plugin
     isStarted = None
-    # http connection
+    # object: http connection
     httpConn = None
+    # integer: index of the Linky device
     iIndexUnit = 1
+    # string: name of the Linky device
     sDeviceName = "Linky"
+    # string: description of the Linky device
     sDescription = "Compteur Linky"
+    # integer: type (pTypeGeneral)
     iType = 0xF3
+    # integer: subtype (sTypeManagedCounter)
     iSubType = 0x21
+    # integer: switch type (Energy)
     iSwitchType = 0
+    # string: step name of the state machine
     sConnectionStep = None
+    # boolean: true if a step failed
     bHasAFail = None
+    # dict: cookies
     dCookies = None
-    dateBeginDay = None
-    dateEndDay = None
-    dateBeginMonth = None
-    dateEndMonth = None
-    historyDays = None
-    historyMonths = None
-    daysLeft = None
-    savedDateEndMonth = None
-    firstMonths = None
+    # datetime: start date for short log
+    dateBeginHours = None
+    # datetime: end date for short log
+    dateEndHours = None
+    # datetime: start date for history
+    dateBeginDays = None
+    # datetime: end date for history
+    dateEndDays = None
+    # integer: number of days of data to grab for short log
+    iHistoryDaysForHoursView = None
+    # integer: number of days of data to grab for history
+    iHistoryDaysForDaysView = None
+    # integer: number of days left fot next batch of data
+    iDaysLeft = None
+    # datetime: backup end date for next batch of data
+    savedDateEndDays = None
+    # boolean: is this the batch of the most recent history
+    bFirstMonths = None
     
     def __init__(self):
         self.isStarted = False
@@ -101,25 +119,31 @@ class BasePlugin:
         self.sConnectionStep = "idle"
         self.bHasAFail = False
 
+    # Reset saved cookies
     def resetCookies(self):
         self.dCookies = {}
-    
+
+    # Grab cookies found in Data["Headers"] and saves them for later user
     def getCookies(self, Data):
         if Data and ("Headers" in Data) and ("Set-Cookie" in Data["Headers"]):
             # lCookies = re.findall("^(.*?)=(.*?)[;$]", Data["Headers"]["Set-Cookie"], re.MULTILINE)
             for match in re.finditer("^(.*?)=(.*?)[;$]", Data["Headers"]["Set-Cookie"], re.MULTILINE):
                 self.dCookies[match.group(1)] = match.group(2)
 
+    # Write saved cookies in headers["Cookie"]
     def setCookies(self, headers):
         headers["Cookie"] = ""        
         for sKey, sValue in self.dCookies.items():
+            # Concatenate cookies
             if headers["Cookie"]:
                 headers["Cookie"] += "; "
             headers["Cookie"] += sKey + "=" + sValue
 
+    # get default headers
     def initHeaders(self):
         return dict(HEADERS)
-                
+
+    # send login details though http connection
     def login(self, username, password):
         payload = {
             'IDToken1': username,
@@ -140,9 +164,12 @@ class BasePlugin:
         }
         
         #DumpDictToLog(sendData)
+        # Reset cookies to get authentication cookie later
         self.resetCookies()
+        # Send data
         self.httpConn.Send(sendData)
 
+    # ask data to Enedis website, based on a resource_id ("urlCdcHeure" or "urlCdcJour") and date (max 28 days at once)
     def getData(self, resource_id, start_date, end_date):
         req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
 
@@ -179,25 +206,33 @@ class BasePlugin:
         #DumpDictToLog(sendData)
         self.httpConn.Send(sendData)
 
+    # Create Domoticz device
     def createDevice(self):
+        # Only if not already done
         if not self.iIndexUnit in Devices:
             Domoticz.Device(Name=self.sDeviceName,  Unit=self.iIndexUnit, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Description=self.sDescription, Used=1).Create()
-    
-    def createAndAddToDevice(self, counter, Date):
-        self.createDevice()
-        Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(counter) + ";"  + str(Date), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType,)
 
-    def updateDevice(self, val):
+    # Create device and insert usage in Domoticz DB
+    def createAndAddToDevice(self, usage, Date):
         self.createDevice()
-        Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(val), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
-        
+        # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
+        Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(usage) + ";"  + str(Date), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType,)
+
+    # Update value shown on Domoticz dashboard
+    def updateDevice(self, usage):
+        self.createDevice()
+        # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
+        Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(usage), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
+
+    # Show error in state machine context
     def showStepError(self, day, logMessage):
         if day:
-            Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginDay) + " to " + datetimeToEnderdisDateString(self.dateEndDay))
+            Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginHours) + " to " + datetimeToEnderdisDateString(self.dateEndHours))
         else:
-            Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginMonth) + " to " + datetimeToEnderdisDateString(self.dateEndMonth))
-       
-    def exploreDataDay(self, Data):
+            Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginDays) + " to " + datetimeToEnderdisDateString(self.dateEndDays))
+
+    # Grab hours data inside received JSON data for short log
+    def exploreDataHours(self, Data):
         DumpDictToLog(Data)
         if Data and ("Data" in Data):
             try:
@@ -210,8 +245,7 @@ class BasePlugin:
                 return False
             else:
                 if dJson and ("etat" in dJson) and ("erreurText" in dJson["etat"]):
-                    #self.showStepError(True, "Error received: " + html.unescape(dJson["etat"]["erreurText"]))
-                    pass
+                    self.showStepError(True, "Error received: " + html.unescape(dJson["etat"]["erreurText"]))
                 if dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]) and (dJson["etat"]["valeur"] == "termine"):
                     try:
                         beginDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
@@ -219,11 +253,9 @@ class BasePlugin:
                     except (TypeError, ValueError) as err:
                         self.showStepError(True, "Error in received JSON data time format: " + str(err))
                         return False
+                    # We accumulate data because Enedis sends kWh for every 30 minutes and Domoticz expects data only for every hour
                     accumulation = 0.0
                     steps = 1.0
-                    expectedDateBeginDay = beginDate + timedelta(days=1)
-                    # Stop at 22h, to get 0 at 23h to show nothing for day after
-                    expectedDateEndDay = endDate - timedelta(hours=1)
                     dataSeenToTheEnd = False
                     for index, data in enumerate(dJson["graphe"]["data"]):
                         try:
@@ -231,14 +263,15 @@ class BasePlugin:
                         except ValueError:
                             val = -1.0
                         if (val >= 0.0):
+                            # Enedis and Domoticz doesn't set the same date for used energy, add 90 minutes offset
                             curDate = beginDate + timedelta(minutes=(index+2)*30)
                             accumulation = accumulation + val
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
-                            #if (curDate >= expectedDateBeginDay) and (curDate <= expectedDateEndDay) and (curDate.minute == 0):
-                            if (curDate >= expectedDateBeginDay) and (curDate.minute == 0):
+                            if curDate.minute == 0:
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate))
-                                if curDate >= expectedDateEndDay:
+                                # Check that we had enough data, as expected
+                                if curDate >= endDate:
                                         dataSeenToTheEnd = True
                             steps = steps + 1.0
                             if curDate.minute == 0:
@@ -246,14 +279,13 @@ class BasePlugin:
                                 steps = 1.0
                     return dataSeenToTheEnd
                 else:
-                    #self.showStepError(True, "Error in received JSON data")
-                    pass
+                    self.showStepError(True, "Error in received JSON data")
         else:
-            #self.showStepError(True, "Didn't received data")
-            pass
+            self.showStepError(True, "Didn't received data")
         return False
     
-    def exploreDataMonth(self, Data):
+    # Grab days data inside received JSON data for history
+    def exploreDataDays(self, Data):
         DumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -284,42 +316,50 @@ class BasePlugin:
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #DumpDictToLog(values)
                             self.createAndAddToDevice(val, datetimeToSQLDateString(curDate))
-                            if self.firstMonths and (curDate == endDate):
+                            # If we are on the most recent batch and end date, use the mose recent data for Domoticz dashboard
+                            if self.bFirstMonths and (curDate == endDate):
                                 #Domoticz.Log("Update " + str(val) + " " + datetimeToSQLDateString(curDate))
                                 self.updateDevice(val)
-                                self.firstMonths = False
+                                self.bFirstMonths = False
                     return True
                 else:
                     self.showStepError(False, "Error in received JSON data")
         else:
             self.showStepError(False, "Didn't received data")
         return False
-        
+
+    # Calculate days and date left for next batch
     def calculateDaysLeft(self):
         # No more than 28 days at once
-        self.daysLeft = self.daysLeft - 28
-        if self.daysLeft <= 0:
-            daysToGet = self.daysLeft + 28
+        self.iDaysLeft = self.iDaysLeft - 28
+        if self.iDaysLeft <= 0:
+            daysToGet = self.iDaysLeft + 28
         else:
             daysToGet = 28
-        self.dateBeginMonth = self.savedDateEndMonth - timedelta(days=daysToGet+2)
-        self.dateEndMonth = self.savedDateEndMonth - timedelta(days=1)
-        self.savedDateEndMonth = self.dateBeginMonth
+        self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet+2)
+        self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
+        self.savedDateEndDays = self.dateBeginDays
 
+    # Calculate next complete grab, for tomorrow between 5 and 6 am if tomorrow is true, for next hour otherwise
     def setNextConnection(self, tomorrow):
         if tomorrow:
             self.nextConnection = datetime.now() + timedelta(days=1)
             self.nextConnection = self.nextConnection.replace(hour=5)
         else:
             self.nextConnection = datetime.now() + timedelta(hours = 1)
+        # Randomize minutes to lower load on Enedis website
         #randint makes domoticz crash on RPI
         #self.nextConnection = self.nextConnection + timedelta(minutes=randint(0, 59), seconds=randint(0, 59))
+        # We take microseconds to randomize
         minutesRand = round(datetime.now().microsecond / 10000) % 60
         self.nextConnection = self.nextConnection + timedelta(minutes=minutesRand)
 
+    # Handle the connection state machine
     def handleConnection(self, Data = None):
+        # First and last step
         if self.sConnectionStep == "idle":
             Domoticz.Log("Getting data...")
+            # Reset failed state
             self.bHasAFail = False
             if self.httpConn and self.httpConn.Connected():
                 self.httpConn.Disconnect()
@@ -329,7 +369,8 @@ class BasePlugin:
             Domoticz.Debug("Connect")
             self.sConnectionStep = "logconnecting"
             self.httpConn.Connect()
-            
+
+        # Connected, we need to log in
         elif self.sConnectionStep == "logconnecting":
             if not self.httpConn.Connected():
                 Domoticz.Error("Connection failed for login")
@@ -339,13 +380,16 @@ class BasePlugin:
                 self.sConnectionStep = "logconnected"
                 self.login(Parameters["Username"], Parameters["Password"])
                 
+        # Connected, check that the authentication cookie has been received
         elif self.sConnectionStep == "logconnected":
             if self.httpConn and self.httpConn.Connected():
                 self.httpConn.Disconnect()
             DumpDictToLog(Data)
             
+            # Grab cookies from received data, if we have "iPlanetDirectoryPro", we're good
             self.getCookies(Data)
             if ("iPlanetDirectoryPro" in self.dCookies) and self.dCookies["iPlanetDirectoryPro"]:
+                # Proceed to data page
                 self.sConnectionStep = "dataconnecting"
                 self.httpConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=API_BASE_URI, Port=BASE_PORT)
                 self.httpConn.Connect()
@@ -354,6 +398,7 @@ class BasePlugin:
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
 
+        # We are now connected to data page, ask for hours data
         elif self.sConnectionStep == "dataconnecting":
             if not self.httpConn.Connected():
                 Domoticz.Error("Connection failed for data")
@@ -362,8 +407,9 @@ class BasePlugin:
             else:
                 self.getCookies(Data)
                 self.sConnectionStep = "getcookies"
-                self.getData("urlCdcHeure", self.dateBeginDay, self.dateEndDay)
+                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
                 
+        # If we are connected, we must show the authentication cookie
         elif self.sConnectionStep == "getcookies":
             if not self.httpConn.Connected():
                 Domoticz.Error("Connection failed for cookies read")
@@ -371,38 +417,45 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 self.getCookies(Data)
-                self.sConnectionStep = "getdatadays"
-                self.getData("urlCdcHeure", self.dateBeginDay, self.dateEndDay)
-                
-        elif self.sConnectionStep == "getdatadays":
+                self.sConnectionStep = "getdatahours"
+                # Dummy action to show that we have the authentication cookie
+                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
+
+        # Now we should received data for real
+        elif self.sConnectionStep == "getdatahours":
             if not self.httpConn.Connected():
-                self.showStepError(True, "Get data failed for day view")
+                self.showStepError(True, "Get data failed for hours view")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
                 self.getCookies(Data)
-                if not self.exploreDataDay(Data):
+                # Analyse data for hours
+                if not self.exploreDataHours(Data):
                     self.bHasAFail = True
-                self.sConnectionStep = "getdatamonths"
-                self.firstMonths = True
-                self.getData("urlCdcJour", self.dateBeginMonth, self.dateEndMonth)
+                self.sConnectionStep = "getdatadays"
+                self.bFirstMonths = True
+                # Ask data for days
+                self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 
-        elif self.sConnectionStep == "getdatamonths":
+        # Ask data for days
+        elif self.sConnectionStep == "getdatadays":
             if not self.httpConn.Connected():
-                self.showStepError(False, "Get data failed for month view")
+                self.showStepError(False, "Get data failed for days view")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
-                if not self.exploreDataMonth(Data):
+                # Analyse data for hours
+                if not self.exploreDataDays(Data):
                     self.bHasAFail = True
-                if self.daysLeft > 0:
+                if self.iDaysLeft > 0:
                     self.calculateDaysLeft()
-                    self.sConnectionStep = "getdatamonths"
-                    self.getData("urlCdcJour", self.dateBeginMonth, self.dateEndMonth)
+                    self.sConnectionStep = "getdatadays"
+                    self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
                     self.sConnectionStep = "idle"
                     Domoticz.Log("Done")
 
+        # Next connection time depends on success
         if (self.sConnectionStep == "idle"):
                 if self.bHasAFail:
                         self.setNextConnection(False)            
@@ -422,24 +475,26 @@ class BasePlugin:
         # most init
         self.__init__()
         
+        # History for short log is 7 days max (default to 7)
         try:
-            self.historyDays = int(Parameters["Mode1"])
+            self.iHistoryDaysForHoursView = int(Parameters["Mode1"])
         except ValueError:
-            self.historyDays = 7
-        if self.historyDays < 1:
-            self.historyDays = 1
-        elif self.historyDays > 7:
-            self.historyDays = 7
+            self.iHistoryDaysForHoursView = 7
+        if self.iHistoryDaysForHoursView < 1:
+            self.iHistoryDaysForHoursView = 1
+        elif self.iHistoryDaysForHoursView > 7:
+            self.iHistoryDaysForHoursView = 7
         Domoticz.Log("If you don't see enough data in days view of the device log, expand Short Log Sensors value the in Setup/Settings/Log History")
             
+        # History for short log is 7 days max (default to 366)
         try:
-            self.historyMonths = int(Parameters["Mode2"])
+            self.iHistoryDaysForDaysView = int(Parameters["Mode2"])
         except ValueError:
-            self.historyMonths = 366
-        if self.historyMonths < 28:
-            self.historyMonths = 28
-        elif self.historyMonths > 100000:
-            self.historyMonths = 100000
+            self.iHistoryDaysForDaysView = 366
+        if self.iHistoryDaysForDaysView < 28:
+            self.iHistoryDaysForDaysView = 28
+        elif self.iHistoryDaysForDaysView > 100000:
+            self.iHistoryDaysForDaysView = 100000
 
         # enable debug if required
         if Parameters["Mode3"] == "Debug":
@@ -449,6 +504,7 @@ class BasePlugin:
 
         self.nextConnection = datetime.now()
         
+        # Now we can enabling the plugin
         self.isStarted = True
 
     def onStop(self):
@@ -475,13 +531,14 @@ class BasePlugin:
         Domoticz.Debug("onHeartbeat() called")
         
         if datetime.now() > self.nextConnection:
-            self.savedDateEndMonth = self.nextConnection
+            self.savedDateEndDays = self.nextConnection
+            # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
             self.setNextConnection(True)
 
-            self.dateBeginDay = self.savedDateEndMonth - timedelta(days=(self.historyDays + 1))
-            self.dateEndDay = self.savedDateEndMonth
+            self.dateBeginHours = self.savedDateEndDays - timedelta(days=(self.iHistoryDaysForHoursView + 1))
+            self.dateEndHours = self.savedDateEndDays
 
-            self.daysLeft = self.historyMonths
+            self.iDaysLeft = self.iHistoryDaysForDaysView
             self.calculateDaysLeft()
             self.handleConnection()
 
@@ -552,18 +609,22 @@ def DumpConfigToLog():
         Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
 
+# Convert Enedis date string to datetime object
 def enerdisDateToDatetime(datetimeStr):
     #Buggy
     #return datetime.strptime(datetimeStr, dateFormat)
     #Not buggy
     return datetime(*(time.strptime(datetimeStr, "%d/%m/%Y")[0:6]))
 
+# Convert datetime object to Enedis date string
 def datetimeToEnderdisDateString(datetimeObj):
     return datetimeObj.strftime("%d/%m/%Y")
 
+# Convert datetime object to Domoticz date string
 def datetimeToSQLDateString(datetimeObj):
     return datetimeObj.strftime("%Y-%m-%d")
 
+# Convert datetime object to Domoticz date and time string
 def datetimeToSQLDateTimeString(datetimeObj):
     return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
 
