@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
@@ -456,10 +456,10 @@ class BasePlugin:
                     Domoticz.Log("Done")
 
         # Next connection time depends on success
-        if (self.sConnectionStep == "idle"):
-                if self.bHasAFail:
-                        self.setNextConnection(False)            
-                Domoticz.Log("Next connection: " + datetimeToSQLDateTimeString(self.nextConnection))
+        if self.sConnectionStep == "idle":
+            if self.bHasAFail:
+                self.setNextConnection(False)            
+            Domoticz.Log("Next connection: " + datetimeToSQLDateTimeString(self.nextConnection))
 
     def onStart(self):
         Domoticz.Debug("onStart called")
@@ -469,7 +469,7 @@ class BasePlugin:
             Domoticz.Log("Password is set")
         else:
             Domoticz.Log("Password is not set")
-        Domoticz.Log("Days to grab for days view set to " + Parameters["Mode1"])
+        Domoticz.Log("Days to grab for hours view set to " + Parameters["Mode1"])
         Domoticz.Log("Days to grab for others view set to " + Parameters["Mode2"])
         Domoticz.Log("Debug set to " + Parameters["Mode3"])
         # most init
