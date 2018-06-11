@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
@@ -272,11 +272,13 @@ class BasePlugin:
                                 self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate))
                                 # Check that we had enough data, as expected
                                 if curDate >= endDate:
-                                        dataSeenToTheEnd = True
+                                    dataSeenToTheEnd = True
                             steps = steps + 1.0
                             if curDate.minute == 0:
                                 accumulation = 0.0
                                 steps = 1.0
+                    if not dataSeenToTheEnd:
+                        self.showStepError(True, "Data missing")                        
                     return dataSeenToTheEnd
                 else:
                     self.showStepError(True, "Error in received JSON data")
@@ -444,7 +446,7 @@ class BasePlugin:
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
-                # Analyse data for hours
+                # Analyse data for days
                 if not self.exploreDataDays(Data):
                     self.bHasAFail = True
                 if self.iDaysLeft > 0:
