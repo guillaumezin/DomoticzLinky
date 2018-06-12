@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
@@ -225,8 +225,8 @@ class BasePlugin:
         Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(usage), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
 
     # Show error in state machine context
-    def showStepError(self, day, logMessage):
-        if day:
+    def showStepError(self, hours, logMessage):
+        if hours:
             Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginHours) + " to " + datetimeToEnderdisDateString(self.dateEndHours))
         else:
             Domoticz.Error(logMessage + " during step " + self.sConnectionStep + " from " + datetimeToEnderdisDateString(self.dateBeginDays) + " to " + datetimeToEnderdisDateString(self.dateEndDays))
@@ -238,10 +238,13 @@ class BasePlugin:
             try:
                 dJson = json.loads(Data["Data"].decode())
             except ValueError as err:
-                self.showStepError(False, "Data received are not JSON: " + str(err))
+                self.showStepError(True, "Data received are not JSON: " + str(err))
                 return False
             except TypeError as err:
-                self.showStepError(False, "Data type received is not JSON: " + str(err))
+                self.showStepError(True, "Data type received is not JSON: " + str(err))
+                return False
+            except:
+                self.showStepError(True, "Error in JSON data: " + sys.exc_info()[0])
                 return False
             else:
                 if dJson and ("etat" in dJson) and ("erreurText" in dJson["etat"]):
@@ -253,6 +256,9 @@ class BasePlugin:
                     except (TypeError, ValueError) as err:
                         self.showStepError(True, "Error in received JSON data time format: " + str(err))
                         return False
+                    except:
+                        self.showStepError(True, "Error in received JSON data time: " + sys.exc_info()[0])
+                        return False
                     # We accumulate data because Enedis sends kWh for every 30 minutes and Domoticz expects data only for every hour
                     accumulation = 0.0
                     steps = 1.0
@@ -260,7 +266,7 @@ class BasePlugin:
                     for index, data in enumerate(dJson["graphe"]["data"]):
                         try:
                             val = float(data["valeur"]) * 1000.0
-                        except ValueError:
+                        except:
                             val = -1.0
                         if (val >= 0.0):
                             # Enedis and Domoticz doesn't set the same date for used energy, add 90 minutes offset
@@ -298,6 +304,9 @@ class BasePlugin:
             except TypeError as err:
                 self.showStepError(False, "Data type received is not JSON: " + str(err))
                 return False
+            except:
+                self.showStepError(False, "Error in JSON data: " + sys.exc_info()[0])
+                return False
             else:
                 if dJson and ("etat" in dJson) and ("erreurText" in dJson["etat"]):
                     self.showStepError(False, "Error received: " + html.unescape(dJson["etat"]["erreurText"]))
@@ -308,10 +317,13 @@ class BasePlugin:
                     except ValueError as err:
                         self.showStepError(False, "Error in received JSON data time format: " + str(err))
                         return False
+                    except:
+                        self.showStepError(False, "Error in received JSON data time: " + sys.exc_info()[0])
+                        return False
                     for index, data in enumerate(dJson["graphe"]["data"]):
                         try:
                             val = float(data["valeur"]) * 1000.0
-                        except ValueError:
+                        except:
                             val = -1.0
                         if (val >= 0.0):
                             curDate = beginDate + timedelta(days=index)
@@ -480,7 +492,7 @@ class BasePlugin:
         # History for short log is 7 days max (default to 7)
         try:
             self.iHistoryDaysForHoursView = int(Parameters["Mode1"])
-        except ValueError:
+        except:
             self.iHistoryDaysForHoursView = 7
         if self.iHistoryDaysForHoursView < 1:
             self.iHistoryDaysForHoursView = 1
@@ -491,7 +503,7 @@ class BasePlugin:
         # History for short log is 7 days max (default to 366)
         try:
             self.iHistoryDaysForDaysView = int(Parameters["Mode2"])
-        except ValueError:
+        except:
             self.iHistoryDaysForDaysView = 366
         if self.iHistoryDaysForDaysView < 28:
             self.iHistoryDaysForDaysView = 28
