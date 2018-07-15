@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
@@ -31,6 +31,12 @@
             <options>
                 <option label="True" value="Debug"/>
                 <option label="False" value="Normal"  default="true" />
+            </options>
+        </param>
+        <param field="Mode4" label="Accept terms of use automatically" width="75px">
+            <options>
+                <option label="True" value="True"/>
+                <option label="False" value="False"  default="true" />
             </options>
         </param>
     </params>
@@ -56,6 +62,8 @@ BASE_PORT = '443'
 
 API_ENDPOINT_LOGIN = '/auth/UI/Login'
 API_ENDPOINT_DATA = '/group/espace-particuliers/suivi-de-consommation'
+API_ACCEPT_TERMS = '/c/portal/update_terms_of_use'
+
 #HEADERS = {
     #'Accept':'application/json, text/javascript, */*; q=0.01',
     #'Accept-Language':'fr,fr-FR;q=0.8,en;q=0.6',
@@ -169,8 +177,32 @@ class BasePlugin:
         # Send data
         self.httpConn.Send(sendData)
 
+    # accept terms of use
+    def acceptTerms(self):
+        req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
+
+        payload = {
+            'fm': 'Accepter'
+        }
+        
+        headers = self.initHeaders()
+        headers["Host"] = API_BASE_URI + ":" + BASE_PORT
+        
+        #Copy cookies
+        self.setCookies(headers)
+        
+        sendData = {
+                    "Verb" : "POST",
+                    "URL"  : API_ACCEPT_TERMS,
+                    "Headers" : headers,
+                    "Data" : dictToQuotedString(payload)
+        }
+        
+        #DumpDictToLog(sendData)
+        self.httpConn.Send(sendData)
+        
     # ask data to Enedis website, based on a resource_id ("urlCdcHeure" or "urlCdcJour") and date (max 28 days at once)
-    def getData(self, resource_id, start_date, end_date):
+    def getData(self, resource_id, start_date, end_date, ):
         req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
 
         payload = {
@@ -211,6 +243,8 @@ class BasePlugin:
         # Only if not already done
         if not self.iIndexUnit in Devices:
             Domoticz.Device(Name=self.sDeviceName,  Unit=self.iIndexUnit, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Description=self.sDescription, Used=1).Create()
+            if not (self.iIndexUnit in Devices):
+                Domoticz.Error("Cannot add Linky device to database. Check in settings that Domoticz is set up to accept new devices")
 
     # Create device and insert usage in Domoticz DB
     def createAndAddToDevice(self, usage, Date):
@@ -404,13 +438,25 @@ class BasePlugin:
             self.getCookies(Data)
             if ("iPlanetDirectoryPro" in self.dCookies) and self.dCookies["iPlanetDirectoryPro"]:
                 # Proceed to data page
-                self.sConnectionStep = "dataconnecting"
+                self.sConnectionStep = "getcookies"
                 self.httpConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=API_BASE_URI, Port=BASE_PORT)
                 self.httpConn.Connect()
             else:
                 Domoticz.Error("Login failed, will try again later")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
+
+        # If we are connected, we must show the authentication cookie
+        elif self.sConnectionStep == "getcookies":
+            if not self.httpConn.Connected():
+                Domoticz.Error("Connection failed for cookies read")
+                self.sConnectionStep = "idle"
+                self.bHasAFail = True
+            else:
+                self.getCookies(Data)
+                self.sConnectionStep = "dataconnecting"
+                # Dummy action to show that we have the authentication cookie
+                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
 
         # We are now connected to data page, ask for hours data
         elif self.sConnectionStep == "dataconnecting":
@@ -420,21 +466,10 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 self.getCookies(Data)
-                self.sConnectionStep = "getcookies"
+                DumpDictToLog(Data)
+                self.sConnectionStep = "getdatahours"
                 self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
                 
-        # If we are connected, we must show the authentication cookie
-        elif self.sConnectionStep == "getcookies":
-            if not self.httpConn.Connected():
-                Domoticz.Error("Connection failed for cookies read")
-                self.sConnectionStep = "idle"
-                self.bHasAFail = True
-            else:
-                self.getCookies(Data)
-                self.sConnectionStep = "getdatahours"
-                # Dummy action to show that we have the authentication cookie
-                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
-
         # Now we should received data for real
         elif self.sConnectionStep == "getdatahours":
             if not self.httpConn.Connected():
@@ -443,13 +478,26 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 self.getCookies(Data)
-                # Analyse data for hours
-                if not self.exploreDataHours(Data):
-                    self.bHasAFail = True
-                self.sConnectionStep = "getdatadays"
-                self.bFirstMonths = True
-                # Ask data for days
-                self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
+                strData = ""
+                if Data and ("Data" in Data):
+                    strData = Data["Data"].decode();
+                if "terms_of_use" in strData:
+                    if Parameters["Mode4"] == "True":
+                        Domoticz.Status("Auto-accepting new terms of use")
+                        self.acceptTerms()
+                        self.sConnectionStep = "dataconnecting"
+                    else:
+                        Domoticz.Error("You must accept terms of use on https://"  + LOGIN_BASE_URI)
+                        self.sConnectionStep = "idle"
+                        self.bHasAFail = True
+                else:
+                    # Analyse data for hours
+                    if not self.exploreDataHours(Data):
+                        self.bHasAFail = True
+                    self.sConnectionStep = "getdatadays"
+                    self.bFirstMonths = True
+                    # Ask data for days
+                    self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 
         # Ask data for days
         elif self.sConnectionStep == "getdatadays":
@@ -477,7 +525,7 @@ class BasePlugin:
 
     def onStart(self):
         Domoticz.Debug("onStart called")
-        Domoticz.Log("This plugin is compatible with Domoticz version 3.9517 onwards")
+        Domoticz.Log("This plugin is compatible with Domoticz version 3.9517 onwards, but short log view may fail on version 4.9700")
         Domoticz.Log("Username set to " + Parameters["Username"])
         if Parameters["Password"]:
             Domoticz.Log("Password is set")
@@ -486,6 +534,7 @@ class BasePlugin:
         Domoticz.Log("Days to grab for hours view set to " + Parameters["Mode1"])
         Domoticz.Log("Days to grab for others view set to " + Parameters["Mode2"])
         Domoticz.Log("Debug set to " + Parameters["Mode3"])
+        Domoticz.Log("Accept terms of use automatically set to " + Parameters["Mode4"])
         # most init
         self.__init__()
         
@@ -643,7 +692,7 @@ def datetimeToSQLDateTimeString(datetimeObj):
     return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
 
 def DumpDictToLog(dictToLog):
-    if Parameters["Mode4"] == "Debug":
+    if Parameters["Mode3"] == "Debug":
         if isinstance(dictToLog, dict):
             Domoticz.Debug("Dict details ("+str(len(dictToLog))+"):")
             for x in dictToLog:
