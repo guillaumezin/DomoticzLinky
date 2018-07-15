@@ -245,18 +245,24 @@ class BasePlugin:
             Domoticz.Device(Name=self.sDeviceName,  Unit=self.iIndexUnit, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Description=self.sDescription, Used=1).Create()
             if not (self.iIndexUnit in Devices):
                 Domoticz.Error("Cannot add Linky device to database. Check in settings that Domoticz is set up to accept new devices")
+                return False
+        return True
 
     # Create device and insert usage in Domoticz DB
     def createAndAddToDevice(self, usage, Date):
-        self.createDevice()
+        if not self.createDevice():
+            return False
         # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
         Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(usage) + ";"  + str(Date), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType,)
+        return True
 
     # Update value shown on Domoticz dashboard
     def updateDevice(self, usage):
-        self.createDevice()
+        if not self.createDevice():
+            return False
         # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
         Devices[self.iIndexUnit].Update(nValue=0, sValue="-1.0;"+ str(usage), Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
+        return True
 
     # Show error in state machine context
     def showStepError(self, hours, logMessage):
@@ -309,7 +315,8 @@ class BasePlugin:
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
-                                self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate))
+                                if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
+                                    return False
                                 # Check that we had enough data, as expected
                                 if curDate >= endDate:
                                     dataSeenToTheEnd = True
@@ -363,12 +370,14 @@ class BasePlugin:
                             curDate = beginDate + timedelta(days=index)
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #DumpDictToLog(values)
-                            self.createAndAddToDevice(val, datetimeToSQLDateString(curDate))
+                            if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
+                                return False
                             # If we are on the most recent batch and end date, use the mose recent data for Domoticz dashboard
                             if self.bFirstMonths and (curDate == endDate):
                                 #Domoticz.Log("Update " + str(val) + " " + datetimeToSQLDateString(curDate))
-                                self.updateDevice(val)
                                 self.bFirstMonths = False
+                                if not self.updateDevice(val):
+                                    return False
                     return True
                 else:
                     self.showStepError(False, "Error in received JSON data")
@@ -563,9 +572,10 @@ class BasePlugin:
         if Parameters["Mode3"] == "Debug":
             Domoticz.Debugging(1)            
 
-        self.createDevice()
-
-        self.nextConnection = datetime.now()
+        if self.createDevice():
+            self.nextConnection = datetime.now()
+        else:
+            self.setNextConnection(False)            
         
         # Now we can enabling the plugin
         self.isStarted = True
