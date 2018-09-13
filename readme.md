@@ -4,9 +4,9 @@ This is a plugin for [Domoticz](https://domoticz.com), to grab data from french 
 
 ## Prerequisites
 
-Domoticz version must be at least 3.9517.
+Domoticz version must be at least 3.9517, and short log view may fail on version 4.9700.
 
-You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr) and accept conditions on the website.
+You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr), accept conditions on the website and check that you receive data on the website.
 
 ## Installing
 
