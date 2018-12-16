@@ -51,5 +51,5 @@ This project is licensed under the GPLv3 license - see the [LICENSE](LICENSE) fi
 
 * Baptiste Candellier
 * Asdepique777
-* epierre
+* empierre
 * Domoticz team
