@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Username" width="200px" required="true" default=""/>
         <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
@@ -293,6 +293,8 @@ class BasePlugin:
                     try:
                         beginDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
                         endDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
+                        # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
+                        endDate = endDate + timedelta(hours=1)
                     except (TypeError, ValueError) as err:
                         self.showStepError(True, "Error in received JSON data time format: " + str(err))
                         return False
@@ -301,6 +303,7 @@ class BasePlugin:
                         return False
                     # We accumulate data because Enedis sends kWh for every 30 minutes and Domoticz expects data only for every hour
                     accumulation = 0.0
+                    currentDay = -1
                     steps = 1.0
                     dataSeenToTheEnd = False
                     for index, data in enumerate(dJson["graphe"]["data"]):
@@ -309,21 +312,22 @@ class BasePlugin:
                         except:
                             val = -1.0
                         if (val >= 0.0):
-                            # Enedis and Domoticz doesn't set the same date for used energy, add 90 minutes offset
-                            curDate = beginDate + timedelta(minutes=(index+2)*30)
+                            # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
+                            # Enedis and Domoticz doesn't set the same date for used energy, add offset
+                            curDate = beginDate + timedelta(hours=1, minutes=((index+1)*30))
                             accumulation = accumulation + val
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
+                                # Check that we had enough data, as expected
+                                if curDate >= endDate:
+                                    #Domoticz.Log("Last val")
+                                    dataSeenToTheEnd = True
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                     return False
-                                # Check that we had enough data, as expected
-                                if curDate >= endDate:
-                                    dataSeenToTheEnd = True
-                            steps = steps + 1.0
-                            if curDate.minute == 0:
                                 accumulation = 0.0
-                                steps = 1.0
+                                steps = 0.0
+                            steps = steps + 1.0
                     if not dataSeenToTheEnd:
                         self.showStepError(True, "Data missing")                        
                     return dataSeenToTheEnd
@@ -334,7 +338,7 @@ class BasePlugin:
         return False
     
     # Grab days data inside received JSON data for history
-    def exploreDataDays(self, Data):
+    def exploreDataDays(self, Data, bLocalFirstMonths):
         DumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -373,9 +377,9 @@ class BasePlugin:
                             if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                                 return False
                             # If we are on the most recent batch and end date, use the mose recent data for Domoticz dashboard
-                            if self.bFirstMonths and (curDate == endDate):
+                            if bLocalFirstMonths and (curDate == endDate):
                                 #Domoticz.Log("Update " + str(val) + " " + datetimeToSQLDateString(curDate))
-                                self.bFirstMonths = False
+                                bLocalFirstMonths = False
                                 if not self.updateDevice(val):
                                     return False
                     return True
@@ -465,24 +469,12 @@ class BasePlugin:
                 self.getCookies(Data)
                 self.sConnectionStep = "dataconnecting"
                 # Dummy action to show that we have the authentication cookie
-                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
+                self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
 
         # We are now connected to data page, ask for hours data
         elif self.sConnectionStep == "dataconnecting":
             if not self.httpConn.Connected():
-                Domoticz.Error("Connection failed for data")
-                self.sConnectionStep = "idle"
-                self.bHasAFail = True
-            else:
-                self.getCookies(Data)
-                DumpDictToLog(Data)
-                self.sConnectionStep = "getdatahours"
-                self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
-                
-        # Now we should received data for real
-        elif self.sConnectionStep == "getdatahours":
-            if not self.httpConn.Connected():
-                self.showStepError(True, "Get data failed for hours view")
+                Domoticz.Error("Connection failed for first data")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
@@ -500,15 +492,13 @@ class BasePlugin:
                         self.sConnectionStep = "idle"
                         self.bHasAFail = True
                 else:
-                    # Analyse data for hours
-                    if not self.exploreDataHours(Data):
-                        self.bHasAFail = True
+                    DumpDictToLog(Data)
                     self.sConnectionStep = "getdatadays"
                     self.bFirstMonths = True
                     # Ask data for days
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 
-        # Ask data for days
+        # Now we should received data for real
         elif self.sConnectionStep == "getdatadays":
             if not self.httpConn.Connected():
                 self.showStepError(False, "Get data failed for days view")
@@ -516,16 +506,29 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 # Analyse data for days
-                if not self.exploreDataDays(Data):
+                if not self.exploreDataDays(Data, self.bFirstMonths):
                     self.bHasAFail = True
                 if self.iDaysLeft > 0:
                     self.calculateDaysLeft()
                     self.sConnectionStep = "getdatadays"
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
-                    self.sConnectionStep = "idle"
-                    Domoticz.Log("Done")
+                    self.sConnectionStep = "getdatahours"
+                    self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
 
+        # Ask data for hours
+        elif self.sConnectionStep == "getdatahours":
+            if not self.httpConn.Connected():
+                self.showStepError(True, "Get data failed for hours view")
+                self.sConnectionStep = "idle"
+                self.bHasAFail = True
+            else:
+                # Analyse data for hours
+                if not self.exploreDataHours(Data):
+                    self.bHasAFail = True
+                self.sConnectionStep = "idle"
+                Domoticz.Log("Done")
+                
         # Next connection time depends on success
         if self.sConnectionStep == "idle":
             if self.bHasAFail:
