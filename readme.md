@@ -9,7 +9,7 @@ Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les donn�
 
 La version de Domoticz doit être 3.9517 ou plus récente, mais la vue par heures ne fonctionnera pas avec la release version 4.9700 (vous aurez besoin d'une version release ou beta plus récente si vous avez déjà installé la version 4.9700 pour que la vue par heures fonctionne).
 
-Vous devez avoir un compteur Linky, créer un compte utilisateur sur [Enedis](http://www.enedis.fr), accepter les conditions d'utilisation et vérifier que vous visualisez bien les courbes sur le site. En particulier, vérifiez la vue par heures (Consommation/Suivre ma consommation/Par heure), Enedis peut vous demander la permission la première fois pour collecter les données par heure, ce plugin ne fonctionnera pas pleinement si vous n'avez pas passé cette étape. Les données peuvent ne pas être disponibles après l'installation ou l'activation de Linky, soyez patient et vérifiez que vous recevez les données sur le site [Enedis](http://www.enedis.fr) avant de rejetter la faute sur le plugin.
+Vous devez avoir un compteur Linky, créer un compte utilisateur sur [Enedis](http://www.enedis.fr), accepter les conditions d'utilisation et vérifier que vous visualisez bien les courbes sur le site. En particulier, vérifiez la vue par heures (Consommation / Suivre ma consommation / Par heure), Enedis peut vous demander la permission la première fois pour collecter les données par heure, ce plugin ne fonctionnera pas pleinement si vous n'avez pas passé cette étape. Les données peuvent ne pas être disponibles après l'installation ou l'activation de Linky, soyez patient et vérifiez que vous recevez les données sur le site [Enedis](http://www.enedis.fr) avant de rejetter la faute sur le plugin.
 
 ## Installation
 
@@ -33,9 +33,9 @@ Redémarrez Domoticz.
 
 ## Configuration
 
-Ajouter le matériel Linky dans l'onglet de configuration Réglages / Matériel, en mettant l'adresse e-mail et le mot de passe de votre compte Enedis. Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique.
+Ajoutez le matériel Linky dans l'onglet de configuration Réglages / Matériel, en mettant l'adresse e-mail et le mot de passe de votre compte Enedis. Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique.
 
-Après avoir activé le matériel, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton log de ce dispositif..
+Après avoir activé le matériel, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton Log de ce dispositif.
 
 ## Auteurs
 
@@ -67,7 +67,7 @@ This is a plugin for [Domoticz](https://domoticz.com), to grab data from french 
 
 Domoticz version must be at least 3.9517, but short log view (hours view) will fail on release version 4.9700 (you'll need a more recent release or beta version if you already installed the version 4.9700 to get short log view working).
 
-You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr), accept conditions on the website and check that you receive data on the website. In particular, check the hour view (Consommation/Suivre ma consommation/Par heure), Enedis might ask for your permission the first time to collect hours data, this plugin won't work if you didn't fulfill this step. Data might be not available the first weeks after Linky has be installed or enabled, be patient and check you get data on [Enedis](http://www.enedis.fr) website before blaming the plugin.
+You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr), accept conditions on the website and check that you receive data on the website. In particular, check the hour view (Consommation / Suivre ma consommation / Par heure), Enedis might ask for your permission the first time to collect hours data, this plugin won't work if you didn't fulfill this step. Data might be not available the first weeks after Linky has be installed or enabled, be patient and check you get data on [Enedis](http://www.enedis.fr) website before blaming the plugin.
 
 ## Installing
 

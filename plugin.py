@@ -33,7 +33,7 @@
                 <option label="False" value="Normal"  default="true" />
             </options>
         </param>
-        <param field="Mode4" label="Accept terms of use automatically" width="75px">
+        <param field="Mode4" label="Accepter automatiquement les conditions d'utilisation" width="75px">
             <options>
                 <option label="True" value="True"/>
                 <option label="False" value="False"  default="true" />
@@ -513,6 +513,7 @@ class BasePlugin:
                     self.sConnectionStep = "getdatadays"
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
+                    # user set Mode1 to 0, he doesn't want to grab hours data
                     if self.iHistoryDaysForHoursView < 1:
                         self.sConnectionStep = "idle"
                         Domoticz.Log("Done")
