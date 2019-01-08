@@ -21,12 +21,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
-        <param field="Username" label="Username" width="200px" required="true" default=""/>
-        <param field="Password" label="Password" width="200px" required="true" default="" password="true"/>
-        <param field="Mode1" label="Number of days to grab for hours view (1 min, 7 max)" width="50px" required="false" default="7"/>
-        <param field="Mode2" label="Number of days to grab for others view (28 min)" width="50px" required="false" default="366"/>
+        <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
+        <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
+        <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
+        <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (28 min)" width="50px" required="false" default="366"/>
         <param field="Mode3" label="Debug" width="75px">
             <options>
                 <option label="True" value="Debug"/>
@@ -513,8 +513,12 @@ class BasePlugin:
                     self.sConnectionStep = "getdatadays"
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
-                    self.sConnectionStep = "getdatahours"
-                    self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
+                    if self.iHistoryDaysForHoursView < 1:
+                        self.sConnectionStep = "idle"
+                        Domoticz.Log("Done")
+                    else:
+                        self.sConnectionStep = "getdatahours"
+                        self.getData("urlCdcHeure", self.dateBeginHours, self.dateEndHours)
 
         # Ask data for hours
         elif self.sConnectionStep == "getdatahours":
@@ -555,8 +559,8 @@ class BasePlugin:
             self.iHistoryDaysForHoursView = int(Parameters["Mode1"])
         except:
             self.iHistoryDaysForHoursView = 7
-        if self.iHistoryDaysForHoursView < 1:
-            self.iHistoryDaysForHoursView = 1
+        if self.iHistoryDaysForHoursView < 0:
+            self.iHistoryDaysForHoursView = 0
         elif self.iHistoryDaysForHoursView > 7:
             self.iHistoryDaysForHoursView = 7
         Domoticz.Log("If you don't see enough data in days view of the device log, expand Short Log Sensors value the in Setup/Settings/Log History")
