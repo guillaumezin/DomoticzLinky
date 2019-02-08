@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.0.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -398,7 +398,7 @@ class BasePlugin:
         else:
             daysToGet = 28
         self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet+2)
-        self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
+        self.dateEndDays = self.savedDateEndDays - timedelta(days=1, hours=1)
         self.savedDateEndDays = self.dateBeginDays
 
     # Calculate next complete grab, for tomorrow between 5 and 6 am if tomorrow is true, for next hour otherwise
