@@ -358,7 +358,6 @@ class BasePlugin:
         self.ldpweek = self.fdweek - timedelta(days=1)
         self.fdpweek = self.ldpweek - timedelta(days=6)
         self.fdyear = endDate.replace(day=1,month=1)
-        Domoticz.Log(str(self.ldpweek) + " --- " + str(self.fdpweek))
         
     def dayAccumulate(self, curDate, val):
         if Parameters["Mode5"] == "week":
