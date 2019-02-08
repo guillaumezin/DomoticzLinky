@@ -37,6 +37,8 @@ Ajoutez le matériel Linky dans l'onglet de configuration Réglages / Matériel,
 
 Après avoir activé le matériel, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton Log de ce dispositif.
 
+A partir de la version 1.0.9, le plugin a une option permettant de choisir si vous voulez afficher sur le tableau de bord la consommation de la veille, de la semaine en cours, de la semaine dernière, du mois en cours, du mois dernier, ou de l'année.
+
 ## Auteurs
 
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
@@ -94,6 +96,8 @@ Restart Domoticz.
 Add the Linky hardware in Domoticz Settings / Hardware configuration tab, giving the e-mail address and password of your Enedis account. You can choose the number of days to collect data for the short log (day) and for the week/month/year log. You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
 
 After enabling the hardware, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
+
+Starting version 1.0.9, the plugin has an option to choose if you want to see on the dashboard the consumption of the day before, the current week, the previous week, the current month, the previsous month, or the year.
 
 ## Authors
 
