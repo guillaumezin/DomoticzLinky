@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.0.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -348,9 +348,9 @@ class BasePlugin:
             self.showStepError(True, "Aucune donnée reçue")
         return False
     
-    def resetAccumulate(self, endDate):
+    def resetDayAccumulate(self, endDate):
         endDate = endDate.replace(hour=0, minute=0, second=0, microsecond=0)
-        self.kwhAccumulate = 0.0
+        self.daysAccumulate = 0.0
         self.fdmonth = endDate.replace(day=1)
         self.ldpmonth = self.fdmonth - timedelta(days=1)
         self.fdpmonth = self.ldpmonth.replace(day=1)
@@ -360,29 +360,29 @@ class BasePlugin:
         self.fdyear = endDate.replace(day=1,month=1)
         Domoticz.Log(str(self.ldpweek) + " --- " + str(self.fdpweek))
         
-    def accumulate(self, curDate, val):
+    def dayAccumulate(self, curDate, val):
         if Parameters["Mode5"] == "week":
             if (curDate >= self.fdweek):
-                Domoticz.Log(str(curDate) + " " + str(val))
-                self.kwhAccumulate = self.kwhAccumulate + val
+                #Domoticz.Log(str(curDate) + " " + str(val))
+                self.daysAccumulate = self.daysAccumulate + val
         elif Parameters["Mode5"] == "lweek":
             if (self.fdpweek <= curDate <= self.ldpweek):
-                Domoticz.Log(str(curDate) + " " + str(val))
-                self.kwhAccumulate = self.kwhAccumulate + val
+                #Domoticz.Log(str(curDate) + " " + str(val))
+                self.daysAccumulate = self.daysAccumulate + val
         elif Parameters["Mode5"] == "month":
             if (curDate >= self.fdmonth):
-                Domoticz.Log(str(curDate) + " " + str(val))
-                self.kwhAccumulate = self.kwhAccumulate + val
+                #Domoticz.Log(str(curDate) + " " + str(val))
+                self.daysAccumulate = self.daysAccumulate + val
         elif Parameters["Mode5"] == "lmonth":
             if (self.fdpmonth <= curDate <= self.ldpmonth):
-                Domoticz.Log(str(curDate) + " " + str(val))
-                self.kwhAccumulate = self.kwhAccumulate + val
+                #Domoticz.Log(str(curDate) + " " + str(val))
+                self.daysAccumulate = self.daysAccumulate + val
         elif Parameters["Mode5"] == "year":
             if (curDate >= self.fdyear):
-                Domoticz.Log(str(curDate) + " " + str(val))
-                self.kwhAccumulate = self.kwhAccumulate + val
+                #Domoticz.Log(str(curDate) + " " + str(val))
+                self.daysAccumulate = self.daysAccumulate + val
         else:
-            self.kwhAccumulate = val;
+            self.daysAccumulate = val;
     
     # Grab days data inside received JSON data for history
     def exploreDataDays(self, Data, bLocalFirstMonths):
@@ -419,7 +419,7 @@ class BasePlugin:
                             val = -1.0
                         if (val >= 0.0):
                             curDate = beginDate + timedelta(days=index)
-                            self.accumulate(curDate, val)
+                            self.dayAccumulate(curDate, val)
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #DumpDictToLog(values)
                             if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
@@ -428,7 +428,7 @@ class BasePlugin:
                             if bLocalFirstMonths and (curDate == endDate):
                                 #Domoticz.Log("Update " + str(val) + " " + datetimeToSQLDateString(curDate))
                                 bLocalFirstMonths = False
-                                if not self.updateDevice(self.kwhAccumulate):
+                                if not self.updateDevice(self.daysAccumulate):
                                     return False
                     return True
                 else:
@@ -543,7 +543,7 @@ class BasePlugin:
                     DumpDictToLog(Data)
                     self.sConnectionStep = "getdatadays"
                     self.bFirstMonths = True
-                    self.resetAccumulate(self.dateEndDays)
+                    self.resetDayAccumulate(self.dateEndDays)
                     # Ask data for days
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 
