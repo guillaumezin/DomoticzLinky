@@ -213,7 +213,7 @@ class BasePlugin:
         
     # ask data to Enedis website, based on a resource_id ("urlCdcHeure" or "urlCdcJour") and date (max 28 days at once)
     def getData(self, resource_id, start_date, end_date, ):
-        Domoticz.Log(resource_id + " " + str(end_date))
+        #Domoticz.Log(resource_id + " " + str(end_date))
         req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
 
         payload = {
