@@ -21,24 +21,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
-        <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
-        <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (28 min)" width="50px" required="false" default="366"/>
-        <param field="Mode3" label="Debug" width="75px">
-            <options>
-                <option label="Oui" value="Debug"/>
-                <option label="Non" value="Normal"  default="true" />
-            </options>
-        </param>
-        <param field="Mode4" label="Accepter automatiquement les conditions d'utilisation" width="75px">
-            <options>
-                <option label="Oui" value="True"/>
-                <option label="Non" value="False"  default="true" />
-            </options>
-        </param>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
                 <option label="Journée dernière" value="day"  default="true" />
@@ -47,6 +33,20 @@
                 <option label="Mois en cours" value="month" />
                 <option label="Mois dernier" value="lmonth"  />
                 <option label="Année en cours" value="year"  />
+            </options>
+        </param>
+        <param field="Mode4" label="Accepter automatiquement les conditions d'utilisation" width="75px">
+            <options>
+                <option label="Oui" value="True"/>
+                <option label="Non" value="False"  default="true" />
+            </options>
+        </param>
+        <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
+        <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (28 min)" width="50px" required="false" default="366"/>
+        <param field="Mode3" label="Debug" width="75px">
+            <options>
+                <option label="Oui" value="Debug"/>
+                <option label="Non" value="Normal"  default="true" />
             </options>
         </param>
     </params>
@@ -130,6 +130,20 @@ class BasePlugin:
     savedDateEndDays = None
     # boolean: is this the batch of the most recent history
     bFirstMonths = None
+    # string: username for Enedis website
+    sUser = None
+    # string: password for Enedis website
+    sPassword = None
+    # string: consumption to show = current week ("week"), the previous week ("lweek", the current month ("month"), the previous month ("lmonth"), or year ("year")
+    sConsumptionType = None
+    # boolean: auto accept terms
+    bAutoAcceptTerms = None
+    # integer: number of days for hours view
+    iHistoryDaysForHoursView = None
+    # integer: number of other view
+    iHistoryDaysForDaysView = None
+    # boolean: debug mode
+    bDebug = None
     
     def __init__(self):
         self.isStarted = False
@@ -181,7 +195,7 @@ class BasePlugin:
                     "Data" : dictToQuotedString(payload)
         }
         
-        #DumpDictToLog(sendData)
+        #self.dumpDictToLog(sendData)
         # Reset cookies to get authentication cookie later
         self.resetCookies()
         # Send data
@@ -208,7 +222,7 @@ class BasePlugin:
                     "Data" : dictToQuotedString(payload)
         }
         
-        #DumpDictToLog(sendData)
+        #self.dumpDictToLog(sendData)
         self.httpConn.Send(sendData)
         
     # ask data to Enedis website, based on a resource_id ("urlCdcHeure" or "urlCdcJour") and date (max 28 days at once)
@@ -246,7 +260,7 @@ class BasePlugin:
                     "Data" : dictToQuotedString(payload)
         }
         
-        #DumpDictToLog(sendData)
+        #self.dumpDictToLog(sendData)
         self.httpConn.Send(sendData)
 
     # Create Domoticz device
@@ -284,7 +298,7 @@ class BasePlugin:
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data):
-        DumpDictToLog(Data)
+        self.dumpDictToLog(Data)
         if Data and ("Data" in Data):
             try:
                 dJson = json.loads(Data["Data"].decode())
@@ -360,23 +374,23 @@ class BasePlugin:
         self.fdyear = endDate.replace(day=1,month=1)
         
     def dayAccumulate(self, curDate, val):
-        if Parameters["Mode5"] == "week":
+        if self.sConsumptionType == "week":
             if (curDate >= self.fdweek):
                 #Domoticz.Log(str(curDate) + " " + str(val))
                 self.daysAccumulate = self.daysAccumulate + val
-        elif Parameters["Mode5"] == "lweek":
+        elif self.sConsumptionType == "lweek":
             if (self.fdpweek <= curDate <= self.ldpweek):
                 #Domoticz.Log(str(curDate) + " " + str(val))
                 self.daysAccumulate = self.daysAccumulate + val
-        elif Parameters["Mode5"] == "month":
+        elif self.sConsumptionType == "month":
             if (curDate >= self.fdmonth):
                 #Domoticz.Log(str(curDate) + " " + str(val))
                 self.daysAccumulate = self.daysAccumulate + val
-        elif Parameters["Mode5"] == "lmonth":
+        elif self.sConsumptionType == "lmonth":
             if (self.fdpmonth <= curDate <= self.ldpmonth):
                 #Domoticz.Log(str(curDate) + " " + str(val))
                 self.daysAccumulate = self.daysAccumulate + val
-        elif Parameters["Mode5"] == "year":
+        elif self.sConsumptionType == "year":
             if (curDate >= self.fdyear):
                 #Domoticz.Log(str(curDate) + " " + str(val))
                 self.daysAccumulate = self.daysAccumulate + val
@@ -385,7 +399,7 @@ class BasePlugin:
     
     # Grab days data inside received JSON data for history
     def exploreDataDays(self, Data, bLocalFirstMonths):
-        DumpDictToLog(Data)
+        self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
                 dJson = json.loads(Data["Data"].decode())
@@ -420,7 +434,7 @@ class BasePlugin:
                             curDate = beginDate + timedelta(days=index)
                             self.dayAccumulate(curDate, val)
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
-                            #DumpDictToLog(values)
+                            #self.dumpDictToLog(values)
                             if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                                 return False
                             # If we are on the most recent batch and end date, use the mose recent data for Domoticz dashboard
@@ -486,13 +500,13 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 self.sConnectionStep = "logconnected"
-                self.login(Parameters["Username"], Parameters["Password"])
+                self.login(self.sUser, self.sPassword)
                 
         # Connected, check that the authentication cookie has been received
         elif self.sConnectionStep == "logconnected":
             if self.httpConn and self.httpConn.Connected():
                 self.httpConn.Disconnect()
-            DumpDictToLog(Data)
+            self.dumpDictToLog(Data)
             
             # Grab cookies from received data, if we have "iPlanetDirectoryPro", we're good
             self.getCookies(Data)
@@ -530,7 +544,7 @@ class BasePlugin:
                 if Data and ("Data" in Data):
                     strData = Data["Data"].decode();
                 if "terms_of_use" in strData:
-                    if Parameters["Mode4"] == "True":
+                    if self.bAutoAcceptTerms:
                         Domoticz.Status("Auto-accepting new terms of use")
                         self.acceptTerms()
                         self.sConnectionStep = "dataconnecting"
@@ -539,7 +553,7 @@ class BasePlugin:
                         self.sConnectionStep = "idle"
                         self.bHasAFail = True
                 else:
-                    DumpDictToLog(Data)
+                    self.dumpDictToLog(Data)
                     self.sConnectionStep = "getdatadays"
                     self.bFirstMonths = True
                     self.resetDayAccumulate(self.dateEndDays)
@@ -588,36 +602,48 @@ class BasePlugin:
                 self.setNextConnection(False)            
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.nextConnection))
 
+    def dumpDictToLog(self, dictToLog):
+        if self.bDebug:
+            if isinstance(dictToLog, dict):
+                Domoticz.Debug("Dict details ("+str(len(dictToLog))+"):")
+                for x in dictToLog:
+                    if isinstance(dictToLog[x], dict):
+                        Domoticz.Debug("--->'"+x+" ("+str(len(dictToLog[x]))+"):")
+                        for y in dictToLog[x]:
+                            if isinstance(dictToLog[x][y], dict):
+                                for z in dictToLog[x][y]:
+                                    Domoticz.Debug("----------->'" + z + "':'" + str(dictToLog[x][y][z]) + "'")
+                            else:
+                                Domoticz.Debug("------->'" + y + "':'" + str(dictToLog[x][y]) + "'")
+                    else:
+                        Domoticz.Debug("--->'" + x + "':'" + str(dictToLog[x]) + "'")
+                        
     def onStart(self):
         Domoticz.Debug("onStart called")
-        Domoticz.Log("Ce plugin est compatible avec Domoticz version 3.9517 et plus récent, mais la vue par heure peut ne pas fonctionner avec la version 4.9700")
-        Domoticz.Log("Adresse e-mail mise à " + Parameters["Username"])
-        if Parameters["Password"]:
-            Domoticz.Log("Mot de passe entré")
-        else:
-            Domoticz.Log("Mot de passe laissé vide")
-        Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + Parameters["Mode1"])
-        Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + Parameters["Mode2"])
-        Domoticz.Log("Debug mis à " + Parameters["Mode3"])
-        Domoticz.Log("Accepter automatiquement les conditions d'utilisation mis à " + Parameters["Mode4"])
-        Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + Parameters["Mode5"])
-        # most init
-        self.__init__()
         
+        Domoticz.Log("Ce plugin est compatible avec Domoticz version 3.9517 et plus récent, mais la vue par heure peut ne pas fonctionner avec la version 4.9700")
+        
+        self.sUser = Parameters["Username"]
+        self.sPassword = Parameters["Password"]
+        self.iHistoryDaysForHoursView = Parameters["Mode1"]
+        self.iHistoryDaysForDaysView = Parameters["Mode2"]
+        self.bDebug = Parameters["Mode3"] == "True"
+        self.bAutoAcceptTerms = Parameters["Mode4"] == "True"
+        self.sConsumptionType = Parameters["Mode5"]
+
         # History for short log is 7 days max (default to 7)
         try:
-            self.iHistoryDaysForHoursView = int(Parameters["Mode1"])
+            self.iHistoryDaysForHoursView = int(self.iHistoryDaysForHoursView)
         except:
             self.iHistoryDaysForHoursView = 7
         if self.iHistoryDaysForHoursView < 0:
             self.iHistoryDaysForHoursView = 0
         elif self.iHistoryDaysForHoursView > 7:
             self.iHistoryDaysForHoursView = 7
-        Domoticz.Log("Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
             
         # History for short log is 7 days max (default to 366)
         try:
-            self.iHistoryDaysForDaysView = int(Parameters["Mode2"])
+            self.iHistoryDaysForDaysView = int(self.iHistoryDaysForDaysView)
         except:
             self.iHistoryDaysForDaysView = 366
         if self.iHistoryDaysForDaysView < 28:
@@ -625,17 +651,33 @@ class BasePlugin:
         elif self.iHistoryDaysForDaysView > 100000:
             self.iHistoryDaysForDaysView = 100000
 
-        if (Parameters["Mode5"] == "month") and (self.iHistoryDaysForDaysView < 32) :
+        if (self.sConsumptionType == "month") and (self.iHistoryDaysForDaysView < 32) :
             self.iHistoryDaysForDaysView = 32
 
-        if (Parameters["Mode5"] == "lmonth") and (self.iHistoryDaysForDaysView < 64) :
-            self.iHistoryDaysForDaysView = 64
+        if (self.sConsumptionType == "lmonth") and (self.iHistoryDaysForDaysView < 63) :
+            self.iHistoryDaysForDaysView = 63
 
-        if (Parameters["Mode5"] == "year") and (self.iHistoryDaysForDaysView < 366) :
+        if (self.sConsumptionType == "year") and (self.iHistoryDaysForDaysView < 366) :
             self.iHistoryDaysForDaysView = 366
 
+        Domoticz.Log("Adresse e-mail mise à " + self.sUser)
+        if self.sPassword:
+            Domoticz.Log("Mot de passe entré")
+        else:
+            Domoticz.Log("Mot de passe laissé vide")
+        Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType)
+        Domoticz.Log("Accepter automatiquement les conditions d'utilisation mis à " + str(self.bAutoAcceptTerms))
+        Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
+        Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
+        Domoticz.Log("Debug mis à " + str(self.bDebug))
+        
+        # most init
+        self.__init__()
+
+        Domoticz.Log("Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
+        
         # enable debug if required
-        if Parameters["Mode3"] == "Debug":
+        if self.bDebug == "Debug":
             Domoticz.Debugging(1)            
 
         if self.createDevice():
@@ -766,19 +808,3 @@ def datetimeToSQLDateString(datetimeObj):
 # Convert datetime object to Domoticz date and time string
 def datetimeToSQLDateTimeString(datetimeObj):
     return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
-
-def DumpDictToLog(dictToLog):
-    if Parameters["Mode3"] == "Debug":
-        if isinstance(dictToLog, dict):
-            Domoticz.Debug("Dict details ("+str(len(dictToLog))+"):")
-            for x in dictToLog:
-                if isinstance(dictToLog[x], dict):
-                    Domoticz.Debug("--->'"+x+" ("+str(len(dictToLog[x]))+"):")
-                    for y in dictToLog[x]:
-                        if isinstance(dictToLog[x][y], dict):
-                            for z in dictToLog[x][y]:
-                                Domoticz.Debug("----------->'" + z + "':'" + str(dictToLog[x][y][z]) + "'")
-                        else:
-                            Domoticz.Debug("------->'" + y + "':'" + str(dictToLog[x][y]) + "'")
-                else:
-                    Domoticz.Debug("--->'" + x + "':'" + str(dictToLog[x]) + "'")

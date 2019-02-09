@@ -97,7 +97,7 @@ Add the Linky hardware in Domoticz Settings / Hardware configuration tab, giving
 
 After enabling the hardware, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
 
-Starting version 1.0.9, the plugin has an option to choose if you want to see on the dashboard the consumption of the day before, the current week, the previous week, the current month, the previsous month, or the year.
+Starting version 1.0.9, the plugin has an option to choose if you want to see on the dashboard the consumption of the day before, the current week, the previous week, the current month, the previous month, or the year.
 
 ## Authors
 
