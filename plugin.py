@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -627,9 +627,12 @@ class BasePlugin:
         self.sPassword = Parameters["Password"]
         self.iHistoryDaysForHoursView = Parameters["Mode1"]
         self.iHistoryDaysForDaysView = Parameters["Mode2"]
-        self.bDebug = Parameters["Mode3"] == "True"
+        self.bDebug = Parameters["Mode3"] == "Debug"
         self.bAutoAcceptTerms = Parameters["Mode4"] == "True"
         self.sConsumptionType = Parameters["Mode5"]
+        
+        if self.bDebug:
+            Domoticz.Debugging(1)            
 
         # History for short log is 7 days max (default to 7)
         try:
