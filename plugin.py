@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -250,7 +250,7 @@ class BasePlugin:
             'p_p_cacheability': 'cacheLevelPage',
             'p_p_col_id': 'column-1',
             'p_p_col_pos': 1,
-            'p_p_col_count': 3
+            'p_p_col_count': 2
         }
         
         sendData = {
@@ -533,7 +533,7 @@ class BasePlugin:
                 self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
 
         # We are now connected to data page, ask for hours data
-        elif self.sConnectionStep == "dataconnecting":
+        elif self.sConnectionStep == "dataconnecting" or self.sConnectionStep == "dataconnecting2":
             if not self.httpConn.Connected():
                 Domoticz.Error("Connexion échouée à la réception des premières données")
                 self.sConnectionStep = "idle"
@@ -554,9 +554,13 @@ class BasePlugin:
                         self.bHasAFail = True
                 else:
                     self.dumpDictToLog(Data)
-                    self.sConnectionStep = "getdatadays"
-                    self.bFirstMonths = True
-                    self.resetDayAccumulate(self.dateEndDays)
+                    # Dummy action again to show that we have the authentication cookie
+                    if self.sConnectionStep == "dataconnecting":
+                        self.sConnectionStep = "dataconnecting2"
+                    else:
+                        self.sConnectionStep = "getdatadays"
+                        self.bFirstMonths = True
+                        self.resetDayAccumulate(self.dateEndDays)
                     # Ask data for days
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 
@@ -617,6 +621,8 @@ class BasePlugin:
                                 Domoticz.Debug("------->'" + y + "':'" + str(dictToLog[x][y]) + "'")
                     else:
                         Domoticz.Debug("--->'" + x + "':'" + str(dictToLog[x]) + "'")
+            else:
+                Domoticz.Debug("Received no dict: " + str(dictToLog))
                         
     def onStart(self):
         Domoticz.Debug("onStart called")
@@ -632,7 +638,7 @@ class BasePlugin:
         self.sConsumptionType = Parameters["Mode5"]
         
         if self.bDebug:
-            Domoticz.Debugging(1)            
+            Domoticz.Debugging(1)
 
         # History for short log is 7 days max (default to 7)
         try:
