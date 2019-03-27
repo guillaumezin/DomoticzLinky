@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -576,6 +576,7 @@ class BasePlugin:
                     self.bHasAFail = True
                 if self.iDaysLeft > 0:
                     self.calculateDaysLeft()
+                    self.bFirstMonths = False
                     self.sConnectionStep = "getdatadays"
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
