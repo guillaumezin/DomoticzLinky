@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -45,9 +45,9 @@
         <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (28 min)" width="50px" required="false" default="366"/>
         <param field="Mode3" label="Debug" width="75px">
             <options>
-                <option label="Avancé" value="2"/>
-                <option label="Oui" value="1"/>
                 <option label="Non" value="0"  default="true" />
+                <option label="Oui" value="1"/>
+                <option label="Avancé" value="2"/>
             </options>
         </param>
     </params>
@@ -365,6 +365,8 @@ class BasePlugin:
                     if not dataSeenToTheEnd:
                         self.showStepError(True, "Données manquantes")                        
                     return dataSeenToTheEnd
+                elif dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]):
+                    self.showStepError(True, "Erreur à la réception de données JSON (code : " + str(dJson["etat"]["valeur"]) + ")")
                 else:
                     self.showStepError(True, "Erreur à la réception de données JSON")
         else:
@@ -453,6 +455,8 @@ class BasePlugin:
                                 if not self.updateDevice(self.daysAccumulate):
                                     return False
                     return True
+                elif dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]):
+                    self.showStepError(True, "Erreur à la réception de données JSON (code : " + str(dJson["etat"]["valeur"]) + ")")
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
         else:
