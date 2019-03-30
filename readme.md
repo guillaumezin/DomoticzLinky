@@ -33,7 +33,7 @@ Redémarrez Domoticz.
 
 ## Configuration
 
-A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Réglages / Paramètres / Système / Matériel/dispositifs / Accepter de nouveaux dispositifs matériels).
+A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Réglages / Paramètres / Système / Matériel/dispositifs).
 
 Ajoutez le matériel Linky dans l'onglet de configuration Réglages / Matériel, en mettant l'adresse e-mail et le mot de passe de votre compte Enedis. Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique.
 
