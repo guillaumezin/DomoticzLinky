@@ -5,9 +5,9 @@
 * Pour tout problème, veuillez activer le mode Debug en le mettant sur "Oui" ou "Avancé", et postez tous les messages qui concernent le plugin, y compris les lignes indiquant la version du plugin et les paramètres configurés
 
 * Veuillez indiquer votre version de 
-** Domoticz
-** Système d'exploitation
-** Type d'ordinateur (PC/Raspberry Pi 3 B+/etc.)
+  * Domoticz
+  * Système d'exploitation
+  * Type d'ordinateur (PC/Raspberry Pi 3 B+/etc.)
 
 ----------------------------------------------------------------
 
@@ -19,6 +19,6 @@
 version of the plugin and the configured parameters
 
 * Please indicate your version of
-** Domoticz
-** Operating system
-** Computer type (PC/Raspberry Pi 3 B+/etc.)
+  * Domoticz
+  * Operating system
+  * Computer type (PC/Raspberry Pi 3 B+/etc.)
