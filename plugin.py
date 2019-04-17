@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -236,8 +236,8 @@ class BasePlugin:
         req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
 
         payload = {
-            '_' + req_part + '_dateDebut': datetimeToEnderdisDateString(start_date),
-            '_' + req_part + '_dateFin': datetimeToEnderdisDateString(end_date)
+            '_' + req_part + '_dateDebut': datetimeToEnedisDateString(start_date),
+            '_' + req_part + '_dateFin': datetimeToEnedisDateString(end_date)
         }
         
         headers = self.initHeaders()
@@ -301,9 +301,9 @@ class BasePlugin:
     # Show error in state machine context
     def showStepError(self, hours, logMessage):
         if hours:
-            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnderdisDateString(self.dateBeginHours) + " à " + datetimeToEnderdisDateString(self.dateEndHours))
+            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours))
         else:
-            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnderdisDateString(self.dateBeginDays) + " à " + datetimeToEnderdisDateString(self.dateEndDays))
+            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays))
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data):
@@ -325,8 +325,8 @@ class BasePlugin:
                     self.showStepError(True, "Erreur reçue : " + html.unescape(dJson["etat"]["erreurText"]))
                 if dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]) and (dJson["etat"]["valeur"] == "termine"):
                     try:
-                        beginDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
-                        endDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
+                        beginDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
+                        endDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
                         # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                         endDate = endDate + timedelta(hours=1)
                     except (TypeError, ValueError) as err:
@@ -428,8 +428,8 @@ class BasePlugin:
                     self.showStepError(False, "Erreur reçue : " + html.unescape(dJson["etat"]["erreurText"]))
                 if dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]) and (dJson["etat"]["valeur"] == "termine"):
                     try:
-                        beginDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
-                        endDate = enerdisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
+                        beginDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
+                        endDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
                     except ValueError as err:
                         self.showStepError(False, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
@@ -813,14 +813,14 @@ def DumpConfigToLog():
     return
 
 # Convert Enedis date string to datetime object
-def enerdisDateToDatetime(datetimeStr):
+def enedisDateToDatetime(datetimeStr):
     #Buggy
     #return datetime.strptime(datetimeStr, dateFormat)
     #Not buggy
     return datetime(*(time.strptime(datetimeStr, "%d/%m/%Y")[0:6]))
 
 # Convert datetime object to Enedis date string
-def datetimeToEnderdisDateString(datetimeObj):
+def datetimeToEnedisDateString(datetimeObj):
     return datetimeObj.strftime("%d/%m/%Y")
 
 # Convert datetime object to Domoticz date string
