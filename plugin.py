@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -456,7 +456,7 @@ class BasePlugin:
                                     return False
                     return True
                 elif dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]):
-                    self.showStepError(True, "Erreur à la réception de données JSON (code : " + str(dJson["etat"]["valeur"]) + ")")
+                    self.showStepError(False, "Erreur à la réception de données JSON (code : " + str(dJson["etat"]["valeur"]) + ")")
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
         else:
