@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.1.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -66,6 +66,7 @@ from datetime import timedelta
 import time
 #from random import randint
 import html
+from pprint import pprint
 
 LOGIN_BASE_URI = 'espace-client-connexion.enedis.fr'
 API_BASE_URI = 'espace-client-particuliers.enedis.fr'
@@ -164,8 +165,14 @@ class BasePlugin:
     def getCookies(self, Data):
         if Data and ("Headers" in Data) and ("Set-Cookie" in Data["Headers"]):
             # lCookies = re.findall("^(.*?)=(.*?)[;$]", Data["Headers"]["Set-Cookie"], re.MULTILINE)
-            for match in re.finditer("^(.*?)=(.*?)[;$]", Data["Headers"]["Set-Cookie"], re.MULTILINE):
-                self.dCookies[match.group(1)] = match.group(2)
+            cookiesLines = Data["Headers"]["Set-Cookie"]
+            # on old version of Domoticz, cookies is a multiline string
+            if isinstance(cookiesLines, str):
+                cookiesLines = cookiesLines.splitlines()
+            # for match in re.finditer("^(.*?)=(.*?)[;$]", Data["Headers"]["Set-Cookie"], re.MULTILINE):
+            for sCookiesLine in cookiesLines:
+                for match in re.finditer("^(.*?)=(.*?)[;$]", sCookiesLine):
+                    self.dCookies[match.group(1)] = match.group(2)
 
     # Write saved cookies in headers["Cookie"]
     def setCookies(self, headers):
