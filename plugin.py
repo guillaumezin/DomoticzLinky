@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.1.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.2.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -66,7 +66,6 @@ from datetime import timedelta
 import time
 #from random import randint
 import html
-from pprint import pprint
 
 LOGIN_BASE_URI = 'espace-client-connexion.enedis.fr'
 API_BASE_URI = 'espace-client-particuliers.enedis.fr'
@@ -146,6 +145,22 @@ class BasePlugin:
     iHistoryDaysForDaysView = None
     # boolean: debug mode
     iDebugLevel = None
+    # previous day
+    pday = None
+    # first day of month
+    fdmonth = None
+    # last day of previous month
+    ldpmonth = None
+    # first day of previous month
+    fdpmonth = None
+    # first day of week
+    fdweek = None
+    # last day of previous week
+    ldpweek = None
+    # first day of previous week
+    fdpweek = None
+    # first day of year
+    fdyear = None
     
     def __init__(self):
         self.isStarted = False
@@ -292,7 +307,7 @@ class BasePlugin:
         # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
         sValue = "-1.0;"+ str(usage) + ";"  + str(Date)
         self.myDebug("Mets dans la BDD la valeur " + sValue)
-        Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType,)
+        Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
 
     # Update value shown on Domoticz dashboard
@@ -381,7 +396,8 @@ class BasePlugin:
         return False
     
     def resetDayAccumulate(self, endDate):
-        endDate = endDate.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.pday = endDate.replace(hour=0, minute=0, second=0, microsecond=0)
+        endDate = self.pday + timedelta(days=1)
         self.daysAccumulate = 0.0
         self.fdmonth = endDate.replace(day=1)
         self.ldpmonth = self.fdmonth - timedelta(days=1)
@@ -390,33 +406,35 @@ class BasePlugin:
         self.ldpweek = self.fdweek - timedelta(days=1)
         self.fdpweek = self.ldpweek - timedelta(days=6)
         self.fdyear = endDate.replace(day=1,month=1)
+        #Domoticz.Log(str(endDate) + " " + str(self.fdmonth) + " " + str(self.ldpmonth) + " " + str(self.fdpmonth) + " " + str(self.fdweek) + " " + str(self.ldpweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
         
     def dayAccumulate(self, curDate, val):
         if self.sConsumptionType == "week":
             if (curDate >= self.fdweek):
-                #Domoticz.Log(str(curDate) + " " + str(val))
+                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysAccumulate))
                 self.daysAccumulate = self.daysAccumulate + val
         elif self.sConsumptionType == "lweek":
             if (self.fdpweek <= curDate <= self.ldpweek):
-                #Domoticz.Log(str(curDate) + " " + str(val))
+                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysAccumulate))
                 self.daysAccumulate = self.daysAccumulate + val
         elif self.sConsumptionType == "month":
             if (curDate >= self.fdmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val))
+                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysAccumulate))
                 self.daysAccumulate = self.daysAccumulate + val
         elif self.sConsumptionType == "lmonth":
             if (self.fdpmonth <= curDate <= self.ldpmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val))
+                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysAccumulate))
                 self.daysAccumulate = self.daysAccumulate + val
         elif self.sConsumptionType == "year":
             if (curDate >= self.fdyear):
-                #Domoticz.Log(str(curDate) + " " + str(val))
+                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysAccumulate))
                 self.daysAccumulate = self.daysAccumulate + val
-        else:
+        elif curDate == self.pday:
+            #Domoticz.Log(str(curDate) + " " + str(self.pday) + " " + str(val) + " " + str(self.daysAccumulate))
             self.daysAccumulate = val;
     
     # Grab days data inside received JSON data for history
-    def exploreDataDays(self, Data, bLocalFirstMonths):
+    def exploreDataDays(self, Data):
         self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -455,12 +473,6 @@ class BasePlugin:
                             #self.dumpDictToLog(values)
                             if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                                 return False
-                            # If we are on the most recent batch and end date, use the mose recent data for Domoticz dashboard
-                            if bLocalFirstMonths and (curDate == endDate):
-                                #Domoticz.Log("Update " + str(val) + " " + datetimeToSQLDateString(curDate))
-                                bLocalFirstMonths = False
-                                if not self.updateDevice(self.daysAccumulate):
-                                    return False
                     return True
                 elif dJson and ("etat" in dJson) and ("valeur" in dJson["etat"]):
                     self.showStepError(False, "Erreur à la réception de données JSON (code : " + str(dJson["etat"]["valeur"]) + ")")
@@ -470,6 +482,10 @@ class BasePlugin:
             self.showStepError(False, "Aucune donnée reçue")
         return False
 
+    # Update dashboard with accumulated value
+    def updateDashboard(self):
+        return self.updateDevice(self.daysAccumulate)
+        
     # Calculate days and date left for next batch
     def calculateDaysLeft(self):
         # No more than 28 days at once
@@ -579,7 +595,6 @@ class BasePlugin:
                         self.sConnectionStep = "dataconnecting2"
                     else:
                         self.sConnectionStep = "getdatadays"
-                        self.bFirstMonths = True
                         self.resetDayAccumulate(self.dateEndDays)
                     # Ask data for days
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
@@ -592,14 +607,15 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 # Analyse data for days
-                if not self.exploreDataDays(Data, self.bFirstMonths):
+                if not self.exploreDataDays(Data):
                     self.bHasAFail = True
                 if self.iDaysLeft > 0:
                     self.calculateDaysLeft()
-                    self.bFirstMonths = False
                     self.sConnectionStep = "getdatadays"
                     self.getData("urlCdcJour", self.dateBeginDays, self.dateEndDays)
                 else:
+                    if not self.updateDashboard():
+                        self.bHasAFail = True
                     # user set Mode1 to 0, he doesn't want to grab hours data
                     if self.iHistoryDaysForHoursView < 1:
                         self.sConnectionStep = "idle"
