@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.2.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.2.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -57,13 +57,15 @@
 # https://www.domoticz.com/wiki/Developing_a_Python_plugin
 
 import Domoticz
+import sys
 from base64 import b64encode
 import json
 from urllib.parse import quote
 import re
 from datetime import datetime
 from datetime import timedelta
-import time
+from datetime import time
+from time import strptime
 #from random import randint
 import html
 
@@ -127,7 +129,7 @@ class BasePlugin:
     iHistoryDaysForDaysView = None
     # integer: number of days left fot next batch of data
     iDaysLeft = None
-    # datetime: backup end date for next batch of data
+    # datetime: backup end date
     savedDateEndDays = None
     # boolean: is this the batch of the most recent history
     bFirstMonths = None
@@ -253,7 +255,7 @@ class BasePlugin:
         self.httpConn.Send(sendData)
         
     # ask data to Enedis website, based on a resource_id ("urlCdcHeure" or "urlCdcJour") and date (max 28 days at once)
-    def getData(self, resource_id, start_date, end_date, ):
+    def getData(self, resource_id, start_date, end_date):
         #Domoticz.Log(resource_id + " " + str(end_date))
         req_part = 'lincspartdisplaycdc_WAR_lincspartcdcportlet'
 
@@ -261,6 +263,8 @@ class BasePlugin:
             '_' + req_part + '_dateDebut': datetimeToEnedisDateString(start_date),
             '_' + req_part + '_dateFin': datetimeToEnedisDateString(end_date)
         }
+        
+        #Domoticz.Log("getData : " + datetimeToEnedisDateString(start_date) + " " + datetimeToEnedisDateString(end_date))
         
         headers = self.initHeaders()
         headers["Host"] = API_BASE_URI + ":" + BASE_PORT
@@ -340,7 +344,7 @@ class BasePlugin:
                 self.showStepError(True, "Le type de données reçues n'est pas JSON : " + str(err))
                 return False
             except:
-                self.showStepError(True, "Erreur dans les données JSON : " + sys.exc_info()[0])
+                self.showStepError(True, "Erreur dans les données JSON : " + str(sys.exc_info()[0]))
                 return False
             else:
                 if dJson and ("etat" in dJson) and ("erreurText" in dJson["etat"]):
@@ -355,7 +359,7 @@ class BasePlugin:
                         self.showStepError(True, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
                     except:
-                        self.showStepError(True, "Erreur dans la donnée de date JSON : " + sys.exc_info()[0])
+                        self.showStepError(True, "Erreur dans la donnée de date JSON : " + str(sys.exc_info()[0]) + dJson["graphe"]["periode"]["dateDebut"] + dJson["graphe"]["periode"]["dateFin"])
                         return False
                     # We accumulate data because Enedis sends kWh for every 30 minutes and Domoticz expects data only for every hour
                     accumulation = 0.0
@@ -371,6 +375,7 @@ class BasePlugin:
                             # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                             # Enedis and Domoticz doesn't set the same date for used energy, add offset
                             curDate = beginDate + timedelta(hours=1, minutes=((index+1)*30))
+                            #Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
@@ -446,7 +451,7 @@ class BasePlugin:
                 self.showStepError(False, "Le type de données reçues n'est pas JSON : " + str(err))
                 return False
             except:
-                self.showStepError(False, "Erreur dans les données JSON : " + sys.exc_info()[0])
+                self.showStepError(False, "Erreur dans les données JSON : " + str(sys.exc_info()[0]))
                 return False
             else:
                 if dJson and ("etat" in dJson) and ("erreurText" in dJson["etat"]):
@@ -459,7 +464,7 @@ class BasePlugin:
                         self.showStepError(False, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
                     except:
-                        self.showStepError(False, "Erreur dans la donnée de date JSON : " + sys.exc_info()[0])
+                        self.showStepError(False, "Erreur dans la donnée de date JSON : " + str(sys.exc_info()[0]))
                         return False
                     for index, data in enumerate(dJson["graphe"]["data"]):
                         try:
@@ -497,6 +502,7 @@ class BasePlugin:
         self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet+2)
         self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
         self.savedDateEndDays = self.dateBeginDays
+        #Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
 
     # Calculate next complete grab, for tomorrow between 5 and 6 am if tomorrow is true, for next hour otherwise
     def setNextConnection(self, tomorrow):
@@ -757,12 +763,14 @@ class BasePlugin:
         Domoticz.Debug("onHeartbeat() called")
         
         if datetime.now() > self.nextConnection:
-            self.savedDateEndDays = self.nextConnection
+            #self.savedDateEndDays = self.nextConnection
+            self.savedDateEndDays = datetime.combine(self.nextConnection, time.min)
             # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
             self.setNextConnection(True)
 
             self.dateBeginHours = self.savedDateEndDays - timedelta(days=(self.iHistoryDaysForHoursView + 1))
             self.dateEndHours = self.savedDateEndDays
+            #Domoticz.Log("Hours : " + datetimeToSQLDateTimeString(self.savedDateEndDays) + " " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours))
 
             self.iDaysLeft = self.iHistoryDaysForDaysView
             self.calculateDaysLeft()
@@ -840,7 +848,7 @@ def enedisDateToDatetime(datetimeStr):
     #Buggy
     #return datetime.strptime(datetimeStr, dateFormat)
     #Not buggy
-    return datetime(*(time.strptime(datetimeStr, "%d/%m/%Y")[0:6]))
+    return datetime(*(strptime(datetimeStr, "%d/%m/%Y")[0:6]))
 
 # Convert datetime object to Enedis date string
 def datetimeToEnedisDateString(datetimeObj):
