@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.2.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.2.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -353,8 +353,6 @@ class BasePlugin:
                     try:
                         beginDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateDebut"])
                         endDate = enedisDateToDatetime(dJson["graphe"]["periode"]["dateFin"])
-                        # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
-                        endDate = endDate + timedelta(hours=1)
                     except (TypeError, ValueError) as err:
                         self.showStepError(True, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
@@ -768,7 +766,7 @@ class BasePlugin:
             # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
             self.setNextConnection(True)
 
-            self.dateBeginHours = self.savedDateEndDays - timedelta(days=(self.iHistoryDaysForHoursView + 1))
+            self.dateBeginHours = self.savedDateEndDays - timedelta(days=self.iHistoryDaysForHoursView)
             self.dateEndHours = self.savedDateEndDays
             #Domoticz.Log("Hours : " + datetimeToSQLDateTimeString(self.savedDateEndDays) + " " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours))
 
@@ -846,8 +844,8 @@ def DumpConfigToLog():
 # Convert Enedis date string to datetime object
 def enedisDateToDatetime(datetimeStr):
     #Buggy
-    #return datetime.strptime(datetimeStr, dateFormat)
-    #Not buggy
+    #return datetime.strptime(datetimeStr, "%d/%m/%Y")
+    #Not buggy ?
     return datetime(*(strptime(datetimeStr, "%d/%m/%Y")[0:6]))
 
 # Convert datetime object to Enedis date string
