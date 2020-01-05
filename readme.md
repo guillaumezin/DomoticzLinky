@@ -4,7 +4,6 @@
 
 Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
-
 ## Prérequis
 
 La version de Domoticz doit être 3.9517 ou plus récente, mais la vue par heures ne fonctionnera pas avec la release version 4.9700 (vous aurez besoin d'une version release ou beta plus récente si vous avez déjà installé la version 4.9700 pour que la vue par heures fonctionne).
@@ -33,13 +32,15 @@ Redémarrez Domoticz.
 
 ## Configuration
 
-A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Réglages / Paramètres / Système / Matériel/dispositifs).
+A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Configuration / Paramètres / Système / Matériel/dispositifs).
 
-Ajoutez le matériel Linky dans l'onglet de configuration Réglages / Matériel, en mettant l'adresse e-mail et le mot de passe de votre compte Enedis. Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique.
-
-Après avoir activé le matériel, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton Log de ce dispositif.
+Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matériel. Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique.
 
 A partir de la version 1.0.9, le plugin a une option permettant de choisir si vous voulez afficher sur le tableau de bord la consommation de la veille, de la semaine en cours, de la semaine dernière, du mois en cours, du mois dernier, ou de l'année.
+
+Commencez par surveiller votre Configuration / Log. Aux premières connexions, le plugin doit vous donner une adresse Web à copier/coller dans votre navigateur pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
+
+Après avoir activé le matériel et donné le consentement, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton Log de ce dispositif.
 
 ## Auteurs
 
@@ -97,11 +98,13 @@ Restart Domoticz.
 
 On first install, check that "Accept new Hardware Devices" is enabled, at least temporaly (in Setup / Settings / System / Hardware/Devices).
 
-Add the Linky hardware in Domoticz Settings / Hardware configuration tab, giving the e-mail address and password of your Enedis account. You can choose the number of days to collect data for the short log (day) and for the week/month/year log. You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
-
-After enabling the hardware, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
+Add the Linky hardware in Domoticz Setup / Hardware configuration tab. You can choose the number of days to collect data for the short log (day) and for the week/month/year log. You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
 
 Starting version 1.0.9, the plugin has an option to choose if you want to see on the dashboard the consumption of the day before, the current week, the previous week, the current month, the previous month, or the year.
+
+To start, go to Setup / Log. At first connections, the plugin shall give you a web address to copy/paste to a Web browser to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
+
+After enabling the hardware and give authorizations, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
 
 ## Authors
 
