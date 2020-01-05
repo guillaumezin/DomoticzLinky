@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -186,6 +186,8 @@ class BasePlugin:
     bPeakMode = None
     # send nuffer
     sBuffer = None
+    # timeout counter
+    iTimeoutCount = 0
     
     def __init__(self):
         self.isStarted = False
@@ -194,6 +196,7 @@ class BasePlugin:
         self.sConnectionStep = "idle"
         self.bHasAFail = False
         self.sBuffer = None
+        self.iTimeoutCount = 0
         
     def myDebug(self, message):
         if self.iDebugLevel:
@@ -204,6 +207,7 @@ class BasePlugin:
         self.sBuffer = data
         self.sConnectionNextStep = self.sConnectionStep
         self.sConnectionStep = "connecting"
+        self.iTimeoutCount = 0
         conn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=address, Port=port)
         conn.Connect()
         return conn
@@ -706,8 +710,11 @@ class BasePlugin:
 
         # We should never reach this
         elif self.sConnectionStep == "connecting":
-            self.showSimpleStepError("Timeout à la connexion")
-            self.bHasAFail = False
+            if (self.iTimeoutCount >= 1):
+                self.showSimpleStepError("Timeout à la connexion")
+                self.bHasAFail = False
+            else:
+                self.iTimeoutCount = self.iTimeoutCount + 1
                 
         # We should never reach this
         elif self.sConnectionStep == "nothingtosend":
