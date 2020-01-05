@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -278,7 +278,10 @@ class BasePlugin:
 
     def parseDeviceCode(self, Data):
         self.dumpDictToLog(Data)
-        if getStatus(Data) == 200:
+        status = getStatus(Data)
+        if status == 429:
+            return "retrylater"
+        if status == 200:
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
@@ -294,12 +297,12 @@ class BasePlugin:
                     count = count + 1
                 if count == 2:
                     Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
-                    return True
+                    return "done"
             else:
                 self.showSimpleStepError("Pas de données reçue")
         else:
             self.showSimpleStatusError(Data)
-        return False
+        return "error"
         
     # get access token
     def getAccessToken(self):
@@ -344,7 +347,10 @@ class BasePlugin:
     # Parse access token
     def parseAccessToken(self, Data):
         self.dumpDictToLog(Data)
-        if getError(Data) == "authorization_pending":
+        status = getStatus(Data)
+        if status == 429:
+            return "retrylater"
+        elif getError(Data) == "authorization_pending":
             self.myDebug("pending")
             if Data and ("Data" in Data):
                 try:
@@ -361,7 +367,7 @@ class BasePlugin:
         elif getError(Data) == "invalid_grant":
             resetTokens()
             self.showSimpleStatusError(Data)
-        elif getStatus(Data) == 200:
+        elif status == 200:
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
@@ -723,10 +729,11 @@ class BasePlugin:
 
         # Did we get a device code ?
         elif self.sConnectionStep == "parsedevicecode":
-            if self.parseDeviceCode(Data):
+            result = self.parseDeviceCode(Data)
+            if result == "done":
                 self.sConnectionStep = "parseaccesstoken"
                 self.getAccessToken()
-            else:
+            elif result == "error":
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             
@@ -753,7 +760,7 @@ class BasePlugin:
                 self.isEnabled = False
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             # Wait for user to complete authorization process with his web browser
-            else:
+            elif result == "pending":
                 self.sConnectionStep = "askagainaccesscode"
                 self.setNextConnectionForAuthorization(self.iInterval)
             
@@ -765,11 +772,12 @@ class BasePlugin:
             if status == 403:
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
-            elif status != 200:
+            # If status 429, retry later
+            elif (status != 200) and (status != 429):
                 self.showStatusError(False, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            else:
+            elif status == 200:
                 # Analyse data for days
                 if self.sConnectionStep == "getdatapeakdays" :
                     bPeak = True
@@ -819,11 +827,12 @@ class BasePlugin:
                 self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            elif status != 200:
+            # If status 429, retry later
+            elif (status != 200) and (status != 429):
                 self.showStatusError(True, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            else:
+            elif status == 200:
                 # Analyse data for hours
                 if not self.exploreDataHours(Data):
                     self.bHasAFail = True
