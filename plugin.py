@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -78,7 +78,8 @@ API_BASE_URI = "gw.hml.api.enedis.fr"
 #API_BASE_URI = "gw.prd.api.enedis.fr"
 API_BASE_PORT = "443"
 
-VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
+#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
+VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device"
 
 API_ENDPOINT_DEVICE_CODE = "/domoticzlinkyconnect/device/code"
 API_ENDPOINT_DEVICE_TOKEN = "/domoticzlinkyconnect/device/token"
@@ -324,7 +325,8 @@ class BasePlugin:
                     sUserCode = dJson["user_code"]
                     count = count + 1
                 if count == 2:
-                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
+                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
+                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
                     return "done"
             else:
                 self.showSimpleStepError("Pas de données reçue")

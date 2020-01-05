@@ -38,7 +38,7 @@ Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matér
 
 A partir de la version 1.0.9, le plugin a une option permettant de choisir si vous voulez afficher sur le tableau de bord la consommation de la veille, de la semaine en cours, de la semaine dernière, du mois en cours, du mois dernier, ou de l'année.
 
-Commencez par surveiller votre Configuration / Log. Aux premières connexions, le plugin doit vous donner une adresse Web à copier/coller dans votre navigateur pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
+Commencez par surveiller votre Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
 
 Après avoir activé le matériel et donné le consentement, vous devriez avoir un nouveau dispositif Linky dans l'onglet Mesures, et vous devriez pouvoir visualiser les courbes de consommation via le bouton Log de ce dispositif.
 
@@ -102,7 +102,7 @@ Add the Linky hardware in Domoticz Setup / Hardware configuration tab. You can c
 
 Starting version 1.0.9, the plugin has an option to choose if you want to see on the dashboard the consumption of the day before, the current week, the previous week, the current month, the previous month, or the year.
 
-To start, go to Setup / Log. At first connections, the plugin shall give you a web address to copy/paste to a Web browser to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
+To start, go to Setup / Log. At first connections, the plugin shall give you the web address https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
 
 After enabling the hardware and give authorizations, you shall have a new Linky Utility device and watch your energy consumption history with the Log button.
 
