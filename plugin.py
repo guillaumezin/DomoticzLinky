@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -124,6 +124,8 @@ class BasePlugin:
     iSwitchType = 0
     # string: step name of the state machine
     sConnectionStep = None
+    # string: memory of step name of the state machine during connection
+    sMemConnectionStep = None
     # string: step name of the next state machine during connection
     sConnectionNextStep = None
     # boolean: true if a step failed
@@ -186,8 +188,14 @@ class BasePlugin:
     bPeakMode = None
     # send nuffer
     sBuffer = None
+    # data sent
+    sMemData = None
+    # connect for login if true, for data if false
+    bLoginConnect = True
     # timeout counter
     iTimeoutCount = 0
+    # resend counter
+    iResendCount = 0
     
     def __init__(self):
         self.isStarted = False
@@ -197,27 +205,47 @@ class BasePlugin:
         self.bHasAFail = False
         self.sBuffer = None
         self.iTimeoutCount = 0
+        self.iResendCount = 0
         
     def myDebug(self, message):
         if self.iDebugLevel:
             Domoticz.Log(message)
 
-    # Prepare buffer and connect
-    def connectAndSend(self, conn, data, address, port):
-        self.sBuffer = data
-        self.sConnectionNextStep = self.sConnectionStep
+    # resend same data
+    def reconnectAndResend(self):
+        self.sBuffer = self.sMemData
+        self.sConnectionNextStep = self.sMemConnectionStep
         self.sConnectionStep = "connecting"
         self.iTimeoutCount = 0
+        self.iResendCount = self.iResendCount + 1
+        if self.bLoginConnect :
+            self.httpLoginConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=LOGIN_BASE_URI, Port=LOGIN_BASE_PORT)
+            self.httpLoginConn.Connect()
+        else:
+            self.httpDataConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=API_BASE_URI, Port=API_BASE_PORT)
+            self.httpDataConn.Connect()
+        
+    # Prepare buffer and connect
+    def connectAndSend(self, conn, data, address, port):
+        self.sMemData = data
+        self.sBuffer = data        
+        self.sConnectionNextStep = self.sConnectionStep
+        self.sMemConnectionStep = self.sConnectionStep
+        self.sConnectionStep = "connecting"
+        self.iTimeoutCount = 0
+        self.iResendCount = 0
         conn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=address, Port=port)
         conn.Connect()
         return conn
 
     # Connect for login
     def connectAndSendForAuthorize(self, data):
+        self.bLoginConnect = True
         self.httpLoginConn = self.connectAndSend(self.httpLoginConn, data, LOGIN_BASE_URI, LOGIN_BASE_PORT)
         
     # Connect for metering data
     def connectAndSendForMetering(self, data):
+        self.bLoginConnect = False
         self.httpDataConn = self.connectAndSend(self.httpDataConn, data, API_BASE_URI, API_BASE_PORT)
 
     # get default headers
@@ -250,7 +278,7 @@ class BasePlugin:
             try:
                 dJson = json.loads(Data["Data"].decode())
             except ValueError:
-                self.showSimpleStepError(sErrorSentence)
+                pass
             else:
                 if dJson and ("error" in dJson):
                     sErrorSentence = sErrorSentence + " - code : " + dJson["error"]
@@ -266,7 +294,7 @@ class BasePlugin:
             try:
                 dJson = json.loads(Data["Data"].decode())
             except ValueError:
-                self.showSimpleStepError(sErrorSentence)
+                pass
             else:
                 if dJson and ("error" in dJson):
                     sErrorSentence = sErrorSentence + " - code " + dJson["error"]
@@ -280,7 +308,7 @@ class BasePlugin:
         self.dumpDictToLog(Data)
         status = getStatus(Data)
         if status == 429:
-            return "retrylater"
+            return "retry"
         if status == 200:
             if Data and ("Data" in Data):
                 try:
@@ -349,7 +377,7 @@ class BasePlugin:
         self.dumpDictToLog(Data)
         status = getStatus(Data)
         if status == 429:
-            return "retrylater"
+            return "retry"
         elif getError(Data) == "authorization_pending":
             self.myDebug("pending")
             if Data and ("Data" in Data):
@@ -448,14 +476,14 @@ class BasePlugin:
 
     # Show error in state machine context
     def showSimpleStepError(self, logMessage):
-        Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep)
+        Domoticz.Error("durant l'étape : " + self.sConnectionStep + " - " + logMessage)
 
     # Show error in state machine context with dates
     def showStepError(self, hours, logMessage):
         if hours:
-            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours))
+            Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage)
         else:
-            Domoticz.Error(logMessage + " durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays))
+            Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage)
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data):
@@ -692,14 +720,14 @@ class BasePlugin:
         minutesRand = round(datetime.now().microsecond / 10000) % 60
         self.nextConnection = self.nextConnection + timedelta(minutes=minutesRand)
 
-    # Calculate next connection for device authorization
-    def setNextConnectionForAuthorization(self, iInterval):
+    # Calculate next connection after a few seconds
+    def setNextConnectionForLater(self, iInterval):
         self.nextConnection = datetime.now() + timedelta(seconds=iInterval)
         
     # Handle the connection state machine
     def handleConnection(self, Data = None):
         self.myDebug("Etape " + self.sConnectionStep)
-        
+
         # First and last step
         if self.sConnectionStep == "idle":
             Domoticz.Log("Récupération des données...")
@@ -716,16 +744,18 @@ class BasePlugin:
 
         # We should never reach this
         elif self.sConnectionStep == "connecting":
-            if (self.iTimeoutCount >= 1):
+            if (self.iTimeoutCount >= 3):
                 self.showSimpleStepError("Timeout à la connexion")
-                self.bHasAFail = False
+                self.sConnectionStep = "idle"
+                self.bHasAFail = True
             else:
                 self.iTimeoutCount = self.iTimeoutCount + 1
                 
         # We should never reach this
         elif self.sConnectionStep == "nothingtosend":
             self.showSimpleStepError("Erreur à la connexion")
-            self.bHasAFail = False
+            self.sConnectionStep = "idle"
+            self.bHasAFail = True
 
         # Did we get a device code ?
         elif self.sConnectionStep == "parsedevicecode":
@@ -733,7 +763,10 @@ class BasePlugin:
             if result == "done":
                 self.sConnectionStep = "parseaccesstoken"
                 self.getAccessToken()
-            elif result == "error":
+            elif result == "retry":
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
+            else:
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             
@@ -744,10 +777,18 @@ class BasePlugin:
                 self.showSimpleStepError("Redemande du jeton d'accès")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            # Got answer, parse it
             else:
                 self.sConnectionStep = "parseaccesstoken"
                 self.getAccessToken()
+            
+        # Retry
+        elif self.sConnectionStep == "retry":
+            if (self.iResendCount >= 3):
+                self.showSimpleStepError("Trop d'échec d'envoi, le plugin réessaiera plus tard")
+                self.sConnectionStep = "idle"
+                self.bHasAFail = True
+            else:
+                self.reconnectAndResend()
             
         # Parse for access token
         elif self.sConnectionStep == "parseaccesstoken":
@@ -756,13 +797,16 @@ class BasePlugin:
                 self.sConnectionStep = "getdatadays"
                 # Ask data for days
                 self.getData(API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
-            elif result == "error":
-                self.isEnabled = False
-                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+            elif result == "retry":
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
             # Wait for user to complete authorization process with his web browser
             elif result == "pending":
                 self.sConnectionStep = "askagainaccesscode"
-                self.setNextConnectionForAuthorization(self.iInterval)
+                self.setNextConnectionForLater(self.iInterval)
+            else:
+                self.isEnabled = False
+                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             
         # Ask data for days or peak data
         elif self.sConnectionStep == "getdatadays" or self.sConnectionStep == "getdatapeakdays":
@@ -773,11 +817,14 @@ class BasePlugin:
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             # If status 429, retry later
-            elif (status != 200) and (status != 429):
+            elif status == 429:                
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
+            elif (status != 200):
                 self.showStatusError(False, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            elif status == 200:
+            else:
                 # Analyse data for days
                 if self.sConnectionStep == "getdatapeakdays" :
                     bPeak = True
@@ -828,11 +875,14 @@ class BasePlugin:
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             # If status 429, retry later
-            elif (status != 200) and (status != 429):
+            elif status == 429:                
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
+            elif status != 200:
                 self.showStatusError(True, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
-            elif status == 200:
+            else:
                 # Analyse data for hours
                 if not self.exploreDataHours(Data):
                     self.bHasAFail = True
