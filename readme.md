@@ -18,7 +18,7 @@ Copiez plugin.py dans le sous-répertoire plugins/DomoticzLinky de Domoticz ou p
 git clone https://github.com/guillaumezin/DomoticzLinky
 ```
 
-Pour mettre à jour, écrasez plugin.py placez vous dans le sous répertoire plugins de Domoticz and tapez la commande suivante :
+Pour mettre à jour, écrasez plugin.py ou placez vous dans le sous répertoire plugins de Domoticz et tapez la commande suivante :
 ```
 git pull
 ```
