@@ -79,7 +79,7 @@ API_BASE_URI = "gw.hml.api.enedis.fr"
 API_BASE_PORT = "443"
 
 #VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
-VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code"
+VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
 
 API_ENDPOINT_DEVICE_CODE = "/domoticzlinkyconnect/device/code"
 API_ENDPOINT_DEVICE_TOKEN = "/domoticzlinkyconnect/device/token"
@@ -325,8 +325,8 @@ class BasePlugin:
                     sUserCode = dJson["user_code"]
                     count = count + 1
                 if count == 2:
-                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
-                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
+                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
+                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
                     return "done"
             else:
                 self.showSimpleStepError("Pas de données reçue")
