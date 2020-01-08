@@ -326,7 +326,8 @@ class BasePlugin:
                     count = count + 1
                 if count == 2:
                     #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
-                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
+                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
+                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement avec le code " + sUserCode)
                     return "done"
             else:
                 self.showSimpleStepError("Pas de données reçue")
