@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -119,8 +119,8 @@ class BasePlugin:
     sDescription = "Compteur Linky"
     # integer: type (pTypeGeneral)
     iType = 0xF3
-    # integer: subtype (sTypeManagedCounter)
-    iSubType = 0x21
+    # integer: subtype (sTypeManagedMultiCounter)
+    iSubType = 0x22
     # integer: switch type (Energy)
     iSwitchType = 0
     # string: step name of the state machine
@@ -131,8 +131,6 @@ class BasePlugin:
     sConnectionNextStep = None
     # boolean: true if a step failed
     bHasAFail = None
-    # dict: cookies
-    dCookies = None
     # datetime: start date for short log
     dateBeginHours = None
     # datetime: end date for short log
@@ -197,6 +195,8 @@ class BasePlugin:
     iTimeoutCount = 0
     # resend counter
     iResendCount = 0
+    # data dict with date string as index and consumption1, consumption2, production1, production2 as subindex for float data
+    dData = None
     
     def __init__(self):
         self.isStarted = False
@@ -207,6 +207,7 @@ class BasePlugin:
         self.sBuffer = None
         self.iTimeoutCount = 0
         self.iResendCount = 0
+        self.dData = dict()
         
     def myDebug(self, message):
         if self.iDebugLevel:
@@ -458,11 +459,13 @@ class BasePlugin:
         return True
 
     # Create device and insert usage in Domoticz DB
-    def createAndAddToDevice(self, usage, Date):
+    def createAndAddToDevice(self, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
         if not self.createDevice():
             return False
-        # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
-        sValue = "-1.0;"+ str(usage) + ";"  + str(Date)
+        #sValue = str(usage) + ";0.0;0.0;0.0;0.0;0.0;"  + str(Date)
+        # Usage 1,  Usage 2, Delivery 1, Delivery 2, 0 , 0
+        # sValue = str(usage) + ";" + str(usage/2) + ";" + str(usage*2) + ";" +str(usage*3) + ";0;0;" + str(Date)
+        sValue = str(fConsumption1) + ";" + str(fConsumption2) + ";" + str(fProduction1) + ";" + str(fProduction2) + ";0;0;"  + sDate
         self.myDebug("Mets dans la BDD la valeur " + sValue)
         Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
@@ -471,8 +474,7 @@ class BasePlugin:
     def updateDevice(self, usage):
         if not self.createDevice():
             return False
-        # -1.0 for counter because Linky doesn't provide absolute counter value via Enedis website
-        sValue="-1.0;"+ str(usage)
+        sValue = str(usage) + ";0.0;0.0;0.0;0.0;0.0"
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
         Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
@@ -487,6 +489,34 @@ class BasePlugin:
             Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage)
         else:
             Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage)
+
+    # Check date if in cost 1 or cost 2
+    def isCost2(self, sDate):
+        # Todo
+        return False
+
+    # Write data from memory to Domoticz DB
+    def saveDataToDb(self):
+        for sDate, dOneData in self.dData.items():
+            if not self.createAndAddToDevice(dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
+                return False            
+        self.dData.clear()
+        return True
+
+    # Store data in memory
+    def storeData(self, fData, sDate, bProduction = False):
+        if not sDate in self.dData:
+            self.dData[sDate] = { "consumption1" : 0, "consumption2" : 0, "production1" : 0, "production2" : 0 }
+        if bProduction:
+            if isCost2(date):
+                self.dData[sDate]["production2"] = fData
+            else:
+                self.dData[sDate]["production1"] = fData
+        else:
+            if self.isCost2(sDate):
+                self.dData[sDate]["consumption2"] = fData
+            else:
+                self.dData[sDate]["consumption1"] = fData
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data):
@@ -529,18 +559,19 @@ class BasePlugin:
                         if (val >= 0.0):
                             # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                             # Enedis and Domoticz doesn't set the same date for used energy, add offset
-                            curDate = beginDate + timedelta(hours=1, minutes=((rank+1)*30))
+                            curDate = beginDate + timedelta(minutes=(rank*30))
                             #Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
-                            #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
+                            Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
                                 # Check that we had enough data, as expected
                                 if curDate >= endDate:
                                     #Domoticz.Log("Last val")
                                     dataSeenToTheEnd = True
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
-                                if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
-                                    return False
+                                #if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
+                                    #return False
+                                self.storeData(accumulation / steps, datetimeToSQLDateTimeString(curDate))
                                 accumulation = 0.0
                                 steps = 0.0
                             steps = steps + 1.0
@@ -667,8 +698,9 @@ class BasePlugin:
                                 self.getMax(curDate, val)
                             else:
                                 self.dayAccumulate(curDate, val)
-                                if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
-                                    return False
+                                #if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
+                                    #return False
+                                self.storeData(val, datetimeToSQLDateString(curDate))
                     return True
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
@@ -736,6 +768,8 @@ class BasePlugin:
             Domoticz.Log("Récupération des données...")
             # Reset failed state
             self.bHasAFail = False
+            # Reset data
+            self.dData.clear()
 
             # If we have access tokens, try do grab data, otherwise ask for tokens
             if (getConfigItem("access_token", "") and getConfigItem("usage_point_id", "")) :
@@ -894,7 +928,8 @@ class BasePlugin:
                 
         # Next connection time depends on success
         if self.sConnectionStep == "idle":
-            if self.bHasAFail:
+            self.saveDataToDb()
+            if (not self.saveDataToDb()) or self.bHasAFail:
                 self.setNextConnection(False)            
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.nextConnection))
 
