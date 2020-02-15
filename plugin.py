@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -40,7 +40,7 @@
             </options>
         </param>
         <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
-        <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (1095 max)" width="50px" required="false" default="365"/>
+        <param field="Mode2" label="Nombre de jours à récupérer pour les autres vues (730 max)" width="50px" required="false" default="60"/>
         <param field="Mode3" label="Debug" width="170px">
             <options>
                 <option label="Non" value="0"  default="true" />
@@ -145,20 +145,20 @@ class BasePlugin:
     iHistoryDaysForDaysView = None
     # integer: number of days left fot next batch of data
     iDaysLeft = None
+    iDaysLeftHoursView = None
     # datetime: backup end date
     savedDateEndDays = None
+    savedDateEndDaysForHoursView = None
     # datetime: backup 2 end date
     savedDateEndDays2 = None
+    # datetime: date for hours history view beginning
+    dateBeginDaysHistoryView = None
     # boolean: is this the batch of the most recent history
     bFirstMonths = None
     # string: usage point id
     sUsagePointId = None
     # string: consumption to show = current week ("cweek"), the previous week ("lweek", the current month ("cmonth"), the previous month ("lmonth"), or year ("cyear"), prefix "peak_" for peak calculation
     sConsumptionType = None
-    # boolean: auto accept terms
-    bAutoAcceptTerms = None
-    # integer: number of days for hours view
-    iHistoryDaysForHoursView = None
     # integer: number of other view (peak)
     iHistoryDaysForPeakDaysView = None
     # boolean: debug mode
@@ -195,7 +195,7 @@ class BasePlugin:
     iTimeoutCount = 0
     # resend counter
     iResendCount = 0
-    # data dict with date string as index and consumption1, consumption2, production1, production2 as subindex for float data
+    # data dict with date string as index and consumption1, consumption2, production1, production2 as float and date as DateTime
     dData = None
     
     def __init__(self):
@@ -493,30 +493,61 @@ class BasePlugin:
     # Check date if in cost 1 or cost 2
     def isCost2(self, sDate):
         # Todo
+        if sDate.hour < 7:
+            return True
         return False
 
     # Write data from memory to Domoticz DB
     def saveDataToDb(self):
         for sDate, dOneData in self.dData.items():
+            # hour
+            if len(sDate) > 10:
+                # We want only iHistoryDaysForHoursView days
+                if (self.iHistoryDaysForHoursView < 1) or (dOneData["date"] < self.dateBeginDaysHistoryView):
+                    # Domoticz.Error("Skip " + sDate)
+                    continue
+            # day
+            else:
+                # We don't want the last day, it's incomplete
+                if dOneData["date"] >= self.savedDateEndDays2:
+                    # Domoticz.Error("Skip " + sDate)
+                    continue
             if not self.createAndAddToDevice(dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
                 return False            
         self.dData.clear()
         return True
 
     # Store data in memory
-    def storeData(self, fData, sDate, bProduction = False):
+    def storeData(self, fData, sDate, dDate, bProduction, bCost2, bPeak):
         if not sDate in self.dData:
-            self.dData[sDate] = { "consumption1" : 0, "consumption2" : 0, "production1" : 0, "production2" : 0 }
-        if bProduction:
-            if isCost2(date):
-                self.dData[sDate]["production2"] = fData
-            else:
-                self.dData[sDate]["production1"] = fData
+            self.dData[sDate] = { "consumption1" : 0, "consumption2" : 0, "production1" : 0, "production2" : 0, "peak" : 0, "date": dDate }
+        if bPeak:
+            self.dData[sDate]["peak"] = fData
         else:
-            if self.isCost2(sDate):
-                self.dData[sDate]["consumption2"] = fData
+            if bProduction:
+                if bCost2:
+                    self.dData[sDate]["production2"] = self.dData[sDate]["production2"] + fData
+                else:
+                    self.dData[sDate]["production1"] = self.dData[sDate]["production1"] + fData
             else:
-                self.dData[sDate]["consumption1"] = fData
+                if bCost2:
+                    self.dData[sDate]["consumption2"] = self.dData[sDate]["consumption2"] + fData
+                else:
+                    self.dData[sDate]["consumption1"] = self.dData[sDate]["consumption2"] + fData
+                
+    # Manage data in memory for hours
+    def manageDataHours(self, fData, dDate, bProduction = False):
+        sDateTime = datetimeToSQLDateTimeString(dDate)
+        bCost2 = self.isCost2(dDate)
+        self.storeData(fData, sDateTime, dDate, bProduction, bCost2, False)
+
+        sDate = datetimeToSQLDateString(dDate)
+        self.storeData(fData, sDate, dDate, bProduction, bCost2, False)
+
+    # Manage data in memory for days
+    def manageDataDays(self, fData, dDate, bPeak = False, bProduction = False):
+        sDate = datetimeToSQLDateString(dDate)
+        self.storeData(fData, sDate, dDate, bProduction, False, bPeak)
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data):
@@ -571,7 +602,7 @@ class BasePlugin:
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 #if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                     #return False
-                                self.storeData(accumulation / steps, datetimeToSQLDateTimeString(curDate))
+                                self.manageDataHours(accumulation / steps, curDate)
                                 accumulation = 0.0
                                 steps = 0.0
                             steps = steps + 1.0
@@ -694,13 +725,10 @@ class BasePlugin:
                             curDate = beginDate + timedelta(days=rank)
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #self.dumpDictToLog(values)
-                            if bPeak:
-                                self.getMax(curDate, val)
-                            else:
-                                self.dayAccumulate(curDate, val)
-                                #if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
-                                    #return False
-                                self.storeData(val, datetimeToSQLDateString(curDate))
+                            self.dayAccumulate(curDate, val)
+                            #if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
+                                #return False
+                            self.manageDataDays(val, curDate, True, bPeak)
                     return True
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
@@ -716,14 +744,21 @@ class BasePlugin:
     def resetDates(self, dDateEnd = None):
         if dDateEnd:
             self.savedDateEndDays = dDateEnd
-            self.savedDateEndDays2 = self.savedDateEndDays
-            self.iDaysLeft = self.iHistoryDaysForDaysView
+            self.savedDateEndDaysForHoursView = dDateEnd
+            self.savedDateEndDays2 = dDateEnd
+            self.dateBeginDaysHistoryView = dDateEnd - timedelta(days = self.iHistoryDaysForHoursView)
         else:
             self.savedDateEndDays = self.savedDateEndDays2
-            self.iDaysLeft = self.iHistoryDaysForPeakDaysView
+            self.savedDateEndDaysForHoursView = self.savedDateEndDays2
+            
+        self.iDaysLeft = self.iHistoryDaysForPeakDaysView
+        if self.iHistoryDaysForPeakDaysView > self.iHistoryDaysForHoursView:
+            self.iDaysLeftHoursView = self.iHistoryDaysForPeakDaysView
+        else:
+            self.iDaysLeftHoursView = self.iHistoryDaysForHoursView
         
-        self.dateBeginHours = self.savedDateEndDays - timedelta(days=self.iHistoryDaysForHoursView)
-        self.dateEndHours = self.savedDateEndDays
+        #self.dateBeginHours = self.savedDateEndDays - timedelta(days=self.iHistoryDaysForHoursView)
+        #self.dateEndHours = self.savedDateEndDays
         
         self.calculateDaysLeft()
         self.resetDayAccumulate()
@@ -739,8 +774,28 @@ class BasePlugin:
         self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet)
         self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
         self.savedDateEndDays = self.dateBeginDays
-        #Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
 
+        Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
+        
+        # No more than 7 days at once
+        self.iDaysLeftHoursView = self.iDaysLeftHoursView - 7
+        if self.iDaysLeftHoursView <= 0:
+            daysToGet = self.iDaysLeftHoursView + 7
+        else:
+            daysToGet = 7
+        self.dateBeginHours = self.savedDateEndDaysForHoursView - timedelta(days=daysToGet)
+        self.dateEndHours = self.savedDateEndDaysForHoursView
+        self.savedDateEndDaysForHoursView = self.dateBeginHours
+
+        Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
+
+    # Still data to get
+    def stillDays(self, bPeak):
+        if bPeak:
+            return self.iDaysLeft > 0
+        else:
+            return self.iDaysLeftHoursView > 0
+        
     # Calculate next complete grab, for tomorrow between 5 and 6 am if tomorrow is true, for next hour otherwise
     def setNextConnection(self, tomorrow):
         if tomorrow:
@@ -773,8 +828,10 @@ class BasePlugin:
 
             # If we have access tokens, try do grab data, otherwise ask for tokens
             if (getConfigItem("access_token", "") and getConfigItem("usage_point_id", "")) :
-                self.sConnectionStep = "getdatadays"
-                self.getData(API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
+                #self.sConnectionStep = "getdatadays"
+                #self.getData(API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
+                self.sConnectionStep = "getdatahours"
+                self.getData(API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
             else :
                 self.sConnectionStep = "parsedevicecode"
                 self.getDeviceCode()
@@ -831,9 +888,12 @@ class BasePlugin:
         elif self.sConnectionStep == "parseaccesstoken":
             result = self.parseAccessToken(Data)
             if result == "done":
-                self.sConnectionStep = "getdatadays"
                 # Ask data for days
-                self.getData(API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
+                #self.sConnectionStep = "getdatadays"
+                #self.getData(API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
+                # Ask data for hours
+                self.sConnectionStep = "getdatahours"
+                self.getData(API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
             elif result == "retry":
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
@@ -845,8 +905,8 @@ class BasePlugin:
                 self.isEnabled = False
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             
-        # Ask data for days or peak data
-        elif self.sConnectionStep == "getdatadays" or self.sConnectionStep == "getdatapeakdays":
+        # Ask data for days or peak data -- step not used anymore
+        elif self.sConnectionStep == "getdatadays" or self.sConnectionStep == "oldgetdatapeakdays":
             # Check if access token still valid
             status = getStatus(Data)
             # status 403 = token not valid, needs refresh
@@ -870,7 +930,7 @@ class BasePlugin:
                 if not self.exploreDataDays(Data, bPeak):
                     self.bHasAFail = True
                 # Still data to get, another batch ?
-                if self.iDaysLeft > 0:
+                if self.stillDays(bPeak):
                     self.calculateDaysLeft()
                     # Normal data or peak data ?
                     if bPeak:
@@ -923,12 +983,62 @@ class BasePlugin:
                 # Analyse data for hours
                 if not self.exploreDataHours(Data):
                     self.bHasAFail = True
+                #self.sConnectionStep = "idle"
+
+                # Still data to get, another batch ?
+                if self.stillDays(False):
+                    self.calculateDaysLeft()
+                    self.sConnectionStep = "getdatahours"
+                    self.getData(API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
+                else:
+                    # If at end of data for days and for peaks, continue to data for hours or idle
+                    if not self.bPeakMode:
+                        # Update data shown on dashboard
+                        if not self.updateDashboard():
+                            self.bHasAFail = True
+                        self.sConnectionStep = "idle"
+                    # Get peak data
+                    else:
+                        self.resetDates()
+                        self.sConnectionStep = "getdatapeakdays"
+                        self.getData(API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
+
+        # Ask data for peak data
+        elif self.sConnectionStep == "getdatapeakdays":
+            # Check if access token still valid
+            status = getStatus(Data)
+            # status 403 = token not valid, needs refresh
+            if status == 403:
+                self.sConnectionStep = "parseaccesstoken"
+                self.refreshToken()
+            # If status 429, retry later
+            elif status == 429:                
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
+            elif (status != 200):
+                self.showStatusError(False, Data)
                 self.sConnectionStep = "idle"
-                Domoticz.Log("Fait")
-                
+                self.bHasAFail = True
+            else:
+                if not self.exploreDataDays(Data, True):
+                    self.bHasAFail = True
+                # Still data to get, another batch ?
+                if self.stillDays(True):
+                    self.calculateDaysLeft()
+                    # Normal data or peak data ?
+                    self.sConnectionStep = "getdatapeakdays"
+                    self.getData(API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
+                else:
+                    # Update data shown on dashboard
+                    if not self.updateDashboard():
+                        self.bHasAFail = True
+                    self.sConnectionStep = "idle"
+                    Domoticz.Log("Done")
+
         # Next connection time depends on success
         if self.sConnectionStep == "idle":
             self.saveDataToDb()
+            Domoticz.Log("Fait")                
             if (not self.saveDataToDb()) or self.bHasAFail:
                 self.setNextConnection(False)            
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.nextConnection))
@@ -990,15 +1100,15 @@ class BasePlugin:
         elif self.iHistoryDaysForHoursView > 7:
             self.iHistoryDaysForHoursView = 7
             
-        # History for short log is 1095 days max (default to 365)
+        # History for short log is 730 days max (default to 60)
         try:
             self.iHistoryDaysForDaysView = int(self.iHistoryDaysForDaysView)
         except:
-            self.iHistoryDaysForDaysView = 365
+            self.iHistoryDaysForDaysView = 60
         if self.iHistoryDaysForDaysView < 1:
             self.iHistoryDaysForDaysView = 1
-        elif self.iHistoryDaysForDaysView > 1095:
-            self.iHistoryDaysForDaysView = 1095
+        elif self.iHistoryDaysForDaysView > 730:
+            self.iHistoryDaysForDaysView = 730
         self.iHistoryDaysForPeakDaysView = self.iHistoryDaysForDaysView
 
 
@@ -1035,7 +1145,6 @@ class BasePlugin:
             
 
         Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType)
-        Domoticz.Log("Accepter automatiquement les conditions d'utilisation mis à " + str(self.bAutoAcceptTerms))
         Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
         Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
         if self.bPeakMode:
