@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
@@ -520,9 +520,12 @@ class BasePlugin:
     # Store data in memory
     def storeData(self, fData, sDate, dDate, bProduction, bCost2, bPeak):
         if not sDate in self.dData:
-            self.dData[sDate] = { "consumption1" : 0, "consumption2" : 0, "production1" : 0, "production2" : 0, "peak" : 0, "date": dDate }
+            self.dData[sDate] = { "consumption1" : 0, "consumption2" : 0, "production1" : 0, "production2" : 0, "consumptionpeak" : 0, "productionpeak" : 0, "date": dDate }
         if bPeak:
-            self.dData[sDate]["peak"] = fData
+            if bProduction:
+                self.dData[sDate]["productionpeak"] = fData
+            else:
+                self.dData[sDate]["consumptionpeak"] = fData
         else:
             if bProduction:
                 if bCost2:
@@ -539,8 +542,9 @@ class BasePlugin:
     def manageDataHours(self, fData, dDate, bProduction = False):
         sDateTime = datetimeToSQLDateTimeString(dDate)
         bCost2 = self.isCost2(dDate)
+        # Store hour
         self.storeData(fData, sDateTime, dDate, bProduction, bCost2, False)
-
+        # Accumulate for day
         sDate = datetimeToSQLDateString(dDate)
         self.storeData(fData, sDate, dDate, bProduction, bCost2, False)
 
@@ -775,7 +779,7 @@ class BasePlugin:
         self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
         self.savedDateEndDays = self.dateBeginDays
 
-        Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
+        #Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
         
         # No more than 7 days at once
         self.iDaysLeftHoursView = self.iDaysLeftHoursView - 7
@@ -787,7 +791,7 @@ class BasePlugin:
         self.dateEndHours = self.savedDateEndDaysForHoursView
         self.savedDateEndDaysForHoursView = self.dateBeginHours
 
-        Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
+        #Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
 
     # Still data to get
     def stillDays(self, bPeak):
