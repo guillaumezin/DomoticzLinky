@@ -21,18 +21,18 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-10" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-11" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
                 <option label="Désactivées" value=""  default="true" />
-                <option label="21h30-5h30" value="21h30-5h30"/>
-                <option label="22h00-6h00" value="22h00-6h00"/>
+                <option label="21h30-5h30" value="21h30-5h30" />
+                <option label="22h00-6h00" value="22h00-6h00" />
                 <option label="22h30-6h30" value="22h30-6h30" />
                 <option label="23h00-7h00" value="23h00-7h00" />
-                <option label="23h30-7h00" value="23h30-7h00"  />
-                <option label="23h30-7h30" value="23h30-7h30"  />
-                <option label="0h00-8h00" value="0h00-8h00"  />
+                <option label="23h30-7h00" value="23h30-7h00" />
+                <option label="23h30-7h30" value="23h30-7h30" />
+                <option label="0h00-8h00" value="0h00-8h00" />
                 <option label="1h00-7h00 et 12h30-14h30" value="1h00-7h00 et 12h30-14h30" />
                 <option label="1h00-7h30 et 12h30-14h00" value="1h00-7h30 et 12h30-14h00" />
                 <option label="1h00-7h30 et 12h00-14h30" value="1h00-7h30 et 13h00-14h30" />
@@ -47,20 +47,36 @@
                 <option label="3h30-7h00 et 13h00-16h00 et 22h30-6h30" value="3h30-7h00 et 13h00-16h00 et 22h30-6h30" />
             </options>
         </param>
-        <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
+        <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="200px">
             <options>
                 <option label="Journée dernière" value="day"  default="true" />
                 <option label="Semaine en cours" value="cweek" />
-                <option label="Semaine dernière" value="lweek"  />
+                <option label="Semaine dernière" value="lweek" />
                 <option label="Mois en cours" value="cmonth" />
-                <option label="Mois dernier" value="lmonth"  />
-                <option label="Année en cours" value="year"  />
-                <option label="Pic journée dernière" value="peak_day"/>
+                <option label="Mois dernier" value="lmonth" />
+                <option label="Année en cours" value="year" />
+                <option label="Pic journée dernière" value="peak_day" />
                 <option label="Pic semaine en cours" value="peak_cweek" />
-                <option label="Pic semaine dernière" value="peak_lweek"  />
+                <option label="Pic semaine dernière" value="peak_lweek" />
                 <option label="Pic mois en cours" value="peak_cmonth" />
-                <option label="Pic mois dernier" value="peak_lmonth"  />
-                <option label="Pic année en cours" value="peak_year"  />
+                <option label="Pic mois dernier" value="peak_lmonth" />
+                <option label="Pic année en cours" value="peak_year" />
+            </options>
+        </param>
+        <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="200px">
+            <options>
+                <option label="Journée dernière" value="day"  default="true" />
+                <option label="Semaine en cours" value="cweek" />
+                <option label="Semaine dernière" value="lweek" />
+                <option label="Mois en cours" value="cmonth" />
+                <option label="Mois dernier" value="lmonth" />
+                <option label="Année en cours" value="year" />
+                <option label="Pic journée dernière" value="peak_day" />
+                <option label="Pic semaine en cours" value="peak_cweek" />
+                <option label="Pic semaine dernière" value="peak_lweek" />
+                <option label="Pic mois en cours" value="peak_cmonth" />
+                <option label="Pic mois dernier" value="peak_lmonth" />
+                <option label="Pic année en cours" value="peak_year" />
             </options>
         </param>
         <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
@@ -182,13 +198,18 @@ class BasePlugin:
     # string: usage point id
     sUsagePointId = None
     # string: consumption to show = current week ("cweek"), the previous week ("lweek", the current month ("cmonth"), the previous month ("lmonth"), or year ("cyear"), prefix "peak_" for peak calculation
-    sConsumptionType = None
+    sConsumptionType1 = None
+    sConsumptionType2 = None
+    # Tarif
+    sTarif = None
     # integer: number of other view (peak)
     iHistoryDaysForPeakDaysView = None
     # boolean: debug mode
     iDebugLevel = None
     # previous day
-    pday = None
+    prevDay = None
+    # current day
+    curDay = None
     # first day of month
     fdmonth = None
     # last day of previous month
@@ -223,6 +244,8 @@ class BasePlugin:
     dData = None
     # dict with time (xxhmm format) as index and a boolean to indicate tariff
     dHc = None
+    # dict with calculation to show on dashboard
+    dCalculate = None
     
     def __init__(self):
         self.isStarted = False
@@ -497,10 +520,9 @@ class BasePlugin:
         return True
 
     # Update value shown on Domoticz dashboard
-    def updateDevice(self, usage):
+    def updateDevice(self, sValue):
         if not self.createDevice():
             return False
-        sValue = str(usage) + ";0.0;0.0;0.0;0.0;0.0"
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
         Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
@@ -523,10 +545,13 @@ class BasePlugin:
 
     # Write data from memory to Domoticz DB
     def saveDataToDb(self):
+        self.resetDayAccumulate()
+
         for sDate, dOneData in self.dData.items():
             # hour
             if len(sDate) > 10:
                 # We want only iHistoryDaysForHoursView days
+                self.dayAccumulate(dOneData["date"], dOneData)
                 if (self.iHistoryDaysForHoursView < 1) or (dOneData["date"] < self.dateBeginDaysHistoryView):
                     # Domoticz.Error("Skip " + sDate)
                     continue
@@ -539,6 +564,7 @@ class BasePlugin:
             if not self.createAndAddToDevice(dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
                 return False            
         self.dData.clear()
+        #self.dumpDictToLog(self.dCalculate)
         return True
 
     # Store data in memory
@@ -645,76 +671,47 @@ class BasePlugin:
     
     # Reset counters for power consumption
     def resetDayAccumulate(self):
-        self.pday = self.dateEndDays.replace(hour=0, minute=0, second=0, microsecond=0)
-        endDate = self.pday + timedelta(days=1)
+        self.dCalculate = dict()
+        self.dCalculate = { "consumption1" : dict(), "consumption2" : dict(), "production1" : dict(), "production2" : dict(), "consumptionpeak" : dict(), "productionpeak" : dict() }
+
+        self.prevDay = self.dateEndDays.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.curDay = self.prevDay + timedelta(days=1)
         self.daysCalculate = 0.0
-        self.fdmonth = endDate.replace(day=1)
+        self.fdmonth = self.curDay.replace(day=1)
         self.ldpmonth = self.fdmonth - timedelta(days=1)
         self.fdpmonth = self.ldpmonth.replace(day=1)
-        self.fdweek = endDate - timedelta(days=endDate.weekday())
+        self.fdweek = self.curDay - timedelta(days=self.curDay.weekday())
         self.ldpweek = self.fdweek - timedelta(days=1)
         self.fdpweek = self.ldpweek - timedelta(days=6)
-        self.fdyear = endDate.replace(day=1,month=1)
-        #Domoticz.Log(str(self.pday) + " " + str(endDate) + " " + str(self.fdmonth) + " " + str(self.ldpmonth) + " " + str(self.fdpmonth) + " " + str(self.fdweek) + " " + str(self.ldpweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
+        self.fdyear = self.curDay.replace(day=1,month=1)
+        #Domoticz.Log(str(self.prevDay) + " " + str(self.curDay) + " " + str(self.fdmonth) + " " + str(self.ldpmonth) + " " + str(self.fdpmonth) + " " + str(self.fdweek) + " " + str(self.ldpweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
 
+    # Calculate and store
+    def modifyCalculation(self, calculation, parameter, val):
+        sParameterPeak = "peak_" + parameter
+        if not parameter in calculation:
+            calculation[parameter] = 0
+        if not sParameterPeak in calculation:
+            calculation[sParameterPeak] = 0
+        calculation[parameter] = calculation[parameter] + val
+        if val > calculation[sParameterPeak] :
+            calculation[sParameterPeak] = val
+    
     # Accumulate power consumption
     def dayAccumulate(self, curDate, val):
-        bDoIt = False
-        if self.sConsumptionType.endswith("cweek"):
+        for key, calcType in self.dCalculate.items():
             if (curDate >= self.fdweek):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("lweek"):
+                self.modifyCalculation(calcType, "cweek", val[key])
             if (self.fdpweek <= curDate <= self.ldpweek):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("cmonth"):
+                self.modifyCalculation(calcType, "lweek", val[key])
             if (curDate >= self.fdmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("lmonth"):
+                self.modifyCalculation(calcType, "cmonth", val[key])
             if (self.fdpmonth <= curDate <= self.ldpmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("year"):
+                self.modifyCalculation(calcType, "lmonth", val[key])
             if (curDate >= self.fdyear):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                self.daysCalculate = self.daysCalculate + val
-        elif curDate == self.pday:
-            #Domoticz.Log(str(curDate) + " " + str(self.pday) + " " + str(val) + " " + str(self.daysCalculate))
-            self.daysCalculate = val;
-        if bDoIt:
-            self.daysCalculate = self.daysCalculate + val
-    
-    # Look for max power consumption
-    def getMax(self, curDate, val):
-        bDoIt = False
-        if self.sConsumptionType.endswith("cweek"):
-            if (curDate >= self.fdweek):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("lweek"):
-            if (self.fdpweek <= curDate <= self.ldpweek):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("cmonth"):
-            if (curDate >= self.fdmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("lmonth"):
-            if (self.fdpmonth <= curDate <= self.ldpmonth):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif self.sConsumptionType.endswith("year"):
-            if (curDate >= self.fdyear):
-                #Domoticz.Log(str(curDate) + " " + str(val) + " " + str(self.daysCalculate))
-                bDoIt = True
-        elif curDate == self.pday:
-            #Domoticz.Log(str(curDate) + " " + str(self.pday) + " " + str(val) + " " + str(self.daysCalculate))
-            self.daysCalculate = val;
-        if bDoIt:
-            if val > self.daysCalculate:
-                self.daysCalculate = val            
+                self.modifyCalculation(calcType, "year", val[key])
+            if (self.prevDay <= curDate < self.curDay):
+                self.modifyCalculation(calcType, "day", val[key])
     
     # Grab days data inside received JSON data for history
     def exploreDataDays(self, Data, bPeak):
@@ -753,7 +750,7 @@ class BasePlugin:
                             curDate = beginDate + timedelta(days=rank)
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #self.dumpDictToLog(values)
-                            self.dayAccumulate(curDate, val)
+                            #self.dayAccumulate(curDate, val)
                             #if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                                 #return False
                             self.manageDataDays(val, curDate, True, bPeak)
@@ -766,7 +763,20 @@ class BasePlugin:
 
     # Update dashboard with accumulated value
     def updateDashboard(self):
-        return self.updateDevice(self.daysCalculate)
+        self.dumpDictToLog(self.dCalculate)
+        sVal1 = "-1;-1"
+        sVal2 = "-1;-1"
+        if self.sTarif :
+            if (self.sConsumptionType1 in self.dCalculate["consumption1"]) and (self.sConsumptionType1 in self.dCalculate["consumption2"]):
+                sVal1 = str(self.dCalculate["consumption1"][self.sConsumptionType1]) + ";" +  str(self.dCalculate["consumption2"][self.sConsumptionType1])
+            if (self.sConsumptionType2 in self.dCalculate["consumption1"]) and (self.sConsumptionType2 in self.dCalculate["consumption2"]):
+                sVal2 = str(self.dCalculate["consumption1"][self.sConsumptionType2]) + ";" +  str(self.dCalculate["consumption2"][self.sConsumptionType2])
+        else:
+            if self.sConsumptionType1 in self.dCalculate["consumption1"]:
+                sVal1 = str(self.dCalculate["consumption1"][self.sConsumptionType1]) + ";-1"
+            if self.sConsumptionType2 in self.dCalculate["consumption1"]:
+                sVal2 = str(self.dCalculate["consumption1"][self.sConsumptionType2]) + ";-1"
+        return self.updateDevice(sVal2 + ";-1;-1;" + sVal1)
         
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd = None):
@@ -780,16 +790,14 @@ class BasePlugin:
             self.savedDateEndDaysForHoursView = self.savedDateEndDays2
             
         self.iDaysLeft = self.iHistoryDaysForPeakDaysView
-        if self.iHistoryDaysForPeakDaysView > self.iHistoryDaysForHoursView:
-            self.iDaysLeftHoursView = self.iHistoryDaysForPeakDaysView
-        else:
+        if self.iHistoryDaysForDaysView < self.iHistoryDaysForHoursView:
             self.iDaysLeftHoursView = self.iHistoryDaysForHoursView
-        
+        else:
+            self.iDaysLeftHoursView = self.iHistoryDaysForDaysView
         #self.dateBeginHours = self.savedDateEndDays - timedelta(days=self.iHistoryDaysForHoursView)
         #self.dateEndHours = self.savedDateEndDays
         
         self.calculateDaysLeft()
-        self.resetDayAccumulate()
         
     # Calculate days and date left for next batch
     def calculateDaysLeft(self):
@@ -970,13 +978,9 @@ class BasePlugin:
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or idle
                     if (not self.bPeakMode) or bPeak:
-                        # Update data shown on dashboard
-                        if not self.updateDashboard():
-                            self.bHasAFail = True
                         # user set Mode1 to 0, he doesn't want to grab hours data
                         if self.iHistoryDaysForHoursView < 1:
                             self.sConnectionStep = "idle"
-                            Domoticz.Log("Done")
                         # grab data for hours
                         else:
                             self.sConnectionStep = "getdatahours"
@@ -1021,9 +1025,6 @@ class BasePlugin:
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or idle
                     if not self.bPeakMode:
-                        # Update data shown on dashboard
-                        if not self.updateDashboard():
-                            self.bHasAFail = True
                         self.sConnectionStep = "idle"
                     # Get peak data
                     else:
@@ -1057,17 +1058,16 @@ class BasePlugin:
                     self.sConnectionStep = "getdatapeakdays"
                     self.getData(API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
                 else:
-                    # Update data shown on dashboard
-                    if not self.updateDashboard():
-                        self.bHasAFail = True
                     self.sConnectionStep = "idle"
-                    Domoticz.Log("Done")
 
         # Next connection time depends on success
         if self.sConnectionStep == "idle":
-            self.saveDataToDb()
             Domoticz.Log("Fait")                
-            if (not self.saveDataToDb()) or self.bHasAFail:
+            if not self.saveDataToDb():
+                self.bHasAFail = True
+            if not self.updateDashboard():
+                self.bHasAFail = True
+            if self.bHasAFail:
                 self.setNextConnection(False)            
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.nextConnection))
 
@@ -1100,9 +1100,17 @@ class BasePlugin:
         
         self.iHistoryDaysForHoursView = Parameters["Mode1"]
         self.iHistoryDaysForDaysView = Parameters["Mode2"]
-        self.sConsumptionType = Parameters["Mode5"]
+        self.sTarif = Parameters["Mode4"]
+        self.sConsumptionType1 = Parameters["Mode5"]
+        self.sConsumptionType2 = Parameters["Mode6"]
         
-        if self.sConsumptionType.startswith("peak_"):
+        if not self.sConsumptionType1:
+            self.sConsumptionType1 = "day"
+        
+        if not self.sConsumptionType2:
+            self.sConsumptionType2 = "day"
+        
+        if self.sConsumptionType1.startswith("peak_") or self.sConsumptionType2.startswith("peak_"):
             self.bPeakMode = True
         else:
             self.bPeakMode = False
@@ -1140,39 +1148,39 @@ class BasePlugin:
         self.iHistoryDaysForPeakDaysView = self.iHistoryDaysForDaysView
 
 
-        if (self.sConsumptionType == "cweek") and (self.iHistoryDaysForDaysView < 7) :
+        if ((self.sConsumptionType1 == "cweek") or (self.sConsumptionType2 == "cweek")) and (self.iHistoryDaysForDaysView < 7) :
             self.iHistoryDaysForDaysView = 7
             
-        if (self.sConsumptionType == "lweek") and (self.iHistoryDaysForDaysView < 14) :
+        if ((self.sConsumptionType1 == "lweek") or (self.sConsumptionType2 == "lweek")) and (self.iHistoryDaysForDaysView < 14) :
             self.iHistoryDaysForDaysView = 14
             
-        if (self.sConsumptionType == "cmonth") and (self.iHistoryDaysForDaysView < 32) :
+        if ((self.sConsumptionType1 == "cmonth") or (self.sConsumptionType2 == "cmonth")) and (self.iHistoryDaysForDaysView < 32) :
             self.iHistoryDaysForDaysView = 32
 
-        if (self.sConsumptionType == "lmonth") and (self.iHistoryDaysForDaysView < 63) :
+        if ((self.sConsumptionType1 == "lmonth") or (self.sConsumptionType2 == "lmonth")) and (self.iHistoryDaysForDaysView < 63) :
             self.iHistoryDaysForDaysView = 63
 
-        if (self.sConsumptionType == "year") and (self.iHistoryDaysForDaysView < 366) :
+        if ((self.sConsumptionType1 == "year") or (self.sConsumptionType2 == "year")) and (self.iHistoryDaysForDaysView < 366) :
             self.iHistoryDaysForDaysView = 366
             
 
-        if (self.sConsumptionType == "peak_cweek") and (self.iHistoryDaysForPeakDaysView < 7) :
+        if ((self.sConsumptionType1 == "peak_cweek") or (self.sConsumptionType2 == "peak_cweek")) and (self.iHistoryDaysForPeakDaysView < 7) :
             self.iHistoryDaysForPeakDaysView = 7
             
-        if (self.sConsumptionType == "peak_lweek") and (self.iHistoryDaysForPeakDaysView < 14) :
+        if ((self.sConsumptionType1 == "peak_lweek") or (self.sConsumptionType2 == "peak_lweek")) and (self.iHistoryDaysForPeakDaysView < 14) :
             self.iHistoryDaysForPeakDaysView = 14
             
-        if (self.sConsumptionType == "peak_cmonth") and (self.iHistoryDaysForPeakDaysView < 32) :
+        if ((self.sConsumptionType1 == "peak_cmonth") or (self.sConsumptionType2 == "peak_cmonth")) and (self.iHistoryDaysForPeakDaysView < 32) :
             self.iHistoryDaysForPeakDaysView = 32
 
-        if (self.sConsumptionType == "peak_lmonth") and (self.iHistoryDaysForPeakDaysView < 63) :
+        if ((self.sConsumptionType1 == "peak_lmonth") or (self.sConsumptionType2 == "peak_lmonth")) and (self.iHistoryDaysForPeakDaysView < 63) :
             self.iHistoryDaysForPeakDaysView = 63
 
-        if (self.sConsumptionType == "peak_year") and (self.iHistoryDaysForPeakDaysView < 366) :
-            self.iHistoryDaysForPeakDaysView = 366
-            
+        if ((self.sConsumptionType1 == "peak_year") or (self.sConsumptionType2 == "peak_year")) and (self.iHistoryDaysForPeakDaysView < 366) :
+            self.iHistoryDaysForPeakDaysView = 366            
 
-        Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType)
+
+        Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType1 + " / " + self.sConsumptionType2)
         Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
         Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
         if self.bPeakMode:
@@ -1181,7 +1189,7 @@ class BasePlugin:
         
         # Parameter for tarif 1/2
         self.dHc = dict()
-        parseHcParameter(self.dHc, Parameters["Mode4"])
+        parseHcParameter(self.dHc, self.sTarif)
         # self.dumpDictToLog(self.dHc)
         
         # most init
