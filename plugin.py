@@ -21,8 +21,32 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-10" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
+        <param field="Mode4" label="Heures creuses" width="400px">
+            <options>
+                <option label="Désactivées" value=""  default="true" />
+                <option label="21h30-5h30" value="21h30-5h30"/>
+                <option label="22h00-6h00" value="22h00-6h00"/>
+                <option label="22h30-6h30" value="22h30-6h30" />
+                <option label="23h00-7h00" value="23h00-7h00" />
+                <option label="23h30-7h00" value="23h30-7h00"  />
+                <option label="23h30-7h30" value="23h30-7h30"  />
+                <option label="0h00-8h00" value="0h00-8h00"  />
+                <option label="1h00-7h00 et 12h30-14h30" value="1h00-7h00 et 12h30-14h30" />
+                <option label="1h00-7h30 et 12h30-14h00" value="1h00-7h30 et 12h30-14h00" />
+                <option label="1h00-7h30 et 12h00-14h30" value="1h00-7h30 et 13h00-14h30" />
+                <option label="1h30-7h30 et 12h00-14h00" value="1h30-7h30 et 12h00-14h00" />
+                <option label="1h30-7h30 et 12h30-14h30" value="1h30-7h30 et 12h30-14h30" />
+                <option label="2h00-7h00 et 12h30-15h30" value="2h00-7h00 et 12h30-15h30" />
+                <option label="2h00-7h00 et 13h00-16h00" value="2h00-7h00 et 13h00-16h00" />
+                <option label="2h00-7h00 et 14h00-17h00" value="2h00-7h00 et 14h00-17h00" />
+                <option label="2h00-8h00 et 13h30-15h30" value="2h00-8h00 et 13h30-15h30" />
+                <option label="3h00-8h00 et 13h30-16h30" value="3h00-8h00 et 13h30-16h30" />
+                <option label="3h00-7h00 et 12h30-14h30 et 20h30-22h30" value="3h00-7h00 et 12h30-14h30 et 20h30-22h30" />
+                <option label="3h30-7h00 et 13h00-16h00 et 22h30-6h30" value="3h30-7h00 et 13h00-16h00 et 22h30-6h30" />
+            </options>
+        </param>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord" width="200px">
             <options>
                 <option label="Journée dernière" value="day"  default="true" />
@@ -197,6 +221,8 @@ class BasePlugin:
     iResendCount = 0
     # data dict with date string as index and consumption1, consumption2, production1, production2 as float and date as DateTime
     dData = None
+    # dict with time (xxhmm format) as index and a boolean to indicate tariff
+    dHc = None
     
     def __init__(self):
         self.isStarted = False
@@ -491,11 +517,9 @@ class BasePlugin:
             Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage)
 
     # Check date if in cost 1 or cost 2
-    def isCost2(self, sDate):
-        # Todo
-        if sDate.hour < 7:
-            return True
-        return False
+    def isCost2(self, dDate):
+        sTimeIndex = "{:01d}h{:02d}".format(dDate.hour, dDate.minute)
+        return self.dHc[sTimeIndex]
 
     # Write data from memory to Domoticz DB
     def saveDataToDb(self):
@@ -1064,7 +1088,7 @@ class BasePlugin:
                         self.myDebug("--->'" + x + "':'" + str(dictToLog[x]) + "'")
             else:
                 self.myDebug("Received no dict: " + str(dictToLog))
-                        
+                       
     def onStart(self):
         self.myDebug("onStart called")
         
@@ -1154,6 +1178,11 @@ class BasePlugin:
         if self.bPeakMode:
             Domoticz.Log("Nombre de jours à récupérer pour les autres vues (calcul du pic) mis à " + str(self.iHistoryDaysForPeakDaysView))
         Domoticz.Log("Debug mis à " + str(self.iDebugLevel))
+        
+        # Parameter for tarif 1/2
+        self.dHc = dict()
+        parseHcParameter(self.dHc, Parameters["Mode4"])
+        # self.dumpDictToLog(self.dHc)
         
         # most init
         self.__init__()
@@ -1250,6 +1279,30 @@ def onHeartbeat():
     _plugin.onHeartbeat()
 
 # Generic helper functions
+
+# Parse HP/HC parameter string and store result in dHc
+def parseHcParameter(dHc, sHcParameter):
+    bHcState = False
+    iIndexParam = 0
+    lHcParameter = sHcParameter.replace(" et ", "-").split("-")
+    for iTimeIndex in range (0, 1440, 30):
+        iTimeIndexMin = int(iTimeIndex % 60)
+        iTimeIndexHour = int(iTimeIndex / 60)
+        sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
+        if (iIndexParam < len(lHcParameter)) and (lHcParameter[iIndexParam] == sTimeIndex):
+            bHcState = not bHcState
+            iIndexParam = iIndexParam + 1
+        dHc[sTimeIndex] = bHcState
+    
+    if bHcState:
+        for iTimeIndex in range (0, 1440, 30):
+            iTimeIndexMin = int(iTimeIndex % 60)
+            iTimeIndexHour = int(iTimeIndex / 60)
+            sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
+            if (iIndexParam < len(lHcParameter)) and (lHcParameter[iIndexParam] == sTimeIndex):
+                break
+            dHc[sTimeIndex] = True
+        
 def getConfigItem(Key=None, Default={}):
     Value = Default
     try:
