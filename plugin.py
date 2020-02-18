@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-12" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-13" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -47,36 +47,36 @@
                 <option label="3h30-7h00 et 13h00-16h00 et 22h30-6h30" value="3h30-7h00 et 13h00-16h00 et 22h30-6h30" />
             </options>
         </param>
-        <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="200px">
+        <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="400px">
             <options>
-                <option label="Journée dernière" value="day"  default="true" />
-                <option label="Semaine en cours" value="cweek" />
-                <option label="Semaine dernière" value="lweek" />
-                <option label="Mois en cours" value="cmonth" />
-                <option label="Mois dernier" value="lmonth" />
-                <option label="Année en cours" value="year" />
-                <option label="Pic journée dernière" value="max_day" />
-                <option label="Pic semaine en cours" value="max_cweek" />
-                <option label="Pic semaine dernière" value="max_lweek" />
-                <option label="Pic mois en cours" value="max_cmonth" />
-                <option label="Pic mois dernier" value="max_lmonth" />
-                <option label="Pic année en cours" value="max_year" />
+                <option label="Pic journée dernière" value="peak_day" />
+                <option label="Pic semaine en cours" value="peak_cweek" />
+                <option label="Pic semaine dernière" value="peak_lweek" />
+                <option label="Pic mois en cours" value="peak_cmonth" />
+                <option label="Pic mois dernier" value="peak_lmonth" />
+                <option label="Pic année en cours" value="peak_year" />
             </options>
         </param>
-        <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="200px">
+        <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="400px">
             <options>
-                <option label="Journée dernière" value="day"  default="true" />
-                <option label="Semaine en cours" value="cweek" />
-                <option label="Semaine dernière" value="lweek" />
-                <option label="Mois en cours" value="cmonth" />
-                <option label="Mois dernier" value="lmonth" />
-                <option label="Année en cours" value="year" />
-                <option label="Pic journée dernière" value="max_day" />
-                <option label="Pic semaine en cours" value="max_cweek" />
-                <option label="Pic semaine dernière" value="max_lweek" />
-                <option label="Pic mois en cours" value="max_cmonth" />
-                <option label="Pic mois dernier" value="max_lmonth" />
-                <option label="Pic année en cours" value="max_year" />
+                <option label="Journée dernière" value="value_day"  default="true" />
+                <option label="Semaine en cours" value="value_cweek" />
+                <option label="Semaine dernière" value="value_lweek" />
+                <option label="Mois en cours" value="value_cmonth" />
+                <option label="Mois dernier" value="value_lmonth" />
+                <option label="Année en cours" value="value_year" />
+                <option label="Consommation horaire max journée dernière" value="max_day" />
+                <option label="Consommation horaire max semaine en cours" value="max_cweek" />
+                <option label="Consommation horaire max semaine dernière" value="max_lweek" />
+                <option label="Consommation horaire max mois en cours" value="max_cmonth" />
+                <option label="Consommation horaire max mois dernier" value="max_lmonth" />
+                <option label="Consommation horaire max année en cours" value="max_year" />
+                <option label="Consommation horaire moyenne journée dernière" value="mean_day" />
+                <option label="Consommation horaire moyenne semaine en cours" value="mean_cweek" />
+                <option label="Consommation horaire moyenne semaine dernière" value="mean_lweek" />
+                <option label="Consommation horaire moyenne mois en cours" value="mean_cmonth" />
+                <option label="Consommation horaire moyenne mois dernier" value="mean_lmonth" />
+                <option label="Consommation horaire moyenne année en cours" value="mean_year" />
             </options>
         </param>
         <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
@@ -688,31 +688,44 @@ class BasePlugin:
         Domoticz.Log(str(self.prevDay) + " " + str(self.curDay) + " " + str(self.fdmonth) + " " + str(self.fdpmonth) + " " + str(self.fdweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
 
     # Calculate and store
-    def modifyCalculation(self, calculation, parameter, val):
-        sParameterMax = "max_" + parameter
-        if not parameter in calculation:
-            calculation[parameter] = 0
-        if not sParameterMax in calculation:
-            calculation[sParameterMax] = 0
-        calculation[parameter] = calculation[parameter] + val
-        if val > calculation[sParameterMax] :
-            calculation[sParameterMax] = val
+    def modifyCalculation(self, dCalculation, sParameter, fVal):
+        sParameterComplete = "value_" + sParameter
+        fCurrentVal = 0
+        if not sParameterComplete in dCalculation:
+            dCalculation[sParameterComplete] = 0
+        fCurrentVal = dCalculation[sParameterComplete] + fVal
+        dCalculation[sParameterComplete] = fCurrentVal
+
+        sParameterComplete = "max_" + sParameter
+        if not sParameterComplete in dCalculation:
+            dCalculation[sParameterComplete] = 0
+        if fVal > dCalculation[sParameterComplete] :
+            dCalculation[sParameterComplete] = fVal
+
+        sParameterComplete = "counter_" + sParameter
+        if not sParameterComplete in dCalculation:
+            dCalculation[sParameterComplete] = 0
+        iCounter = dCalculation[sParameterComplete] + 1
+        dCalculation[sParameterComplete] = iCounter
+        
+        sParameterComplete = "mean_" + sParameter
+        dCalculation[sParameterComplete] = fCurrentVal / iCounter
     
     # Accumulate power consumption
-    def dayAccumulate(self, curDate, val):
-        for key, calcType in self.dCalculate.items():
-            if (curDate > self.fdweek):
-                self.modifyCalculation(calcType, "cweek", val[key])
-            if (self.fdpweek < curDate <= self.fdweek):
-                self.modifyCalculation(calcType, "lweek", val[key])
-            if (curDate > self.fdmonth):
-                self.modifyCalculation(calcType, "cmonth", val[key])
-            if (self.fdpmonth < curDate <= self.fdmonth):
-                self.modifyCalculation(calcType, "lmonth", val[key])
-            if (curDate > self.fdyear):
-                self.modifyCalculation(calcType, "year", val[key])
-            if (self.prevDay < curDate <= self.curDay):
-                self.modifyCalculation(calcType, "day", val[key])
+    def dayAccumulate(self, dateCur, dVal):
+        for sKey, dCalcType in self.dCalculate.items():
+            if (dateCur > self.fdweek):
+                self.modifyCalculation(dCalcType, "cweek", dVal[sKey])
+            if (self.fdpweek < dateCur <= self.fdweek):
+                self.modifyCalculation(dCalcType, "lweek", dVal[sKey])
+            if (dateCur > self.fdmonth):
+                self.modifyCalculation(dCalcType, "cmonth", dVal[sKey])
+            if (self.fdpmonth < dateCur <= self.fdmonth):
+                self.modifyCalculation(dCalcType, "lmonth", dVal[sKey])
+            if (dateCur > self.fdyear):
+                self.modifyCalculation(dCalcType, "year", dVal[sKey])
+            if (self.prevDay < dateCur <= self.curDay):
+                self.modifyCalculation(dCalcType, "day", dVal[sKey])
     
     # Grab days data inside received JSON data for history
     def exploreDataDays(self, Data, bPeak):
@@ -767,16 +780,44 @@ class BasePlugin:
         self.dumpDictToLog(self.dCalculate)
         sVal1 = "-1;-1"
         sVal2 = "-1;-1"
-        if self.sTarif :
-            if (self.sConsumptionType1 in self.dCalculate["consumption1"]) and (self.sConsumptionType1 in self.dCalculate["consumption2"]):
-                sVal1 = str(self.dCalculate["consumption1"][self.sConsumptionType1]) + ";" +  str(self.dCalculate["consumption2"][self.sConsumptionType1])
-            if (self.sConsumptionType2 in self.dCalculate["consumption1"]) and (self.sConsumptionType2 in self.dCalculate["consumption2"]):
-                sVal2 = str(self.dCalculate["consumption1"][self.sConsumptionType2]) + ";" +  str(self.dCalculate["consumption2"][self.sConsumptionType2])
+        
+        if self.sConsumptionType1.startswith("peak_") :
+            SCalcT1 = self.sConsumptionType1.replace("peak_", "max_")
+            sConso1T1 = "consumptionpeak"
+            sConso2T1 = "consumptionpeak"
+            bTwoValuesT1 = False
         else:
-            if self.sConsumptionType1 in self.dCalculate["consumption1"]:
-                sVal1 = str(self.dCalculate["consumption1"][self.sConsumptionType1]) + ";-1"
-            if self.sConsumptionType2 in self.dCalculate["consumption1"]:
-                sVal2 = str(self.dCalculate["consumption1"][self.sConsumptionType2]) + ";-1"
+            SCalcT1 = self.sConsumptionType1
+            sConso1T1 = "consumption1"
+            sConso2T1 = "consumption2"
+            bTwoValuesT1 = bool(self.sTarif)
+            
+        if self.sConsumptionType2.startswith("peak_") :
+            SCalcT2 = self.sConsumptionType2.replace("peak_", "max_")
+            sConso1T2 = "consumptionpeak"
+            sConso2T2 = "consumptionpeak"
+            bTwoValuesT2 = False
+        else:
+            SCalcT2 = self.sConsumptionType2
+            sConso1T2 = "consumption1"
+            sConso2T2 = "consumption2"
+            bTwoValuesT2 = bool(self.sTarif)
+
+        #self.myDebug(sConso1T1 + " --- " + sConso2T1  + " - " + sConso1T2 + " --- " + sConso2T2  + " - " + str(bTwoValuesT1) + " - " + str(bTwoValuesT2) + " / " + SCalcT1 + " /-/ " + SCalcT2)
+        if bTwoValuesT1:
+            if (SCalcT1 in self.dCalculate[sConso1T1]) and (SCalcT1 in self.dCalculate[sConso2T1]):
+                sVal1 = str(self.dCalculate[sConso1T1][SCalcT1]) + ";" +  str(self.dCalculate[sConso2T1][SCalcT1])
+        else:
+            if SCalcT1 in self.dCalculate[sConso1T1]:
+                sVal1 = str(self.dCalculate[sConso1T1][SCalcT1]) + ";-1"
+                    
+        if bTwoValuesT2:
+            if (SCalcT2 in self.dCalculate[sConso1T2]) and (SCalcT2 in self.dCalculate[sConso2T2]):
+                sVal2 = str(self.dCalculate[sConso1T2][SCalcT2]) + ";" +  str(self.dCalculate[sConso2T2][SCalcT2])
+        else:
+            if SCalcT2 in self.dCalculate[sConso1T2]:
+                sVal2 = str(self.dCalculate[sConso1T2][SCalcT2]) + ";-1"
+                
         return self.updateDevice(sVal2 + ";-1;-1;" + sVal1)
         
     # Calculate days and date left for next batch
@@ -809,7 +850,7 @@ class BasePlugin:
         else:
             daysToGet = 365
         self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet)
-        self.dateEndDays = self.savedDateEndDays - timedelta(days=1)
+        self.dateEndDays = self.savedDateEndDays
         self.savedDateEndDays = self.dateBeginDays
 
         #Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
@@ -1111,13 +1152,6 @@ class BasePlugin:
         if not self.sConsumptionType2:
             self.sConsumptionType2 = "day"
         
-        #TODO
-        #if self.sConsumptionType1.startswith("max_") or self.sConsumptionType2.startswith("max_"):
-            #self.bPeakMode = True
-        #else:
-            #self.bPeakMode = False
-        self.bPeakMode = False
-        
         try:
             self.iDebugLevel = int(Parameters["Mode3"])
         except ValueError:
@@ -1150,61 +1184,44 @@ class BasePlugin:
             self.iHistoryDaysForDaysView = 730
         self.iHistoryDaysForPeakDaysView = self.iHistoryDaysForDaysView
 
+        if self.sConsumptionType1.startswith("peak_") or self.sConsumptionType2.startswith("peak_"):
+            self.bPeakMode = True
+            if (self.sConsumptionType1.endswith("_cweek") or self.sConsumptionType2.endswith("_cweek")) and (self.iHistoryDaysForPeakDaysView < 7) :
+                self.iHistoryDaysForPeakDaysView = 7
+                
+            if (self.sConsumptionType1.endswith("_lweek") or self.sConsumptionType2.endswith("_lweek")) and (self.iHistoryDaysForPeakDaysView < 14) :
+                self.iHistoryDaysForPeakDaysView = 14
+                
+            if (self.sConsumptionType1.endswith("_cmonth") or self.sConsumptionType2.endswith("_cmonth")) and (self.iHistoryDaysForPeakDaysView < 32) :
+                self.iHistoryDaysForPeakDaysView = 32
 
-        if ((self.sConsumptionType1 == "cweek") or (self.sConsumptionType2 == "cweek")) and (self.iHistoryDaysForDaysView < 7) :
-            self.iHistoryDaysForDaysView = 7
-            
-        if ((self.sConsumptionType1 == "lweek") or (self.sConsumptionType2 == "lweek")) and (self.iHistoryDaysForDaysView < 14) :
-            self.iHistoryDaysForDaysView = 14
-            
-        if ((self.sConsumptionType1 == "cmonth") or (self.sConsumptionType2 == "cmonth")) and (self.iHistoryDaysForDaysView < 32) :
-            self.iHistoryDaysForDaysView = 32
+            if (self.sConsumptionType1.endswith("_lmonth") or self.sConsumptionType2.endswith("_lmonth")) and (self.iHistoryDaysForPeakDaysView < 63) :
+                self.iHistoryDaysForPeakDaysView = 63
 
-        if ((self.sConsumptionType1 == "lmonth") or (self.sConsumptionType2 == "lmonth")) and (self.iHistoryDaysForDaysView < 63) :
-            self.iHistoryDaysForDaysView = 63
+            if (self.sConsumptionType1.endswith("_year") or self.sConsumptionType2.endswith("_year")) and (self.iHistoryDaysForPeakDaysView < 366) :
+                self.iHistoryDaysForPeakDaysView = 366            
+        else:
+            self.bPeakMode = False
+            if (self.sConsumptionType1.endswith("_cweek") or self.sConsumptionType2.endswith("_cweek")) and (self.iHistoryDaysForDaysView < 7) :
+                self.iHistoryDaysForDaysView = 7
+                
+            if (self.sConsumptionType1.endswith("_lweek") or self.sConsumptionType2.endswith("_lweek")) and (self.iHistoryDaysForDaysView < 14) :
+                self.iHistoryDaysForDaysView = 14
+                
+            if (self.sConsumptionType1.endswith("_cmonth") or self.sConsumptionType2.endswith("_cmonth")) and (self.iHistoryDaysForDaysView < 32) :
+                self.iHistoryDaysForDaysView = 32
 
-        if ((self.sConsumptionType1 == "year") or (self.sConsumptionType2 == "year")) and (self.iHistoryDaysForDaysView < 366) :
-            self.iHistoryDaysForDaysView = 366
-            
+            if (self.sConsumptionType1.endswith("_lmonth") or self.sConsumptionType2.endswith("_lmonth")) and (self.iHistoryDaysForDaysView < 63) :
+                self.iHistoryDaysForDaysView = 63
 
-        if ((self.sConsumptionType1 == "max_cweek") or (self.sConsumptionType2 == "max_cweek")) and (self.iHistoryDaysForDaysView < 7) :
-            self.iHistoryDaysForDaysView = 7
-            
-        if ((self.sConsumptionType1 == "max_lweek") or (self.sConsumptionType2 == "max_lweek")) and (self.iHistoryDaysForDaysView < 14) :
-            self.iHistoryDaysForDaysView = 14
-            
-        if ((self.sConsumptionType1 == "max_cmonth") or (self.sConsumptionType2 == "max_cmonth")) and (self.iHistoryDaysForDaysView < 32) :
-            self.iHistoryDaysForDaysView = 32
-
-        if ((self.sConsumptionType1 == "max_lmonth") or (self.sConsumptionType2 == "max_lmonth")) and (self.iHistoryDaysForDaysView < 63) :
-            self.iHistoryDaysForDaysView = 63
-
-        if ((self.sConsumptionType1 == "max_year") or (self.sConsumptionType2 == "max_year")) and (self.iHistoryDaysForDaysView < 366) :
-            self.iHistoryDaysForDaysView = 366            
-
-
-        #TODO
-        if ((self.sConsumptionType1 == "max_cweek") or (self.sConsumptionType2 == "max_cweek")) and (self.iHistoryDaysForPeakDaysView < 7) :
-            self.iHistoryDaysForPeakDaysView = 7
-            
-        if ((self.sConsumptionType1 == "max_lweek") or (self.sConsumptionType2 == "max_lweek")) and (self.iHistoryDaysForPeakDaysView < 14) :
-            self.iHistoryDaysForPeakDaysView = 14
-            
-        if ((self.sConsumptionType1 == "max_cmonth") or (self.sConsumptionType2 == "max_cmonth")) and (self.iHistoryDaysForPeakDaysView < 32) :
-            self.iHistoryDaysForPeakDaysView = 32
-
-        if ((self.sConsumptionType1 == "max_lmonth") or (self.sConsumptionType2 == "max_lmonth")) and (self.iHistoryDaysForPeakDaysView < 63) :
-            self.iHistoryDaysForPeakDaysView = 63
-
-        if ((self.sConsumptionType1 == "max_year") or (self.sConsumptionType2 == "max_year")) and (self.iHistoryDaysForPeakDaysView < 366) :
-            self.iHistoryDaysForPeakDaysView = 366            
-
+            if (self.sConsumptionType1.endswith("_year") or self.sConsumptionType2.endswith("_year")) and (self.iHistoryDaysForDaysView < 366) :
+                self.iHistoryDaysForDaysView = 366            
 
         Domoticz.Log("Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType1 + " / " + self.sConsumptionType2)
         Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
         Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
         if self.bPeakMode:
-            Domoticz.Log("Nombre de jours à récupérer pour les autres vues (calcul du pic) mis à " + str(self.iHistoryDaysForPeakDaysView))
+            Domoticz.Log("Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
         Domoticz.Log("Debug mis à " + str(self.iDebugLevel))
         
         # Parameter for tarif 1/2
