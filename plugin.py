@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-13" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-14" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -55,6 +55,24 @@
                 <option label="Pic mois en cours" value="peak_cmonth" />
                 <option label="Pic mois dernier" value="peak_lmonth" />
                 <option label="Pic année en cours" value="peak_year" />
+                <option label="Journée dernière" value="value_day"  default="true" />
+                <option label="Semaine en cours" value="value_cweek" />
+                <option label="Semaine dernière" value="value_lweek" />
+                <option label="Mois en cours" value="value_cmonth" />
+                <option label="Mois dernier" value="value_lmonth" />
+                <option label="Année en cours" value="value_year" />
+                <option label="Consommation horaire max journée dernière" value="max_day" />
+                <option label="Consommation horaire max semaine en cours" value="max_cweek" />
+                <option label="Consommation horaire max semaine dernière" value="max_lweek" />
+                <option label="Consommation horaire max mois en cours" value="max_cmonth" />
+                <option label="Consommation horaire max mois dernier" value="max_lmonth" />
+                <option label="Consommation horaire max année en cours" value="max_year" />
+                <option label="Consommation horaire moyenne journée dernière" value="mean_day" />
+                <option label="Consommation horaire moyenne semaine en cours" value="mean_cweek" />
+                <option label="Consommation horaire moyenne semaine dernière" value="mean_lweek" />
+                <option label="Consommation horaire moyenne mois en cours" value="mean_cmonth" />
+                <option label="Consommation horaire moyenne mois dernier" value="mean_lmonth" />
+                <option label="Consommation horaire moyenne année en cours" value="mean_year" />
             </options>
         </param>
         <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="400px">
@@ -110,6 +128,7 @@ import html
 
 CLIENT_ID = "9c551777-9d1b-447c-9e68-bfe6896ee002"
 
+#LOGIN_BASE_URI = "enedis.domoticz.russandol.pro"
 LOGIN_BASE_URI = "opensrcdev.alwaysdata.net"
 LOGIN_BASE_PORT = "443"
 # Sandbox
@@ -120,6 +139,8 @@ API_BASE_PORT = "443"
 
 #VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
 VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
+#VERIFY_CODE_URI = "https://enedis.domoticz.russandol.pro/device?code="
+#VERIFY_CODE_URI = "https://" + LOGIN_BASE_URI + "/device?code="
 
 API_ENDPOINT_DEVICE_CODE = "/domoticzlinkyconnect/device/code"
 API_ENDPOINT_DEVICE_TOKEN = "/domoticzlinkyconnect/device/token"
@@ -520,11 +541,14 @@ class BasePlugin:
         return True
 
     # Update value shown on Domoticz dashboard
-    def updateDevice(self, sValue):
+    def updateDevice(self, sValue, sUnit = ""):
         if not self.createDevice():
             return False
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
-        Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
+        if sUnit:
+            Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Options={"ValueUnits": sUnit})
+        else:
+            Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
 
     # Show error in state machine context
@@ -786,11 +810,13 @@ class BasePlugin:
             sConso1T1 = "consumptionpeak"
             sConso2T1 = "consumptionpeak"
             bTwoValuesT1 = False
+            sUnit = "Watts"
         else:
             SCalcT1 = self.sConsumptionType1
             sConso1T1 = "consumption1"
             sConso2T1 = "consumption2"
             bTwoValuesT1 = bool(self.sTarif)
+            sUnit = "kWh"
             
         if self.sConsumptionType2.startswith("peak_") :
             SCalcT2 = self.sConsumptionType2.replace("peak_", "max_")
@@ -818,7 +844,7 @@ class BasePlugin:
             if SCalcT2 in self.dCalculate[sConso1T2]:
                 sVal2 = str(self.dCalculate[sConso1T2][SCalcT2]) + ";-1"
                 
-        return self.updateDevice(sVal2 + ";-1;-1;" + sVal1)
+        return self.updateDevice(sVal2 + ";-1;-1;" + sVal1, sUnit)
         
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd = None):
