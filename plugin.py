@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-14" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-15" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -126,28 +126,38 @@ from time import strptime
 #from random import randint
 import html
 
-CLIENT_ID = "9c551777-9d1b-447c-9e68-bfe6896ee002"
 
-#LOGIN_BASE_URI = "enedis.domoticz.russandol.pro"
-LOGIN_BASE_URI = "opensrcdev.alwaysdata.net"
 LOGIN_BASE_PORT = "443"
-# Sandbox
-API_BASE_URI = "gw.hml.api.enedis.fr"
-# Production
-#API_BASE_URI = "gw.prd.api.enedis.fr"
-API_BASE_PORT = "443"
 
-#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
-VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
-#VERIFY_CODE_URI = "https://enedis.domoticz.russandol.pro/device?code="
+#CLIENT_ID = "b2ad5376-341c-48a5-bf2c-a8341c0728d9"
+#LOGIN_BASE_URI = "enedis.domoticz.russandol.pro"
+#API_ENDPOINT_DEVICE_CODE = "/device/code"
+#API_ENDPOINT_DEVICE_TOKEN = "/device/token"
+#API_ENDPOINT_PROXY = "/device/proxy"
 #VERIFY_CODE_URI = "https://" + LOGIN_BASE_URI + "/device?code="
 
+CLIENT_ID = "9c551777-9d1b-447c-9e68-bfe6896ee002"
+LOGIN_BASE_URI = "opensrcdev.alwaysdata.net"
 API_ENDPOINT_DEVICE_CODE = "/domoticzlinkyconnect/device/code"
 API_ENDPOINT_DEVICE_TOKEN = "/domoticzlinkyconnect/device/token"
 API_ENDPOINT_PROXY = "/domoticzlinkyconnect/device/proxy"
+VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
+
+API_BASE_PORT = "443"
+
+# Sandbox
+API_BASE_URI = "gw.hml.api.enedis.fr"
+
+# Production
+#API_BASE_URI = "gw.prd.api.enedis.fr"
+
 API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
 API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
 API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
+
+#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
+#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
+#VERIFY_CODE_URI = "https://enedis.domoticz.russandol.pro/device?code="
 
 #HEADERS = {
     #'Accept':'application/json, text/javascript, */*; q=0.01',
@@ -178,10 +188,10 @@ class BasePlugin:
     sDeviceName = "Linky"
     # string: description of the Linky device
     sDescription = "Compteur Linky"
-    # integer: type (pTypeGeneral)
-    iType = 0xF3
-    # integer: subtype (sTypeManagedMultiCounter)
-    iSubType = 0x22
+    # integer: type (pTypeP1Power)
+    iType = 0xfa
+    # integer: subtype (sTypeP1Power)
+    iSubType = 0x01
     # integer: switch type (Energy)
     iSwitchType = 0
     # string: step name of the state machine
@@ -378,10 +388,10 @@ class BasePlugin:
 
     def parseDeviceCode(self, Data):
         self.dumpDictToLog(Data)
-        status = getStatus(Data)
-        if status == 429:
+        iStatus = getStatus(Data)
+        if iStatus == 429:
             return "retry"
-        if status == 200:
+        if iStatus == 200:
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
@@ -449,10 +459,11 @@ class BasePlugin:
     # Parse access token
     def parseAccessToken(self, Data):
         self.dumpDictToLog(Data)
-        status = getStatus(Data)
-        if status == 429:
+        iStatus = getStatus(Data)
+        sError = getError(Data)
+        if iStatus == 429:
             return "retry"
-        elif getError(Data) == "authorization_pending":
+        elif sError == "authorization_pending":
             self.myDebug("pending")
             if Data and ("Data" in Data):
                 try:
@@ -466,10 +477,10 @@ class BasePlugin:
                         except:
                             self.iInterval = 5
             return "pending";
-        elif getError(Data) == "invalid_grant":
+        elif (sError == "invalid_client") or (sError == "invalid_grant"):
             resetTokens()
             self.showSimpleStatusError(Data)
-        elif status == 200:
+        elif iStatus == 200:
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
@@ -546,7 +557,7 @@ class BasePlugin:
             return False
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
         if sUnit:
-            Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Options={"ValueUnits": sUnit})
+            Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Options={"ValueUnits": sUnit, "DisableLogAutoUpdate" : "true", "AddDBLogEntry" : "true"})
         else:
             Devices[self.iIndexUnit].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType)
         return True
@@ -570,8 +581,14 @@ class BasePlugin:
     # Write data from memory to Domoticz DB
     def saveDataToDb(self):
         self.resetDayAccumulate()
-
-        for sDate, dOneData in self.dData.items():
+        
+        iConsumption1 = 0
+        iConsumption2 = 0
+        iProduction1 = 0
+        iProduction2 = 0
+        
+        # sorting needed to accumulate
+        for sDate, dOneData in sorted(self.dData.items()):
             # hour
             if len(sDate) > 10:
                 # We want only iHistoryDaysForHoursView days
@@ -579,14 +596,20 @@ class BasePlugin:
                 if (self.iHistoryDaysForHoursView < 1) or (dOneData["date"] < self.dateBeginDaysHistoryView):
                     # Domoticz.Error("Skip " + sDate)
                     continue
+                iConsumption1 = iConsumption1 + dOneData["consumption1"]
+                iConsumption2 = iConsumption2 + dOneData["consumption2"]
+                iProduction1 = iProduction1 + dOneData["production1"]
+                iProduction2 = iProduction2 + dOneData["production2"]
+                if not self.createAndAddToDevice(iConsumption1, iConsumption2, iProduction1, iProduction2, sDate):
+                    return False
             # day
             else:
                 # We don't want the last day, it's incomplete
                 if dOneData["date"] >= self.savedDateEndDays2:
                     # Domoticz.Error("Skip " + sDate)
                     continue
-            if not self.createAndAddToDevice(dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
-                return False            
+                if not self.createAndAddToDevice(dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
+                    return False            
         self.dData.clear()
         #self.dumpDictToLog(self.dCalculate)
         return True
