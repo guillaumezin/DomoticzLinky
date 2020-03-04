@@ -522,32 +522,32 @@ class BasePlugin:
     # Create Domoticz devices
     def createDevices(self):
         self.dUnitsByUsagePointId = dict()
-        dDeviceToDelete = []
-        # delete bad indexed devices and get devices by usage point id
+        #dDeviceToDelete = []
+        # collect devices already declared
         for iIndexUnit, oDevice in Devices.items():
-            if not (oDevice.DeviceID in self.lUsagePointIndex):
-                dDeviceToDelete.append(oDevice)
-            else:
+            if oDevice.DeviceID in self.lUsagePointIndex:
                 self.dUnitsByUsagePointId[oDevice.DeviceID] = oDevice
+            #else:
+                #dDeviceToDelete.append(oDevice)
 
-        for oDevice in dDeviceToDelete:
-            oDevice.Delete()
+        #for oDevice in dDeviceToDelete:
+            #oDevice.Delete()
                 
         for sUsagePointId in self.lUsagePointIndex:
             if not (sUsagePointId in self.dUnitsByUsagePointId):
-                for iIndexUnit in range(1,255):
-                    if iIndexUnit == 255:
-                        Domoticz.Error("Ne peut ajouter le dispositif Linky à la base de données. Trop de dispositifs déjà présents")
+                for iIndexUnit in range(1,256):
+                    if iIndexUnit == 256:
+                        Domoticz.Error("Ne peut ajouter de dispositif Linky à la base de données. Trop de dispositifs déjà présents, faites le ménage SVP")
                         return False
                     if not (iIndexUnit in Devices):
                         Domoticz.Device(Name=self.sDeviceName + " " + sUsagePointId, DeviceID=sUsagePointId, Unit=iIndexUnit, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Description=self.sDescription + " " + sUsagePointId, Options=self.dOptions, Used=1).Create()
                         if not (iIndexUnit in Devices):
-                            Domoticz.Error("Ne peut ajouter le dispositif Linky à la base de données. Vérifiez dans les paramètres de Domoticz que l'ajout de nouveaux dispositifs est autorisé")
+                            Domoticz.Error("Ne peut ajouter de dispositif Linky à la base de données. Vérifiez dans les paramètres de Domoticz que l'ajout de nouveaux dispositifs est autorisé")
                             return False
                         break
         return True
                 
-    # Create device and insert usage in Domoticz DB
+    # insert usage in Domoticz DB
     def addToDevice(self, sUsagePointId, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
         #TODO lire la version de Domoticz et si ancienne version, créer un Managed counter
         #sValue = str(usage) + ";0.0;0.0;0.0;0.0;0.0;"  + str(Date)
