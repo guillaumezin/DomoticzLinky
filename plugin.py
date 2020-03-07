@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-16" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-17" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -107,6 +107,7 @@ from datetime import time
 from time import strptime
 #from random import randint
 #import html
+from pprint import pprint
 
 LOGIN_BASE_PORT = "443"
 
@@ -132,10 +133,18 @@ API_BASE_URI = "gw.hml.api.enedis.fr"
 # Production
 #API_BASE_URI = "gw.prd.api.enedis.fr"
 
-#TODO passer en v4
 API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
 API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
 API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
+API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = ''
+API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = ''
+API_ENDPOINT_DATA_DAILY_PRODUCTION = ''
+#API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_curve'
+#API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
+#API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
+#API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/v4/metering_data/production_load_curve'
+#API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = '/v4/metering_data/daily_production_max_power'
+#API_ENDPOINT_DATA_DAILY_PRODUCTION = '/v4/metering_data/daily_production'
 
 #VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
 #VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
@@ -151,8 +160,8 @@ API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
 #}
 HEADERS = {
     "Accept" : "application/json",
+    "Content-Type" : "application/json"
     #"Connection" : "keep-alive",
-    "Content-Type" : "application/x-www-form-urlencoded"
 }
 
 class BasePlugin:
@@ -164,20 +173,18 @@ class BasePlugin:
     httpLoginConn = None
     # object: http connection for data
     httpDataConn = None
-    # integer: index of the Linky device
-    iIndexUnit = 1
     # string: name of the Linky device
     sDeviceName = "Linky"
     # string: description of the Linky device
     sDescription = "Compteur Linky"
-    # integer: type (pTypeP1Power)
-    iType = 0xfa
-    # integer: subtype (sTypeP1Power)
-    iSubType = 0x01
-    # integer: switch type (Energy)
-    iSwitchType = 0
-    # dict: options
-    dOptions = {"DisableLogAutoUpdate" : "true", "AddDBLogEntry" : "true"}
+    # list of integer: type (pTypeP1Power or pTypeGeneral)
+    lType = [0xfa, 0xf3]
+    # list of integer: subtype (sTypeP1Power or sTypeManagedCounter)
+    lSubType = [0x01, 0x21]
+    # list of integer: switch type (Energy)
+    lSwitchType = [0, 0]
+    # list of dict: options
+    lOptions = [{"DisableLogAutoUpdate" : "true", "AddDBLogEntry" : "true"}, {}]
     # string: step name of the state machine
     sConnectionStep = None
     # string: memory of step name of the state machine during connection
@@ -247,6 +254,8 @@ class BasePlugin:
     iInterval = 5
     # peak mode
     bPeakMode = None
+    # production mode
+    bProdMode = None
     # send nuffer
     sBuffer = None
     # data sent
@@ -267,6 +276,8 @@ class BasePlugin:
     dUnitsByUsagePointId = None
     # date
     dateNextConnection = None
+    # integer: which device to use
+    iAlternateDevice = 0
     
     def __init__(self):
         self.isStarted = False
@@ -329,7 +340,8 @@ class BasePlugin:
     # get access token
     def getDeviceCode(self):
         headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
-        
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+            
         postData = {
             "client_id": CLIENT_ID
         }
@@ -409,6 +421,7 @@ class BasePlugin:
     # get access token
     def getAccessToken(self):
         headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
         
         postData = {
             "client_id" : CLIENT_ID,
@@ -429,6 +442,7 @@ class BasePlugin:
     # Refresh token
     def refreshToken(self):
         headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         postData = {
             "grant_type" : "refresh_token",
@@ -540,7 +554,7 @@ class BasePlugin:
                         Domoticz.Error("Ne peut ajouter de dispositif Linky à la base de données. Trop de dispositifs déjà présents, faites le ménage SVP")
                         return False
                     if not (iIndexUnit in Devices):
-                        Domoticz.Device(Name=self.sDeviceName + " " + sUsagePointId, DeviceID=sUsagePointId, Unit=iIndexUnit, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Description=self.sDescription + " " + sUsagePointId, Options=self.dOptions, Used=1).Create()
+                        Domoticz.Device(Name=self.sDeviceName + " " + sUsagePointId, DeviceID=sUsagePointId, Unit=iIndexUnit, Type=self.lType[self.iAlternateDevice], Subtype=self.lSubType[self.iAlternateDevice], Switchtype=self.lSwitchType[self.iAlternateDevice], Description=self.sDescription + " " + sUsagePointId, Options=self.lOptions[self.iAlternateDevice], Used=1).Create()
                         if not (iIndexUnit in Devices):
                             Domoticz.Error("Ne peut ajouter de dispositif Linky à la base de données. Vérifiez dans les paramètres de Domoticz que l'ajout de nouveaux dispositifs est autorisé")
                             return False
@@ -549,19 +563,22 @@ class BasePlugin:
                 
     # insert usage in Domoticz DB
     def addToDevice(self, sUsagePointId, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
-        #TODO lire la version de Domoticz et si ancienne version, créer un Managed counter
-        #sValue = str(usage) + ";0.0;0.0;0.0;0.0;0.0;"  + str(Date)
-        # Usage 1,  Usage 2, Delivery 1, Delivery 2, 0 , 0
-        # sValue = str(usage) + ";" + str(usage/2) + ";" + str(usage*2) + ";" +str(usage*3) + ";0;0;" + str(Date)
-        sValue = str(fConsumption1) + ";" + str(fConsumption2) + ";" + str(fProduction1) + ";" + str(fProduction2) + ";0;0;"  + sDate
+        if self.iAlternateDevice:
+            sValue = "-1.0;"+ str(fConsumption1+fConsumption2) + ";"  + sDate
+        else:
+            sValue = str(fConsumption1) + ";" + str(fConsumption2) + ";" + str(fProduction1) + ";" + str(fProduction2) + ";0;0;"  + sDate
         self.myDebug("Mets dans la BDD la valeur " + sValue)
-        self.dUnitsByUsagePointId[sUsagePointId].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Options=self.dOptions)
+        self.dUnitsByUsagePointId[sUsagePointId].Update(nValue=0, sValue=sValue, Type=self.lType[self.iAlternateDevice], Subtype=self.lSubType[self.iAlternateDevice], Switchtype=self.lSwitchType[self.iAlternateDevice], Options=self.lOptions[self.iAlternateDevice])
         return True
 
     # Update value shown on Domoticz dashboard
-    def updateDevice(self, sUsagePointId, sValue):
+    def updateDevice(self, sUsagePointId, fMainVal1, fMainVal2, fSecVal1, fSecVal2):
+        if self.iAlternateDevice:
+            sValue = "-1.0;" + str(fSecVal1 + fSecVal2)
+        else:
+            sValue = str(fMainVal1) + ";" + str(fMainVal1) + ";0;0;" + str(fSecVal1) + ";" + str(fSecVal2)
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
-        self.dUnitsByUsagePointId[sUsagePointId].Update(nValue=0, sValue=sValue, Type=self.iType, Subtype=self.iSubType, Switchtype=self.iSwitchType, Options=self.dOptions)
+        self.dUnitsByUsagePointId[sUsagePointId].Update(nValue=0, sValue=sValue, Type=self.lType[self.iAlternateDevice], Subtype=self.lSubType[self.iAlternateDevice], Switchtype=self.lSwitchType[self.iAlternateDevice], Options=self.lOptions[self.iAlternateDevice])
         return True
 
     # Show error in state machine context
@@ -609,8 +626,12 @@ class BasePlugin:
                     iConsumption2 = iConsumption2 + dOneData["consumption2"]
                     iProduction1 = iProduction1 + dOneData["production1"]
                     iProduction2 = iProduction2 + dOneData["production2"]
-                    if not self.addToDevice(sUsagePointId, iConsumption1, iConsumption2, iProduction1, iProduction2, sDate):
-                        return False
+                    if self.iAlternateDevice:
+                        if not self.addToDevice(sUsagePointId, dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"], dOneData["production2"], sDate):
+                            return False
+                    else:
+                        if not self.addToDevice(sUsagePointId, iConsumption1, iConsumption2, iProduction1, iProduction2, sDate):
+                            return False
                 # day
                 else:
                     # We don't want the last day = today, it's incomplete
@@ -663,7 +684,7 @@ class BasePlugin:
         self.storeData(sUsagePointId, fData, sDate, dDate, bProduction, False, bPeak)
 
     # Grab hours data inside received JSON data for short log
-    def exploreDataHours(self, sUsagePointId, Data):
+    def exploreDataHours(self, sUsagePointId, Data, bProduction = False):
         self.dumpDictToLog(Data)
         if Data and ("Data" in Data):
             try:
@@ -703,6 +724,7 @@ class BasePlugin:
                         if (val >= 0.0):
                             # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                             # Enedis and Domoticz doesn't set the same date for used energy, add offset
+                            # TODO calculer la date à partir du champ donné par Enedis (nouveauté metering v4)
                             curDate = beginDate + timedelta(minutes=(rank*30))
                             #Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
@@ -715,7 +737,7 @@ class BasePlugin:
                                 #Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 #if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                     #return False
-                                self.manageDataHours(sUsagePointId, accumulation / steps, curDate)
+                                self.manageDataHours(sUsagePointId, accumulation / steps, curDate, bProduction)
                                 accumulation = 0.0
                                 steps = 0.0
                             steps = steps + 1.0
@@ -787,7 +809,7 @@ class BasePlugin:
                 self.modifyCalculation(dCalcType, "day", dVal[sKey])
     
     # Grab days data inside received JSON data for history
-    def exploreDataDays(self, sUsagePointId, Data, bPeak):
+    def exploreDataDays(self, sUsagePointId, Data, bPeak, bProduction = False):
         self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -826,7 +848,7 @@ class BasePlugin:
                             #self.dayAccumulate(curDate, val)
                             #if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                                 #return False
-                            self.manageDataDays(sUsagePointId, val, curDate, bPeak)
+                            self.manageDataDays(sUsagePointId, val, curDate, bPeak, bProduction)
                     return True
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
@@ -836,10 +858,11 @@ class BasePlugin:
 
     # Update dashboard with accumulated value
     def updateDashboard(self, sUsagePointId):
-        #TODO revoir calcul des max, ça ne va probablement pas
         self.dumpDictToLog(self.dCalculate[sUsagePointId])
-        sVal1 = "0;0"
-        sVal2 = "0;0"
+        fMainVal1 = 0
+        fMainVal2 = 0
+        fSecVal1 = 0
+        fSecVal2 = 0
         
         if self.sConsumptionType1.startswith("peak_") :
             SCalcT1 = self.sConsumptionType1.replace("peak_", "max_")
@@ -866,19 +889,21 @@ class BasePlugin:
         #self.myDebug(sConso1T1 + " --- " + sConso2T1  + " - " + sConso1T2 + " --- " + sConso2T2  + " - " + str(bTwoValuesT1) + " - " + str(bTwoValuesT2) + " / " + SCalcT1 + " /-/ " + SCalcT2)
         if bTwoValuesT1:
             if (SCalcT1 in self.dCalculate[sUsagePointId][sConso1T1]) and (SCalcT1 in self.dCalculate[sUsagePointId][sConso2T1]):
-                sVal1 = str(self.dCalculate[sUsagePointId][sConso1T1][SCalcT1]) + ";" +  str(self.dCalculate[sUsagePointId][sConso2T1][SCalcT1])
+                fMainVal1 = self.dCalculate[sUsagePointId][sConso1T1][SCalcT1]
+                fMainVal2 = self.dCalculate[sUsagePointId][sConso2T1][SCalcT1]
         else:
             if SCalcT1 in self.dCalculate[sUsagePointId][sConso1T1]:
-                sVal1 = str(self.dCalculate[sUsagePointId][sConso1T1][SCalcT1]) + ";0"
+                fMainVal1 = self.dCalculate[sUsagePointId][sConso1T1][SCalcT1]
                     
         if bTwoValuesT2:
             if (SCalcT2 in self.dCalculate[sUsagePointId][sConso1T2]) and (SCalcT2 in self.dCalculate[sUsagePointId][sConso2T2]):
-                sVal2 = str(self.dCalculate[sUsagePointId][sConso1T2][SCalcT2]) + ";" +  str(self.dCalculate[sUsagePointId][sConso2T2][SCalcT2])
+                fSecVal1 = self.dCalculate[sUsagePointId][sConso1T2][SCalcT2]
+                fSecVal2 = self.dCalculate[sUsagePointId][sConso2T2][SCalcT2]
         else:
             if SCalcT2 in self.dCalculate[sUsagePointId][sConso1T2]:
-                sVal2 = str(self.dCalculate[sUsagePointId][sConso1T2][SCalcT2]) + ";0"
-                
-        return self.updateDevice(sUsagePointId, sVal2 + ";0;0;" + sVal1)
+                fSecVal1 = self.dCalculate[sUsagePointId][sConso1T2][SCalcT2]
+
+        return self.updateDevice(sUsagePointId, fMainVal1, fMainVal2, fSecVal1, fSecVal2)
         
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd = None):
@@ -964,15 +989,13 @@ class BasePlugin:
             self.bHasAFail = False
             # Reset data
             self.dData.clear()
+            self.bProdMode = False
 
-            self.lUsagePointIndex = getConfigItem("usage_point_id", [])
-            
             # If we have access tokens, try do grab data, otherwise ask for tokens
-            if (getConfigItem("access_token", "") and (len(self.lUsagePointIndex) > 0)) :
+            if getConfigItem("access_token", "") :
                 #self.sConnectionStep = "getdatadays"
                 #self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
-                self.sConnectionStep = "getdatahours"
-                self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
+                self.sConnectionStep = "start"
             else :
                 self.sConnectionStep = "parsedevicecode"
                 self.getDeviceCode()
@@ -1033,15 +1056,8 @@ class BasePlugin:
                 #self.sConnectionStep = "getdatadays"
                 #self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
                 # Ask data for hours
-                self.lUsagePointIndex = getConfigItem("usage_point_id", [])
                 # If we have access tokens, try do grab data, otherwise ask for tokens
-                if (len(self.lUsagePointIndex) > 0) :
-                    self.sConnectionStep = "getdatahours"
-                    self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
-                else:
-                    self.sConnectionStep = "idle"
-                    self.bHasAFail = True
-                    self.showSimpleStepError("Erreur à la lecture des points de livraison")
+                self.sConnectionStep = "start"
             elif result == "retry":
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
@@ -1053,79 +1069,35 @@ class BasePlugin:
                 self.isEnabled = False
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             
-        # Ask data for days or peak data -- step not used anymore
-        elif self.sConnectionStep == "getdatadays" or self.sConnectionStep == "oldgetdatapeakdays":
-            # Check if access token still valid
-            status = getStatus(Data)
-            # status 403 = token not valid, needs refresh
-            if status == 403:
-                self.sConnectionStep = "parseaccesstoken"
-                self.refreshToken()
-            # If status 429, retry later
-            elif status == 429:                
-                self.sConnectionStep = "retry"
-                self.setNextConnectionForLater(self.iInterval)
-            elif (status != 200):
-                self.showStatusError(False, Data)
-                self.sConnectionStep = "idle"
-                self.bHasAFail = True
-            else:
-                # Analyse data for days
-                if self.sConnectionStep == "getdatapeakdays" :
-                    bPeak = True
-                else:
-                    bPeak = False
-                if not self.exploreDataDays(self.lUsagePointIndex[self.iUsagePointIndex], Data, bPeak):
-                    self.bHasAFail = True
-                # Still data to get, another batch ?
-                if self.stillDays(bPeak):
-                    self.calculateDaysLeft()
-                    # Normal data or peak data ?
-                    if bPeak:
-                        self.sConnectionStep = "getdatapeakdays"
-                        self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
-                    else:
-                        self.sConnectionStep = "getdatadays"
-                        self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
-                else:
-                    # If at end of data for days and for peaks, continue to data for hours or idle
-                    if (not self.bPeakMode) or bPeak:
-                        # user set Mode1 to 0, he doesn't want to grab hours data
-                        if self.iHistoryDaysForHoursView < 1:
-                            self.sConnectionStep = "idle"
-                        # grab data for hours
-                        else:
-                            self.sConnectionStep = "getdatahours"
-                            self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
-                    # Get peak data
-                    else:
-                        self.resetDates()
-                        self.sConnectionStep = "getdatapeakdays"
-                        self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
-
         # Ask data for hours
         elif self.sConnectionStep == "getdatahours":
             # Check if access token still valid
-            status = getStatus(Data)
-            if status == 403:
+            iStatus = getStatus(Data)
+            #TODO vérifier que la vérification sur sError est utile
+            sError = getError(Data)
+            if sError == "insufficient_scope":
+                self.isEnabled = False
+                self.showSimpleStatusError(Data)
+                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+            if iStatus == 403:
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
-            elif status == 404:
+            elif iStatus == 404:
                 self.showStatusError(True, Data)
                 self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             # If status 429, retry later
-            elif status == 429:                
+            elif iStatus == 429:                
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
-            elif status != 200:
+            elif iStatus != 200:
                 self.showStatusError(True, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
                 # Analyse data for hours
-                if not self.exploreDataHours(self.lUsagePointIndex[self.iUsagePointIndex], Data):
+                if not self.exploreDataHours(self.lUsagePointIndex[self.iUsagePointIndex], Data, self.bProdMode):
                     self.bHasAFail = True
                 #self.sConnectionStep = "idle"
 
@@ -1133,48 +1105,73 @@ class BasePlugin:
                 if self.stillDays(False):
                     self.calculateDaysLeft()
                     self.sConnectionStep = "getdatahours"
-                    self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
+                    self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or idle
                     if not self.bPeakMode:
-                        self.sConnectionStep = "idle"
+                        self.sConnectionStep = "prod"
                     # Get peak data
                     else:
                         self.resetDates()
                         self.sConnectionStep = "getdatapeakdays"
-                        self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
+                        self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_PRODUCTION_MAX_POWER if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
 
         # Ask data for peak data
         elif self.sConnectionStep == "getdatapeakdays":
             # Check if access token still valid
-            status = getStatus(Data)
+            iStatus = getStatus(Data)
+            #TODO vérifier que la vérification sur sError est utile
+            sError = getError(Data)
+            if sError == "insufficient_scope":
+                self.isEnabled = False
+                self.showSimpleStatusError(Data)
+                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             # status 403 = token not valid, needs refresh
-            if status == 403:
+            elif iStatus == 403:
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             # If status 429, retry later
-            elif status == 429:                
+            elif iStatus == 429:                
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
-            elif (status != 200):
+            elif (iStatus != 200):
                 self.showStatusError(False, Data)
                 self.sConnectionStep = "idle"
                 self.bHasAFail = True
             else:
-                if not self.exploreDataDays(self.lUsagePointIndex[self.iUsagePointIndex], Data, True):
+                if not self.exploreDataDays(self.lUsagePointIndex[self.iUsagePointIndex], Data, True, self.bProdMode):
                     self.bHasAFail = True
                 # Still data to get, another batch ?
                 if self.stillDays(True):
                     self.calculateDaysLeft()
                     # Normal data or peak data ?
                     self.sConnectionStep = "getdatapeakdays"
-                    self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
+                    self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_PRODUCTION_MAX_POWER if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, self.dateBeginDays, self.dateEndDays)
                 else:
-                    self.sConnectionStep = "idle"
+                    self.sConnectionStep = "prod"
 
+        # if we didn't grab production data, do it
+        if self.sConnectionStep == "prod":
+            if (not self.bProdMode) and API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE:
+                self.bProdMode = True
+                self.sConnectionStep = "start"
+            else:
+                self.sConnectionStep = "idle"
+
+        # first step to grab data
+        if self.sConnectionStep == "start":
+            self.lUsagePointIndex = getConfigItem("usage_point_id", [])
+            if (len(self.lUsagePointIndex) > 0) :                    
+                self.resetDates()
+                self.sConnectionStep = "getdatahours"
+                self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
+            else:
+                self.sConnectionStep = "idle"
+                self.bHasAFail = True
+                self.showSimpleStepError("Erreur à la lecture des points de livraison")
+            
         # Next connection time depends on success
         if self.sConnectionStep == "idle":
-            Domoticz.Log("Fait")                
             if not self.saveDataToDb():
                 self.bHasAFail = True
             if not self.updateDashboard(self.lUsagePointIndex[self.iUsagePointIndex]):
@@ -1182,9 +1179,7 @@ class BasePlugin:
             # check if another usage point to grab
             self.iUsagePointIndex = self.iUsagePointIndex + 1
             if self.iUsagePointIndex < len(self.lUsagePointIndex):
-                self.resetDates()
-                self.sConnectionStep = "getdatahours"
-                self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
+                self.handleConnection()
             else:
                 if self.bHasAFail:
                     self.setNextConnection(False)            
@@ -1211,7 +1206,20 @@ class BasePlugin:
     def onStart(self):
         self.myDebug("onStart called")
         
-        Domoticz.Log("Ce plugin est compatible avec Domoticz version 4.11774 et plus récent")
+        self.iAlternateDevice = 1
+        lVersions = Parameters["DomoticzVersion"].split(".")
+        if (len(lVersions) == 2):
+            iVersionMaj = int(lVersions[0])
+            iVersionMin = int(lVersions[1])
+            iVersion = (iVersionMaj * 1000000) + iVersionMin
+            if iVersion >= 4011774:
+                self.iAlternateDevice = 0
+        
+        # For test purpose
+        #self.iAlternateDevice = 1
+        
+        if self.iAlternateDevice:
+            Domoticz.Log("Ce plugin est compatible avec Domoticz version 3.9517 et plus récent, mais la vue par heure peut ne pas fonctionner avec la version 4.9700 et la visualisation d'énergie produite et de tarification horaire ne peuvent fonctionner qu'à partir de la version 4.11774") 
         
         # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
         Parameters.pop("Username", None)
@@ -1472,15 +1480,21 @@ def dictToQuotedString(dParams):
 
 # Grab error inside received JSON
 def getError(Data):
+    sError = ""
+    #sErrorDescription = ""
     if Data and ("Data" in Data):
         try:
             dJson = json.loads(Data["Data"].decode())
         except ValueError:
             return ""
         else:
-            if dJson and ("error" in dJson):
-                return dJson["error"]
-    return ""
+            if dJson:
+                if "error" in dJson:
+                    sError = dJson["error"]
+                #if "error_description" in dJson:
+                    #sErrorDescription = dJson["error_description"]
+    #return sError, sErrorDescription
+    return sError
 
 # Grab status inside received JSON
 def getStatus(Data):
