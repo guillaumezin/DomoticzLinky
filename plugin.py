@@ -64,7 +64,7 @@ from urllib.parse import quote
 import re
 from datetime import datetime
 from datetime import timedelta
-from datetime import time
+from datetime import time as dttime
 from time import strptime
 #from random import randint
 import html
@@ -762,7 +762,7 @@ class BasePlugin:
         
         if datetime.now() > self.nextConnection:
             #self.savedDateEndDays = self.nextConnection
-            self.savedDateEndDays = datetime.combine(self.nextConnection, time.min)
+            self.savedDateEndDays = datetime.combine(self.nextConnection, dttime.min)
             # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
             self.setNextConnection(True)
 
