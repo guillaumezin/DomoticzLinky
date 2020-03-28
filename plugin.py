@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-18" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-19" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -103,7 +103,6 @@ from urllib.parse import quote
 #import re
 from datetime import datetime
 from datetime import timedelta
-from datetime import time
 from time import strptime
 #from random import randint
 #import html
@@ -1023,7 +1022,7 @@ class BasePlugin:
         elif self.sConnectionStep == "connecting":
             if (self.iTimeoutCount >= 3):
                 self.showSimpleStepError("Timeout à la connexion")
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
                 self.iTimeoutCount = self.iTimeoutCount + 1
@@ -1031,7 +1030,7 @@ class BasePlugin:
         # We should never reach this
         elif self.sConnectionStep == "nothingtosend":
             self.showSimpleStepError("Erreur à la connexion")
-            self.sConnectionStep = "idle"
+            self.sConnectionStep = "done"
             self.bHasAFail = True
 
         # Did we get a device code ?
@@ -1044,7 +1043,7 @@ class BasePlugin:
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
             else:
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "done"
                 self.bHasAFail = True
             
         # Wait for user to complete authorization process with his web browser
@@ -1052,7 +1051,7 @@ class BasePlugin:
             # We must stay connected until completion, otherwise = error
             if not self.httpLoginConn.Connected():
                 self.showSimpleStepError("Redemande du jeton d'accès")
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
                 self.sConnectionStep = "parseaccesstoken"
@@ -1062,7 +1061,7 @@ class BasePlugin:
         elif self.sConnectionStep == "retry":
             if (self.iResendCount >= 3):
                 self.showSimpleStepError("Trop d'échec d'envoi, le plugin réessaiera plus tard")
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
                 self.reconnectAndResend()
@@ -1105,7 +1104,7 @@ class BasePlugin:
             elif iStatus == 404:
                 self.showStatusError(True, Data)
                 self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "save"
                 self.bHasAFail = True
             # If status 429, retry later
             elif iStatus == 429:                
@@ -1113,13 +1112,13 @@ class BasePlugin:
                 self.setNextConnectionForLater(self.iInterval)
             elif iStatus != 200:
                 self.showStatusError(True, Data)
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "save"
                 self.bHasAFail = True
             else:
                 # Analyse data for hours
                 if not self.exploreDataHours(Data, self.bProdMode):
                     self.bHasAFail = True
-                #self.sConnectionStep = "idle"
+                #self.sConnectionStep = "save"
 
                 # Still data to get, another batch ?
                 if self.stillDays(False):
@@ -1127,7 +1126,7 @@ class BasePlugin:
                     self.sConnectionStep = "getdatahours"
                     self.getData(API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
                 else:
-                    # If at end of data for days and for peaks, continue to data for hours or idle
+                    # If at end of data for days and for peaks, continue to data for hours or save
                     if not self.bPeakMode:
                         self.sConnectionStep = "prod"
                     # Get peak data
@@ -1157,7 +1156,7 @@ class BasePlugin:
                 self.setNextConnectionForLater(self.iInterval)
             elif (iStatus != 200):
                 self.showStatusError(False, Data)
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "save"
                 self.bHasAFail = True
             else:
                 if not self.exploreDataDays(Data, True, self.bProdMode):
@@ -1177,7 +1176,7 @@ class BasePlugin:
                 self.bProdMode = True
                 self.sConnectionStep = "start"
             else:
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "save"
 
         # first step to grab data
         if self.sConnectionStep == "start":
@@ -1189,12 +1188,12 @@ class BasePlugin:
                 self.sConnectionStep = "getdatahours"
                 self.getData(API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
             else:
-                self.sConnectionStep = "idle"
+                self.sConnectionStep = "done"
                 self.bHasAFail = True
                 self.showSimpleStepError("Erreur à la lecture des points de livraison")
             
         # Next connection time depends on success
-        if self.sConnectionStep == "idle":
+        if self.sConnectionStep == "save":
             if not self.saveDataToDb():
                 self.bHasAFail = True
             if (self.sUsagePointId in self.dUnitsByUsagePointId) and (not self.updateDashboard()):
@@ -1202,10 +1201,16 @@ class BasePlugin:
             # check if another usage point to grab
             self.iUsagePointIndex = self.iUsagePointIndex + 1
             if self.iUsagePointIndex < len(self.lUsagePointIndex):
+                self.sConnectionStep = "idle"
                 self.handleConnection()
             else:
-                if self.bHasAFail:
-                    self.setNextConnection(False)            
+                self.sConnectionStep = "done"
+            
+        # Next connection time depends on success
+        if self.sConnectionStep == "done":
+            if self.bHasAFail:
+                self.setNextConnection(False)            
+            self.sConnectionStep = "idle"
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
 
     def dumpDictToLog(self, dictToLog):
