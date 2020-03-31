@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="1.2.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="1.2.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Username" label="Adresse e-mail" width="200px" required="true" default=""/>
         <param field="Password" label="Mot de passe" width="200px" required="true" default="" password="true"/>
@@ -64,8 +64,8 @@ from urllib.parse import quote
 import re
 from datetime import datetime
 from datetime import timedelta
-from datetime import time as dttime
 from time import strptime
+from datetime import time
 #from random import randint
 import html
 
@@ -762,7 +762,7 @@ class BasePlugin:
         
         if datetime.now() > self.nextConnection:
             #self.savedDateEndDays = self.nextConnection
-            self.savedDateEndDays = datetime.combine(self.nextConnection, dttime.min)
+            self.savedDateEndDays = datetime.combine(self.nextConnection, time.min)
             # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
             self.setNextConnection(True)
 
