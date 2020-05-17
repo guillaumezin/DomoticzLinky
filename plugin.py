@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-19" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-20" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -87,6 +87,15 @@
                 <option label="Simple" value="1"/>
                 <option label="Avancé" value="2"/>
                 <option label="Reset consentement" value="3"/>
+                <option label="Faux client 1" value="11"/>
+                <option label="Faux client 2" value="12"/>
+                <option label="Faux client 3" value="13"/>
+                <option label="Faux client 4" value="14"/>
+                <option label="Faux client 5" value="15"/>
+                <option label="Faux client 6" value="16"/>
+                <option label="Faux client 7" value="17"/>
+                <option label="Faux client 8" value="18"/>
+                <option label="Faux client 9" value="19"/>
             </options>
         </param>
     </params>
@@ -108,59 +117,34 @@ from time import strptime
 #import html
 from pprint import pprint
 
-LOGIN_BASE_PORT = "443"
 
-#CLIENT_ID = "b2ad5376-341c-48a5-bf2c-a8341c0728d9"
-#LOGIN_BASE_URI = "enedis.domoticz.russandol.pro"
-#API_ENDPOINT_DEVICE_CODE = "/device/code"
-#API_ENDPOINT_DEVICE_TOKEN = "/device/token"
-#API_ENDPOINT_PROXY = "/device/proxy"
-#VERIFY_CODE_URI = "https://" + LOGIN_BASE_URI + "/device?code="
+CLIENT_ID = ["b2ad5376-341c-48a5-bf2c-a8341c0728d9", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
 
-CLIENT_ID = "9c551777-9d1b-447c-9e68-bfe6896ee002"
-LOGIN_BASE_URI = "opensrcdev.alwaysdata.net"
-API_ENDPOINT_DEVICE_CODE = "/domoticzlinkyconnect/device/code"
-API_ENDPOINT_DEVICE_TOKEN = "/domoticzlinkyconnect/device/token"
-API_ENDPOINT_PROXY = "/domoticzlinkyconnect/device/proxy"
-VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
+LOGIN_BASE_PORT = ["443", "443"]
+LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
+API_ENDPOINT_DEVICE_CODE = ["/device/code", "/domoticzlinkyconnect/device/code"]
+API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/domoticzlinkyconnect/device/token"]
+API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
+VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
 
-API_BASE_PORT = "443"
+API_BASE_PORT = ["443", "443"]
+API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
+#API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
+#API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
+#API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
+#API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = ''
+#API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = ''
+#API_ENDPOINT_DATA_DAILY_PRODUCTION = ''
+API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_curve'
+API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
+API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
+API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/v4/metering_data/production_load_curve'
+API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = '/v4/metering_data/daily_production_max_power'
+API_ENDPOINT_DATA_DAILY_PRODUCTION = '/v4/metering_data/daily_production'
 
-# Sandbox
-API_BASE_URI = "gw.hml.api.enedis.fr"
-
-# Production
-#API_BASE_URI = "gw.prd.api.enedis.fr"
-
-API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
-API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
-API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
-API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = ''
-API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = ''
-API_ENDPOINT_DATA_DAILY_PRODUCTION = ''
-#API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_curve'
-#API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
-#API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
-#API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/v4/metering_data/production_load_curve'
-#API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = '/v4/metering_data/daily_production_max_power'
-#API_ENDPOINT_DATA_DAILY_PRODUCTION = '/v4/metering_data/daily_production'
-
-#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/auth/verify_code?code="
-#VERIFY_CODE_URI = "https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device?code="
-#VERIFY_CODE_URI = "https://enedis.domoticz.russandol.pro/device?code="
-
-#HEADERS = {
-    #'Accept':'application/json, text/javascript, */*; q=0.01',
-    #'Accept-Language':'fr,fr-FR;q=0.8,en;q=0.6',
-    #"Content-Type": "application/x-www-form-urlencoded",
-    #"Connection": "keep-alive",
-    #"X-Requested-With": "XMLHttpRequest",
-    #'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Mobile Safari/537.36'
-#}
 HEADERS = {
     "Accept" : "application/json",
     "Content-Type" : "application/json"
-    #"Connection" : "keep-alive",
 }
 
 class BasePlugin:
@@ -277,6 +261,12 @@ class BasePlugin:
     dateNextConnection = None
     # integer: which device to use
     iAlternateDevice = 0
+    # integer: false customoer
+    iFalseCustomer = 0
+    # integer: which address to use (production or sandbox)
+    iAlternateAddress = 0
+    # integer: which device to use
+    iAlternateDevice = 0
     
     def __init__(self):
         self.isStarted = False
@@ -301,10 +291,10 @@ class BasePlugin:
         self.iTimeoutCount = 0
         self.iResendCount = self.iResendCount + 1
         if self.bLoginConnect :
-            self.httpLoginConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=LOGIN_BASE_URI, Port=LOGIN_BASE_PORT)
+            self.httpLoginConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=LOGIN_BASE_URI[self.iAlternateAddress], Port=LOGIN_BASE_PORT[self.iAlternateAddress])
             self.httpLoginConn.Connect()
         else:
-            self.httpDataConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=API_BASE_URI, Port=API_BASE_PORT)
+            self.httpDataConn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=API_BASE_URI[self.iAlternateAddress], Port=API_BASE_PORT[self.iAlternateAddress])
             self.httpDataConn.Connect()
         
     # Prepare buffer and connect
@@ -323,12 +313,12 @@ class BasePlugin:
     # Connect for login
     def connectAndSendForAuthorize(self, data):
         self.bLoginConnect = True
-        self.httpLoginConn = self.connectAndSend(self.httpLoginConn, data, LOGIN_BASE_URI, LOGIN_BASE_PORT)
+        self.httpLoginConn = self.connectAndSend(self.httpLoginConn, data, LOGIN_BASE_URI[self.iAlternateAddress], LOGIN_BASE_PORT[self.iAlternateAddress])
         
     # Connect for metering data
     def connectAndSendForMetering(self, data):
         self.bLoginConnect = False
-        self.httpDataConn = self.connectAndSend(self.httpDataConn, data, API_BASE_URI, API_BASE_PORT)
+        self.httpDataConn = self.connectAndSend(self.httpDataConn, data, API_BASE_URI[self.iAlternateAddress], API_BASE_PORT[self.iAlternateAddress])
 
     # get default headers
     def initHeaders(self, uri):
@@ -338,16 +328,16 @@ class BasePlugin:
 
     # get access token
     def getDeviceCode(self):
-        headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
+        headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
             
         postData = {
-            "client_id": CLIENT_ID
+            "client_id": CLIENT_ID[self.iAlternateAddress]
         }
         
         sendData = {
                     "Verb" : "POST",
-                    "URL"  : API_ENDPOINT_DEVICE_CODE,
+                    "URL"  : API_ENDPOINT_DEVICE_CODE[self.iAlternateAddress],
                     "Headers" : headers,
                     "Data" : dictToQuotedString(postData)
         }
@@ -407,9 +397,10 @@ class BasePlugin:
                     sUserCode = dJson["user_code"]
                     count = count + 1
                 if count == 2:
-                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement")
-                    #Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + " et entrez le code " + sUserCode +  " pour lancer la demande de consentement")
-                    Domoticz.Error("Connectez-vous à l'adresse " + VERIFY_CODE_URI + quote(sUserCode) + " pour lancer la demande de consentement avec le code " + sUserCode)
+                    sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode)
+                    if self.iFalseCustomer:
+                        sUrl = sUrl + "&state=" + str(self.iFalseCustomer)
+                    Domoticz.Error("Connectez-vous à l'adresse " + sUrl + " pour lancer la demande de consentement avec le code " + sUserCode)
                     return "done"
             else:
                 self.showSimpleStepError("Pas de données reçue")
@@ -419,18 +410,18 @@ class BasePlugin:
         
     # get access token
     def getAccessToken(self):
-        headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
+        headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
         
         postData = {
-            "client_id" : CLIENT_ID,
+            "client_id" : CLIENT_ID[self.iAlternateAddress],
             "grant_type" : "urn:ietf:params:oauth:grant-type:device_code",
             "device_code" : self.sDeviceCode
         }
         
         sendData = {
                     "Verb" : "POST",
-                    "URL"  : API_ENDPOINT_DEVICE_TOKEN,
+                    "URL"  : API_ENDPOINT_DEVICE_TOKEN[self.iAlternateAddress],
                     "Headers" : headers,
                     "Data" : dictToQuotedString(postData)
         }
@@ -440,18 +431,18 @@ class BasePlugin:
 
     # Refresh token
     def refreshToken(self):
-        headers = self.initHeaders(LOGIN_BASE_URI + ":" + LOGIN_BASE_PORT)
+        headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         postData = {
             "grant_type" : "refresh_token",
-            "client_id" : CLIENT_ID,
+            "client_id" : CLIENT_ID[self.iAlternateAddress],
             "refresh_token" : getConfigItem("refresh_token", "")
         }
 
         sendData = {
                     "Verb" : "POST",
-                    "URL"  : API_ENDPOINT_PROXY,
+                    "URL"  : API_ENDPOINT_PROXY[self.iAlternateAddress],
                     "Headers" : headers,
                     "Data" : dictToQuotedString(postData)
         }
@@ -514,7 +505,7 @@ class BasePlugin:
         
     # Get data
     def getData(self, uri, start, end):
-        headers = self.initHeaders(API_BASE_URI + ":" + API_BASE_PORT)
+        headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress] + ":" + API_BASE_PORT[self.iAlternateAddress])
         headers["Authorization"] = getConfigItem("token_type", "") + " " + getConfigItem("access_token", "")
         
         query = {
@@ -1273,8 +1264,15 @@ class BasePlugin:
         if self.iDebugLevel > 1:
             Domoticz.Debugging(1)
 
-        if self.iDebugLevel > 2:
+        if self.iDebugLevel == 3:
             resetTokens()
+
+        if self.iDebugLevel > 10:
+            self.iAlternateAddress = 1
+            self.iFalseCustomer = self.iDebugLevel - 10
+        else:
+            self.iAlternateAddress = 0
+            self.iFalseCustomer = 0
 
         # History for short log is 7 days max (default to 7)
         try:
