@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-20" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-21" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -109,6 +109,7 @@ import sys
 from base64 import b64encode
 import json
 from urllib.parse import quote
+from urllib.parse import parse_qs
 #import re
 from datetime import datetime
 from datetime import timedelta
@@ -363,18 +364,13 @@ class BasePlugin:
 
     def showSimpleStatusError(self, Data):
         sErrorSentence = "Erreur status : " + str(getStatus(Data))
-        if Data and ("Data" in Data):
-            try:
-                dJson = json.loads(Data["Data"].decode())
-            except ValueError:
-                pass
-            else:
-                if dJson and ("error" in dJson):
-                    sErrorSentence = sErrorSentence + " - code " + dJson["error"]
-                if dJson and ("error_description" in dJson):
-                    sErrorSentence = sErrorSentence + " - description : " + dJson["error_description"]
-                if dJson and ("error_uri" in dJson):
-                    sErrorSentence = sErrorSentence + " - URI : " + dJson["error_uri"]
+        sError, sErrorDescription, sErrorUri = getError(Data)
+        if sError:
+            sErrorSentence = sErrorSentence + " - code " + sError
+        if sErrorDescription:
+            sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
+        if sErrorUri:
+            sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
         self.showSimpleStepError(sErrorSentence)
 
     def parseDeviceCode(self, Data):
@@ -454,7 +450,7 @@ class BasePlugin:
     def parseAccessToken(self, Data):
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
-        sError = getError(Data)
+        sError, sErrorDescription, sErrorUri = getError(Data)
         if iStatus == 429:
             return "retry"
         elif sError == "authorization_pending":
@@ -1084,12 +1080,13 @@ class BasePlugin:
             iStatus = getStatus(Data)
             #TODO vérifier que la vérification sur sError est utile
             #TODO à partir de sError, repérer l'erreur qui doit mener à parseaccesstoken sinon stopper plutôt que le contraire
-            sError = getError(Data)
+            self.dumpDictToLog(Data)
+            sError, sErrorDescription, sErrorUri = getError(Data)
             if sError == "insufficient_scope":
                 self.isEnabled = False
                 self.showSimpleStatusError(Data)
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
-            if iStatus == 403:
+            elif iStatus == 403:
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 404:
@@ -1132,7 +1129,7 @@ class BasePlugin:
             iStatus = getStatus(Data)
             #TODO vérifier que la vérification sur sError est utile
             #TODO à partir de sError, repérer l'erreur qui doit mener à parseaccesstoken sinon stopper plutôt que le contraire
-            sError = getError(Data)
+            sError, sErrorDescription, sErrorUri = getError(Data)
             if sError == "insufficient_scope":
                 self.isEnabled = False
                 self.showSimpleStatusError(Data)
@@ -1507,7 +1504,8 @@ def dictToQuotedString(dParams):
 # Grab error inside received JSON
 def getError(Data):
     sError = ""
-    #sErrorDescription = ""
+    sErrorDescription = ""
+    sErrorUri = ""
     if Data and ("Data" in Data):
         try:
             dJson = json.loads(Data["Data"].decode())
@@ -1517,10 +1515,22 @@ def getError(Data):
             if dJson:
                 if "error" in dJson:
                     sError = dJson["error"]
-                #if "error_description" in dJson:
-                    #sErrorDescription = dJson["error_description"]
-    #return sError, sErrorDescription
-    return sError
+                if "error_description" in dJson:
+                    sErrorDescription = dJson["error_description"]
+                if "error_uri" in dJson:
+                    sErrorUri = dJson["error_uri"]
+    if not sError:
+        if Data and ("Headers" in Data) and ("WWW-Authenticate" in Data["Headers"]):
+            sAuthenticate = Data["Headers"]["WWW-Authenticate"]
+            if "," in sAuthenticate:
+                dError = dict(item.split("=", 1) for item in sAuthenticate.split(","))
+                if "error" in dError:
+                    sError = dError["error"].strip("\"")
+                if "error_description" in dError:
+                    sErrorDescription = dError["error_description"].strip("\"")
+                if "error_uri" in dError:
+                    sErrorUri = dError["error_uri"].strip("\"")
+    return sError, sErrorDescription, sErrorUri
 
 # Grab status inside received JSON
 def getStatus(Data):
