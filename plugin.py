@@ -128,14 +128,7 @@ API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
 VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
 
 API_BASE_PORT = ["443", "443"]
-#API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
-API_BASE_URI = ["gw.hml.api.enedis.fr", "gw.hml.api.enedis.fr"]
-#API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
-#API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
-#API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
-#API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = ''
-#API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = ''
-#API_ENDPOINT_DATA_DAILY_PRODUCTION = ''
+API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
 API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_curve'
 API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
 API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
