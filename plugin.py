@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-21" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-22" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -109,7 +109,6 @@ import sys
 from base64 import b64encode
 import json
 from urllib.parse import quote
-from urllib.parse import parse_qs
 #import re
 from datetime import datetime
 from datetime import timedelta
@@ -129,7 +128,8 @@ API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
 VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
 
 API_BASE_PORT = ["443", "443"]
-API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
+#API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
+API_BASE_URI = ["gw.hml.api.enedis.fr", "gw.hml.api.enedis.fr"]
 #API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v3/metering_data/consumption_load_curve'
 #API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v3/metering_data/consumption_max_power'
 #API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v3/metering_data/daily_consumption'
@@ -467,9 +467,6 @@ class BasePlugin:
                         except:
                             self.iInterval = 5
             return "pending";
-        elif (sError == "invalid_client") or (sError == "invalid_grant"):
-            resetTokens()
-            self.showSimpleStatusError(Data)
         elif iStatus == 200:
             if Data and ("Data" in Data):
                 try:
@@ -685,10 +682,10 @@ class BasePlugin:
                 self.showStepError(True, "Erreur dans les données JSON : " + str(sys.exc_info()[0]))
                 return False
             else:
-                if dJson and ("usage_point" in dJson):
+                if dJson and ("meter_reading" in dJson):
                     try:
-                        beginDate = enedisDateToDatetime(dJson["usage_point"][0]["meter_reading"]["start"])
-                        endDate = enedisDateToDatetime(dJson["usage_point"][0]["meter_reading"]["end"])
+                        beginDate = enedisDateToDatetime(dJson["meter_reading"]["start"])
+                        endDate = enedisDateToDatetime(dJson["meter_reading"]["end"])
                     except (TypeError, ValueError) as err:
                         self.showStepError(True, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
@@ -700,7 +697,7 @@ class BasePlugin:
                     currentDay = -1
                     steps = 1.0
                     dataSeenToTheEnd = False
-                    for index, data in enumerate(dJson["usage_point"][0]["meter_reading"]["interval_reading"]):
+                    for index, data in enumerate(dJson["meter_reading"]["interval_reading"]):
                         try:
                             val = float(data["value"])
                         except:
@@ -708,19 +705,7 @@ class BasePlugin:
                         if (val >= 0.0):
                             # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                             # Enedis and Domoticz doesn't set the same date for used energy, add offset
-                            if "date" in data:
-                                try:
-                                    curDate = enedisDateToDatetime(data["date"]) + timedelta(minutes=(rank*30))
-                                except:
-                                    curDate = beginDate + timedelta(minutes=(index*30))
-                            elif "rank" in data:
-                                try:
-                                    rank = int(data["rank"])
-                                    curDate = beginDate + timedelta(minutes=(rank*30))
-                                except:
-                                    curDate = beginDate + timedelta(minutes=(index*30))
-                            else:
-                                curDate = beginDate + timedelta(minutes=(index*30))
+                            curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
                             #Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
@@ -819,35 +804,23 @@ class BasePlugin:
                 self.showStepError(False, "Erreur dans les données JSON : " + str(sys.exc_info()[0]))
                 return False
             else:
-                if dJson and ("usage_point" in dJson):
+                if dJson and ("meter_reading" in dJson):
                     try:
-                        beginDate = enedisDateToDatetime(dJson["usage_point"][0]["meter_reading"]["start"])
-                        endDate = enedisDateToDatetime(dJson["usage_point"][0]["meter_reading"]["end"])
+                        beginDate = enedisDateToDatetime(dJson["meter_reading"]["start"])
+                        endDate = enedisDateToDatetime(dJson["meter_reading"]["end"])
                     except ValueError as err:
                         self.showStepError(False, "Erreur dans le format de donnée de date JSON : " + str(err))
                         return False
                     except:
                         self.showStepError(False, "Erreur dans la donnée de date JSON : " + str(sys.exc_info()[0]))
                         return False
-                    for index, data in enumerate(dJson["usage_point"][0]["meter_reading"]["interval_reading"]):
+                    for index, data in enumerate(dJson["meter_reading"]["interval_reading"]):
                         try:
                             val = float(data["value"])
                         except:
                             val = -1.0
                         if (val >= 0.0):
-                            if "date" in data:
-                                try:
-                                    curDate = enedisDateToDatetime(data["date"])
-                                except:
-                                    curDate = beginDate + timedelta(days=index)
-                            elif "rank" in data:
-                                try:
-                                    rank = int(data["rank"])
-                                    curDate = beginDate + timedelta(minutes=(rank*30))
-                                except:
-                                    curDate = beginDate + timedelta(days=index)
-                            else:
-                                curDate = beginDate + timedelta(days=index)
+                            curDate = enedisDateToDatetime(data["date"])
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             #self.dumpDictToLog(values)
                             #self.dayAccumulate(curDate, val)
@@ -1072,28 +1045,29 @@ class BasePlugin:
                 self.setNextConnectionForLater(self.iInterval)
             else:
                 self.isEnabled = False
+                resetTokens()
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             
         # Ask data for hours
         elif self.sConnectionStep == "getdatahours":
             # Check if access token still valid
             iStatus = getStatus(Data)
-            #TODO vérifier que la vérification sur sError est utile
-            #TODO à partir de sError, repérer l'erreur qui doit mener à parseaccesstoken sinon stopper plutôt que le contraire
             self.dumpDictToLog(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
-            if sError == "insufficient_scope":
-                self.isEnabled = False
-                self.showSimpleStatusError(Data)
-                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
-            elif iStatus == 403:
+            if (iStatus == 403) and (sError == "invalid_token"):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
+            elif iStatus == 403 :
+                self.isEnabled = False
+                resetTokens()
+                self.showSimpleStatusError(Data)
+                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             elif iStatus == 404:
-                self.showStatusError(True, Data)
-                self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
+                if not self.bProdMode:
+                    self.showStatusError(True, Data)
+                    self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
+                    self.bHasAFail = True
                 self.sConnectionStep = "save"
-                self.bHasAFail = True
             # If status 429, retry later
             elif iStatus == 429:                
                 self.sConnectionStep = "retry"
@@ -1127,17 +1101,21 @@ class BasePlugin:
         elif self.sConnectionStep == "getdatapeakdays":
             # Check if access token still valid
             iStatus = getStatus(Data)
-            #TODO vérifier que la vérification sur sError est utile
-            #TODO à partir de sError, repérer l'erreur qui doit mener à parseaccesstoken sinon stopper plutôt que le contraire
             sError, sErrorDescription, sErrorUri = getError(Data)
-            if sError == "insufficient_scope":
-                self.isEnabled = False
-                self.showSimpleStatusError(Data)
-                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
-            # status 403 = token not valid, needs refresh
-            elif iStatus == 403:
+            if (iStatus == 403) and (sError == "invalid_token"):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
+            elif iStatus == 403 :
+                self.isEnabled = False
+                resetTokens()
+                self.showSimpleStatusError(Data)
+                self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+            elif iStatus == 404:
+                if not self.bProdMode:
+                    self.showStatusError(True, Data)
+                    self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
+                    self.bHasAFail = True
+                self.sConnectionStep = "save"
             # If status 429, retry later
             elif iStatus == 429:                
                 self.sConnectionStep = "retry"
@@ -1556,12 +1534,19 @@ def DumpConfigToLog():
         self.myDebug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
 
+# Convert Enedis datetime string to datetime object
+def enedisDateTimeToDatetime(datetimeStr):
+    #Buggy
+    #return datetime.strptime(datetimeStr, "%d/%m/%Y")
+    #Not buggy ?
+    return datetime(*(strptime(datetimeStr[:19], "%Y-%m-%d %H:%M:%S")[0:6]))
+
 # Convert Enedis date string to datetime object
 def enedisDateToDatetime(datetimeStr):
     #Buggy
     #return datetime.strptime(datetimeStr, "%d/%m/%Y")
     #Not buggy ?
-    return datetime(*(strptime(datetimeStr, "%Y-%m-%d")[0:6]))
+    return datetime(*(strptime(datetimeStr[:10], "%Y-%m-%d")[0:6]))
 
 # Convert datetime object to Enedis date string
 def datetimeToEnedisDateString(datetimeObj):
