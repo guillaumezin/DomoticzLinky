@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-22" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-23" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -87,6 +87,7 @@
                 <option label="Simple" value="1"/>
                 <option label="Avancé" value="2"/>
                 <option label="Reset consentement" value="3"/>
+                <option label="Faux client 0" value="10"/>
                 <option label="Faux client 1" value="11"/>
                 <option label="Faux client 2" value="12"/>
                 <option label="Faux client 3" value="13"/>
@@ -1235,7 +1236,7 @@ class BasePlugin:
         if self.iDebugLevel == 3:
             resetTokens()
 
-        if self.iDebugLevel > 10:
+        if self.iDebugLevel >= 10:
             self.iAlternateAddress = 1
             self.iFalseCustomer = self.iDebugLevel - 10
         else:
