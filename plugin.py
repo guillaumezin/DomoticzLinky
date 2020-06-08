@@ -238,6 +238,8 @@ class BasePlugin:
     iInterval = 5
     # peak mode
     bPeakMode = None
+    # count data packet Error
+    iDataErrorCount = None
     # production mode
     bProdMode = None
     # send nuffer
@@ -472,8 +474,8 @@ class BasePlugin:
                 except ValueError as err:
                     self.showSimpleStepError("Les données reçues ne sont pas du JSON : " + str(err))
                     return False
-                if dJson and ("usage_point_id" in dJson):
-                    setConfigItem("usage_point_id", str(dJson["usage_point_id"]).split(","))
+                if dJson and ("usage_points_id" in dJson):
+                    setConfigItem("usage_points_id", str(dJson["usage_points_id"]).split(","))
                 count = 0
                 if dJson and ("refresh_token" in dJson):
                     setConfigItem("refresh_token", dJson["refresh_token"])
@@ -966,7 +968,9 @@ class BasePlugin:
             Domoticz.Log("Récupération des données...")
             # Reset failed state
             self.bHasAFail = False
+            # Reset data count
             # Reset data
+            self.iDataErrorCount = 0
             self.dData.clear()
             self.bProdMode = False
 
@@ -1064,11 +1068,12 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             elif iStatus == 404:
-                if not self.bProdMode:
+                self.iDataErrorCount = self.iDataErrorCount + 1
+                if self.iDataErrorCount > 1:
                     self.showStatusError(True, Data)
                     self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
                     self.bHasAFail = True
-                self.sConnectionStep = "save"
+                self.sConnectionStep = "prod"
             # If status 429, retry later
             elif iStatus == 429:                
                 self.sConnectionStep = "retry"
@@ -1112,11 +1117,7 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.showSimpleStepError("Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             elif iStatus == 404:
-                if not self.bProdMode:
-                    self.showStatusError(True, Data)
-                    self.showStepError(True, "Avez-vous activé la courbe de charge sur le site d'Enedis ?")
-                    self.bHasAFail = True
-                self.sConnectionStep = "save"
+                self.sConnectionStep = "prod"
             # If status 429, retry later
             elif iStatus == 429:                
                 self.sConnectionStep = "retry"
@@ -1147,7 +1148,7 @@ class BasePlugin:
 
         # first step to grab data
         if self.sConnectionStep == "start":
-            self.lUsagePointIndex = getConfigItem("usage_point_id", [])
+            self.lUsagePointIndex = getConfigItem("usage_points_id", [])
             if (len(self.lUsagePointIndex) > 0) :                    
                 self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex]
                 Domoticz.Log("Traitement pour le point de livraison " + self.sUsagePointId)
@@ -1467,7 +1468,7 @@ def setConfigItem(Key=None, Value=None):
    
 # Erase authorization tokens
 def resetTokens():
-    setConfigItem("usage_point_id", [])
+    setConfigItem("usage_points_id", [])
     setConfigItem("token_type", "")
     setConfigItem("refresh_token", "")
     setConfigItem("access_token", "")
