@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-24" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-25" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -778,17 +778,17 @@ class BasePlugin:
     # Accumulate power consumption
     def dayAccumulate(self, dateCur, dVal):
         for sKey, dCalcType in self.dCalculate[self.sUsagePointId].items():
-            if (dateCur > self.fdweek):
+            if (dateCur >= self.fdweek):
                 self.modifyCalculation(dCalcType, "cweek", dVal[sKey])
-            if (self.fdpweek < dateCur <= self.fdweek):
+            if (self.fdpweek <= dateCur < self.fdweek):
                 self.modifyCalculation(dCalcType, "lweek", dVal[sKey])
-            if (dateCur > self.fdmonth):
+            if (dateCur >= self.fdmonth):
                 self.modifyCalculation(dCalcType, "cmonth", dVal[sKey])
-            if (self.fdpmonth < dateCur <= self.fdmonth):
+            if (self.fdpmonth <= dateCur < self.fdmonth):
                 self.modifyCalculation(dCalcType, "lmonth", dVal[sKey])
-            if (dateCur > self.fdyear):
+            if (dateCur >= self.fdyear):
                 self.modifyCalculation(dCalcType, "year", dVal[sKey])
-            if (self.prevDay < dateCur <= self.curDay):
+            if (self.prevDay <= dateCur < self.curDay):
                 self.modifyCalculation(dCalcType, "day", dVal[sKey])
     
     # Grab days data inside received JSON data for history
