@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-25" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-26" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="400px">
             <options>
@@ -119,20 +119,14 @@ from time import strptime
 from pprint import pprint
 
 
-#CLIENT_ID = ["b2ad5376-341c-48a5-bf2c-a8341c0728d9", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
-CLIENT_ID = ["b2ad5376-341c-48a5-bf2c-a8341c0728d9", "b2ad5376-341c-48a5-bf2c-a8341c0728d9"]
+CLIENT_ID = ["b2ad5376-341c-48a5-bf2c-a8341c0728d9", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
 
 LOGIN_BASE_PORT = ["443", "443"]
-#LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
-LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "enedis.domoticz.russandol.pro"]
-#API_ENDPOINT_DEVICE_CODE = ["/device/code", "/domoticzlinkyconnect/device/code"]
-API_ENDPOINT_DEVICE_CODE = ["/device/code", "/device/code"]
-#API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/domoticzlinkyconnect/device/token"]
-API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/device/token"]
-#API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
-API_ENDPOINT_PROXY = ["/device/proxy", "/device/proxy"]
-#VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
-VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[0] + "/device?code="]
+LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
+API_ENDPOINT_DEVICE_CODE = ["/device/code", "/domoticzlinkyconnect/device/code"]
+API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/domoticzlinkyconnect/device/token"]
+API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
+VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=", "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
 
 API_BASE_PORT = ["443", "443"]
 API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
@@ -467,7 +461,7 @@ class BasePlugin:
                         except:
                             self.iInterval = 5
             return "pending";
-        elif iStatus == 200:
+        elif (sError != "invalid_grant") and (iStatus == 200):
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
