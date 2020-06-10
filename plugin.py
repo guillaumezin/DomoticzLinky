@@ -21,9 +21,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-26" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-27" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
-        <param field="Mode4" label="Heures creuses" width="400px">
+        <param field="Mode4" label="Heures creuses" width="500px">
             <options>
                 <option label="Désactivées" value=""  default="true" />
                 <option label="21h30-5h30" value="21h30-5h30" />
@@ -47,36 +47,36 @@
                 <option label="3h30-7h00 et 13h00-16h00 et 22h30-6h30" value="3h30-7h00 et 13h00-16h00 et 22h30-6h30" />
             </options>
         </param>
-        <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="400px">
+        <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="500px">
             <options>
-                <option label="Pic journée dernière" value="peak_day" />
-                <option label="Pic semaine en cours" value="peak_cweek" />
-                <option label="Pic semaine dernière" value="peak_lweek" />
-                <option label="Pic mois en cours" value="peak_cmonth" />
-                <option label="Pic mois dernier" value="peak_lmonth" />
-                <option label="Pic année en cours" value="peak_year" />
+                <option label="Pic consommation journée dernière" value="peak_day" />
+                <option label="Pic consommation semaine en cours" value="peak_cweek" />
+                <option label="Pic consommation semaine dernière" value="peak_lweek" />
+                <option label="Pic consommation mois en cours" value="peak_cmonth" />
+                <option label="Pic consommation mois dernier" value="peak_lmonth" />
+                <option label="Pic consommation année en cours" value="peak_year" />
             </options>
         </param>
-        <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="400px">
+        <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="500px">
             <options>
-                <option label="Journée dernière" value="value_day"  default="true" />
-                <option label="Semaine en cours" value="value_cweek" />
-                <option label="Semaine dernière" value="value_lweek" />
-                <option label="Mois en cours" value="value_cmonth" />
-                <option label="Mois dernier" value="value_lmonth" />
-                <option label="Année en cours" value="value_year" />
-                <option label="Consommation horaire max journée dernière" value="max_day" />
-                <option label="Consommation horaire max semaine en cours" value="max_cweek" />
-                <option label="Consommation horaire max semaine dernière" value="max_lweek" />
-                <option label="Consommation horaire max mois en cours" value="max_cmonth" />
-                <option label="Consommation horaire max mois dernier" value="max_lmonth" />
-                <option label="Consommation horaire max année en cours" value="max_year" />
-                <option label="Consommation horaire moyenne journée dernière" value="mean_day" />
-                <option label="Consommation horaire moyenne semaine en cours" value="mean_cweek" />
-                <option label="Consommation horaire moyenne semaine dernière" value="mean_lweek" />
-                <option label="Consommation horaire moyenne mois en cours" value="mean_cmonth" />
-                <option label="Consommation horaire moyenne mois dernier" value="mean_lmonth" />
-                <option label="Consommation horaire moyenne année en cours" value="mean_year" />
+                <option label="Consommation / production journée dernière" value="value_day"  default="true" />
+                <option label="Consommation / production semaine en cours" value="value_cweek" />
+                <option label="Consommation / production semaine dernière" value="value_lweek" />
+                <option label="Consommation / production mois en cours" value="value_cmonth" />
+                <option label="Consommation / production mois dernier" value="value_lmonth" />
+                <option label="Consommation / production année en cours" value="value_year" />
+                <option label="Consommation / production horaire max journée dernière" value="max_day" />
+                <option label="Consommation / production horaire max semaine en cours" value="max_cweek" />
+                <option label="Consommation / production horaire max semaine dernière" value="max_lweek" />
+                <option label="Consommation / production horaire max mois en cours" value="max_cmonth" />
+                <option label="Consommation / production horaire max mois dernier" value="max_lmonth" />
+                <option label="Consommation / production horaire max année en cours" value="max_year" />
+                <option label="Consommation / production horaire moyenne journée dernière" value="mean_day" />
+                <option label="Consommation / production horaire moyenne semaine en cours" value="mean_cweek" />
+                <option label="Consommation / production horaire moyenne semaine dernière" value="mean_lweek" />
+                <option label="Consommation / production horaire moyenne mois en cours" value="mean_cmonth" />
+                <option label="Consommation / production horaire moyenne mois dernier" value="mean_lmonth" />
+                <option label="Consommation / production horaire moyenne année en cours" value="mean_year" />
             </options>
         </param>
         <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
@@ -134,7 +134,6 @@ API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_c
 API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
 API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
 API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/v4/metering_data/production_load_curve'
-API_ENDPOINT_DATA_PRODUCTION_MAX_POWER = '/v4/metering_data/daily_production_max_power'
 API_ENDPOINT_DATA_DAILY_PRODUCTION = '/v4/metering_data/daily_production'
 
 HEADERS = {
@@ -552,11 +551,11 @@ class BasePlugin:
         return True
 
     # Update value shown on Domoticz dashboard
-    def updateDevice(self, fMainVal1, fMainVal2, fSecVal1, fSecVal2):
+    def updateDevice(self, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
         if self.iAlternateDevice:
             sValue = "-1.0;" + str(fSecVal1 + fSecVal2)
         else:
-            sValue = str(fMainVal1) + ";" + str(fMainVal1) + ";0;0;" + str(fSecVal1) + ";" + str(fSecVal2)
+            sValue = str(fConsoVal1) + ";" + str(fConsoVal2) + ";" + str(fProdVal1) + ";" + str(fProdVal2) + ";" + str(fSecVal1) + ";" + str(fSecVal2)
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
         self.dUnitsByUsagePointId[self.sUsagePointId].Update(nValue=0, sValue=sValue, Type=self.lType[self.iAlternateDevice], Subtype=self.lSubType[self.iAlternateDevice], Switchtype=self.lSwitchType[self.iAlternateDevice], Options=self.lOptions[self.iAlternateDevice])
         return True
@@ -834,51 +833,57 @@ class BasePlugin:
     # Update dashboard with accumulated value
     def updateDashboard(self):
         self.dumpDictToLog(self.dCalculate[self.sUsagePointId])
-        fMainVal1 = 0
-        fMainVal2 = 0
+        fConsoVal1 = 0
+        fConsoVal2 = 0
+        fProdVal1 = 0
+        fProdVal2 = 0
         fSecVal1 = 0
         fSecVal2 = 0
         
         if self.sConsumptionType1.startswith("peak_") :
             SCalcT1 = self.sConsumptionType1.replace("peak_", "max_")
             sConso1T1 = "consumptionpeak"
-            sConso2T1 = "consumptionpeak"
+            sProd1T1 = "productionpeak"
             bTwoValuesT1 = False
         else:
             SCalcT1 = self.sConsumptionType1
             sConso1T1 = "consumption1"
             sConso2T1 = "consumption2"
+            sProd1T1 = "production1"
+            sProd2T1 = "production2"
             bTwoValuesT1 = bool(self.sTarif)
             
         if self.sConsumptionType2.startswith("peak_") :
             SCalcT2 = self.sConsumptionType2.replace("peak_", "max_")
             sConso1T2 = "consumptionpeak"
-            sConso2T2 = "consumptionpeak"
+            sProd1T2 = "productionpeak"
             bTwoValuesT2 = False
         else:
             SCalcT2 = self.sConsumptionType2
             sConso1T2 = "consumption1"
             sConso2T2 = "consumption2"
+            sProd1T1 = "production1"
+            sProd2T1 = "production2"
             bTwoValuesT2 = bool(self.sTarif)
 
         #self.myDebug(sConso1T1 + " --- " + sConso2T1  + " - " + sConso1T2 + " --- " + sConso2T2  + " - " + str(bTwoValuesT1) + " - " + str(bTwoValuesT2) + " / " + SCalcT1 + " /-/ " + SCalcT2)
         if bTwoValuesT1:
-            if (SCalcT1 in self.dCalculate[self.sUsagePointId][sConso1T1]) and (SCalcT1 in self.dCalculate[self.sUsagePointId][sConso2T1]):
-                fMainVal1 = self.dCalculate[self.sUsagePointId][sConso1T1][SCalcT1]
-                fMainVal2 = self.dCalculate[self.sUsagePointId][sConso2T1][SCalcT1]
+            fConsoVal1 = self.dCalculate[self.sUsagePointId][sConso1T1][SCalcT1]
+            fConsoVal2 = self.dCalculate[self.sUsagePointId][sConso2T1][SCalcT1]
+            fProdVal1 = self.dCalculate[self.sUsagePointId][sProd1T1][SCalcT1]
+            fProdVal2 = self.dCalculate[self.sUsagePointId][sProd2T1][SCalcT1]
         else:
-            if SCalcT1 in self.dCalculate[self.sUsagePointId][sConso1T1]:
-                fMainVal1 = self.dCalculate[self.sUsagePointId][sConso1T1][SCalcT1]
+            fConsoVal1 = self.dCalculate[self.sUsagePointId][sConso1T1][SCalcT1]
+            fProdVal1 = self.dCalculate[self.sUsagePointId][sProd1T1][SCalcT1]
                     
         if bTwoValuesT2:
-            if (SCalcT2 in self.dCalculate[self.sUsagePointId][sConso1T2]) and (SCalcT2 in self.dCalculate[self.sUsagePointId][sConso2T2]):
-                fSecVal1 = self.dCalculate[self.sUsagePointId][sConso1T2][SCalcT2]
-                fSecVal2 = self.dCalculate[self.sUsagePointId][sConso2T2][SCalcT2]
+            fSecVal1 = self.dCalculate[self.sUsagePointId][sConso1T2][SCalcT2] + self.dCalculate[self.sUsagePointId][sConso2T2][SCalcT2]
+            fSecVal2 = self.dCalculate[self.sUsagePointId][sProd1T1][SCalcT2] + self.dCalculate[self.sUsagePointId][sProd2T1][SCalcT2]
         else:
-            if SCalcT2 in self.dCalculate[self.sUsagePointId][sConso1T2]:
-                fSecVal1 = self.dCalculate[self.sUsagePointId][sConso1T2][SCalcT2]
+            fSecVal1 = self.dCalculate[self.sUsagePointId][sConso1T2][SCalcT2]
+            fSecVal2 = self.dCalculate[self.sUsagePointId][sProd1T1][SCalcT2]
 
-        return self.updateDevice(fMainVal1, fMainVal2, fSecVal1, fSecVal2)
+        return self.updateDevice(fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2)
         
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd = None):
@@ -1089,7 +1094,9 @@ class BasePlugin:
                     self.getData(API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, self.dateBeginHours, self.dateEndHours)
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or save
-                    if not self.bPeakMode:
+                    #if not self.bPeakMode:
+                    # No production peak available yet in Enedis API
+                    if self.bProdMode or (not self.bPeakMode):                    
                         self.sConnectionStep = "prod"
                     # Get peak data
                     else:
@@ -1222,10 +1229,10 @@ class BasePlugin:
         self.sConsumptionType2 = Parameters["Mode6"]
         
         if not self.sConsumptionType1:
-            self.sConsumptionType1 = "day"
+            self.sConsumptionType1 = "peak_day"
         
         if not self.sConsumptionType2:
-            self.sConsumptionType2 = "day"
+            self.sConsumptionType2 = "value_day"
         
         try:
             self.iDebugLevel = int(Parameters["Mode3"])
