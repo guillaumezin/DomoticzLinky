@@ -57,7 +57,7 @@ Ce projet est sous licence GPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de d
 
 ## Remerciements
 
-* Frédéric Caillet [RUSSANDOL](https://www.russandol.pro) pour l'hébergement et la maintenance de l'infrastructure intermédiaire d'obtention du consentement oAuth et la prise en charge contractuelle avec Enedis
+* Frédéric Caillet - son site Internet : [RUSSANDOL](https://www.russandol.pro) - pour l'hébergement et la maintenance de l'infrastructure intermédiaire d'obtention du consentement oAuth et la prise en charge contractuelle avec Enedis
 * Baptiste Candellier
 * Asdepique777
 * empierre
@@ -122,7 +122,7 @@ This project is licensed under the GPLv3 license - see the [LICENSE](LICENSE) fi
 
 ## Acknowledgments
 
-* Frédéric Caillet [RUSSANDOL](https://www.russandol.pro) for the web hosting and maintenance of the oAuth consent middleware infrastructure and contracting with Enedis 
+* Frédéric Caillet - his web site: [RUSSANDOL](https://www.russandol.pro) - for the web hosting and maintenance of the oAuth consent middleware infrastructure and contracting with Enedis 
 * Baptiste Candellier
 * Asdepique777
 * empierre
