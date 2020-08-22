@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-27" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-28" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses" width="500px">
             <options>
@@ -118,7 +118,7 @@ from time import strptime
 # import html
 from pprint import pprint
 
-CLIENT_ID = ["b2ad5376-341c-48a5-bf2c-a8341c0728d9", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
+CLIENT_ID = ["d198fd52-61c0-4b77-8725-06a1ef90da9f", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
 
 LOGIN_BASE_PORT = ["443", "443"]
 LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
@@ -1146,6 +1146,7 @@ class BasePlugin:
             iStatus = getStatus(Data)
             self.dumpDictToLog(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
+            #TODO parser sErrorDescription plus précisemment pour ne faire le refresh que quand vraiment nécessaire, par exemple le message "Unable to find the access token in persistent storage." ne devrait pas permettre d'entrer dans cette catégorie
             if (iStatus == 403) and (sError == "invalid_token"):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
@@ -1202,6 +1203,7 @@ class BasePlugin:
             # Check if access token still valid
             iStatus = getStatus(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
+            #TODO parser sErrorDescription plus précisemment pour ne faire le refresh que quand vraiment nécessaire, par exemple le message "Unable to find the access token in persistent storage." ne devrait pas permettre d'entrer dans cette catégorie
             if (iStatus == 403) and (sError == "invalid_token"):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
