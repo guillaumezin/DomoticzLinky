@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-sandbox-29" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-beta-1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (exemple : 2h00-7h00 13h00-16h00, laisser vide si pas d'heure creuse)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -264,6 +264,8 @@ class BasePlugin:
     iFalseCustomer = 0
     # integer: which address to use (production or sandbox)
     iAlternateAddress = 0
+    # to know that we come from refresh token step
+    bRefreshToken = None
 
     def __init__(self):
         self.isStarted = False
@@ -449,6 +451,7 @@ class BasePlugin:
             "Data": dictToQuotedString(postData)
         }
 
+        self.bRefreshToken = True
         self.dumpDictToLog(sendData)
         self.connectAndSendForAuthorize(sendData)
 
@@ -1051,6 +1054,8 @@ class BasePlugin:
     def clearData(self):
         self.dData = dict()
         self.dCalculate = dict()
+        self.bHasAFail = False
+        self.bRefreshToken = False
 
     # Handle the connection state machine
     def handleConnection(self, Data=None):
@@ -1059,8 +1064,6 @@ class BasePlugin:
         # First and last step
         if self.sConnectionStep == "idle":
             Domoticz.Log("Récupération des données...")
-            # Reset failed state
-            self.bHasAFail = False
             # Reset data
             self.clearData()
 
@@ -1150,8 +1153,7 @@ class BasePlugin:
             iStatus = getStatus(Data)
             self.dumpDictToLog(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
-            #TODO parser sErrorDescription plus précisemment pour ne faire le refresh que quand vraiment nécessaire, par exemple le message "Unable to find the access token in persistent storage." ne devrait pas permettre d'entrer dans cette catégorie
-            if (iStatus == 403) and (sError == "invalid_token"):
+            if (iStatus == 403) and (sError == "invalid_token") and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
@@ -1207,8 +1209,7 @@ class BasePlugin:
             # Check if access token still valid
             iStatus = getStatus(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
-            #TODO parser sErrorDescription plus précisemment pour ne faire le refresh que quand vraiment nécessaire, par exemple le message "Unable to find the access token in persistent storage." ne devrait pas permettre d'entrer dans cette catégorie
-            if (iStatus == 403) and (sError == "invalid_token"):
+            if (iStatus == 403) and (sError == "invalid_token") and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
@@ -1291,9 +1292,9 @@ class BasePlugin:
 
         # Next connection time depends on success
         if self.sConnectionStep == "done":
-            self.clearData()
             if self.bHasAFail:
                 self.setNextConnection(False)
+            self.clearData()
             self.sConnectionStep = "idle"
             Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
 
