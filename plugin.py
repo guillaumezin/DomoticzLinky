@@ -21,9 +21,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-beta-1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0-beta-2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
-        <param field="Mode4" label="Heures creuses (exemple : 2h00-7h00 13h00-16h00, laisser vide si pas d'heure creuse)" width="500px" required="false" default="">
+        <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
             <options>
                 <option label="Désactivées" value=""  default="true" />
@@ -114,11 +114,13 @@ import json
 from urllib.parse import quote
 # import re
 from datetime import datetime
+from datetime import time
 from datetime import timedelta
 from time import strptime
 # from random import randint
 # import html
 from pprint import pprint
+import re
 
 CLIENT_ID = ["d198fd52-61c0-4b77-8725-06a1ef90da9f", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
 
@@ -252,8 +254,6 @@ class BasePlugin:
     dData = None
     # dict with time (xxhmm format) as index and a boolean to indicate tariff
     dHc = None
-    # has 2 tariff
-    bHasHc = None
     # dict with calculation to show on dashboard
     dCalculate = None
     # date
@@ -593,11 +593,47 @@ class BasePlugin:
             Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage)
 
-    # Check date if in cost 1 or cost 2
-    def isCost2(self, dDate):
-        sTimeIndex = "{:01d}h{:02d}".format(dDate.hour, dDate.minute)
-        return self.dHc[sTimeIndex]
+    # Parse HP/HC parameter string and store result in dHc
+    def parseHcParameter(self, sHcParameter):
+        self.dHc = {}
+        sLocalUsagePointId = "all"
 
+        # Exemple 963222123213 12h30-14h00
+        for matchHc in re.finditer("(?:(\d+)\s+)?(\d+)\s*[h:]\s*(\d+)\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)", sHcParameter):
+            #Domoticz.Log("match " + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5))
+            if matchHc.group(1):
+                sLocalUsagePointId = matchHc.group(1)
+                Domoticz.Log(sLocalUsagePointId)
+            if not sLocalUsagePointId in self.dHc:
+                self.dHc[sLocalUsagePointId] = []
+            timeBegin = time(int(matchHc.group(2)), int(matchHc.group(3)))
+            timeEnd = time(int(matchHc.group(4)), int(matchHc.group(5)))
+            if timeEnd < timeBegin:
+                self.dHc[sLocalUsagePointId].append([timeBegin, time(23,59,59,999999)])
+                self.dHc[sLocalUsagePointId].append([time(), timeEnd])
+            else:
+                self.dHc[sLocalUsagePointId].append([timeBegin, timeEnd])
+        #self.dumpDictToLog(self.dHc)
+
+    # Check date if in cost 1 or cost 2
+    def isCost2(self, dtDate):
+        tDate = dtDate.time()
+        if self.sUsagePointId in self.dHc:
+            lHc = self.dHc[self.sUsagePointId]
+        elif "all" in self.dHc:
+            lHc = self.dHc["all"]
+        else:
+            return False
+        
+        for lDateInterval in lHc:
+            if (tDate >= lDateInterval[0]) and (tDate <= lDateInterval[1]):
+                return True
+        return False
+
+    # Check current usage point has 2 costs
+    def has2Costs(self):
+        return self.sUsagePointId in self.dHc
+    
     # Write data from memory to Domoticz DB
     def saveDataToDb(self, sUsagePointCurrentId):
         if sUsagePointCurrentId not in self.dData:
@@ -925,7 +961,7 @@ class BasePlugin:
             sConso2T1 = "consumption2"
             sProd1T1 = "production1"
             sProd2T1 = "production2"
-            bTwoValuesT1 = self.bHasHc
+            bTwoValuesT1 = self.has2Costs()
 
         if self.sConsumptionType2.startswith("peak_"):
             SCalcT2 = self.sConsumptionType2.replace("peak_", "max_")
@@ -938,7 +974,7 @@ class BasePlugin:
             sConso2T2 = "consumption2"
             sProd1T2 = "production1"
             sProd2T2 = "production2"
-            bTwoValuesT2 = self.bHasHc
+            bTwoValuesT2 = self.has2Costs()
 
         #self.myDebug(sConso1T1 + " --- " + " - " + sConso1T2 + " --- " + " - " + str(bTwoValuesT1) + " - " + str(bTwoValuesT2) + " / " + SCalcT1 + " /-/ " + SCalcT2)
         if bTwoValuesT1:
@@ -1166,7 +1202,7 @@ class BasePlugin:
                 self.iDataErrorCount = self.iDataErrorCount + 1
                 if self.iDataErrorCount > 1:
                     #self.showStatusError(True, Data)
-                    self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et activé la courbe de charge sur le site d'Enedis ?")
+                    self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte, activé la courbe de charge et demandé la collecte des données par heure sur le site d'Enedis ?")
                     self.bHasAFail = True
                 self.sConnectionStep = "prod"
             # If status 429, retry later
@@ -1320,10 +1356,10 @@ class BasePlugin:
         self.myDebug("onStart called")
 
         self.iAlternateDevice = 1
-        lVersions = Parameters["DomoticzVersion"].split(".")
-        if (len(lVersions) == 2):
-            iVersionMaj = int(lVersions[0])
-            iVersionMin = int(lVersions[1])
+        matchVersions = re.search("(\d+)\.(\d+)", Parameters["DomoticzVersion"]) 
+        if (matchVersions):
+            iVersionMaj = int(matchVersions.group(1))
+            iVersionMin = int(matchVersions.group(2))
             iVersion = (iVersionMaj * 1000000) + iVersionMin
             if iVersion >= 4011774:
                 self.iAlternateDevice = 0
@@ -1443,9 +1479,7 @@ class BasePlugin:
         Domoticz.Log("Debug mis à " + str(self.iDebugLevel))
 
         # Parameter for tarif 1/2
-        self.dHc = dict()
-        self.bHasHc = parseHcParameter(self.dHc, self.sTarif)
-        # self.dumpDictToLog(self.dHc)
+        self.parseHcParameter(self.sTarif)
 
         # most init
         self.__init__()
@@ -1554,39 +1588,6 @@ def onHeartbeat():
 
 
 # Generic helper functions
-
-# Parse HP/HC parameter string and store result in dHc
-def parseHcParameter(dHc, sHcParameter):
-    bHasHc = False
-    bHcState = False
-    iIndexParam = 0
-    lHcParameter = sHcParameter.strip().replace(" ", "-").replace(" et ", "-").replace(":", "h").split("-")
-    for iTimeIndex in range(0, 1440, 30):
-        iTimeIndexMin = int(iTimeIndex % 60)
-        iTimeIndexHour = int(iTimeIndex / 60)
-        sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
-        if (iIndexParam < len(lHcParameter)) and (lHcParameter[iIndexParam] == sTimeIndex):
-            bHcState = not bHcState
-            iIndexParam = iIndexParam + 1
-            hasHc = True
-        # shift 1 hour
-        iTimeIndexHour = (iTimeIndexHour + 1) % 24
-        sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
-        dHc[sTimeIndex] = bHcState
-
-    if bHcState:
-        for iTimeIndex in range(0, 1440, 30):
-            iTimeIndexMin = int(iTimeIndex % 60)
-            iTimeIndexHour = int(iTimeIndex / 60)
-            sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
-            if (iIndexParam < len(lHcParameter)) and (lHcParameter[iIndexParam] == sTimeIndex):
-                break
-            # shift 1 hour
-            iTimeIndexHour = (iTimeIndexHour + 1) % 24
-            sTimeIndex = "{:01d}h{:02d}".format(iTimeIndexHour, iTimeIndexMin)
-            dHc[sTimeIndex] = True
-    return bHasHc
-
 
 def getConfigItem(Key=None, Default={}):
     Value = Default
