@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1369,7 +1369,12 @@ class BasePlugin:
 
         if self.iAlternateDevice:
             Domoticz.Log(
-                "Ce plugin est compatible avec Domoticz version 3.9517 et plus récent, mais la vue par heure peut ne pas fonctionner avec la version 4.9700 et la visualisation d'énergie produite et de tarification horaire ne peuvent fonctionner qu'à partir de la version 4.11774")
+                "Ce plugin est compatible avec Domoticz version 4.11070 mais la visualisation d'énergie produite et de tarification horaire ne peuvent fonctionner qu'à partir de la version 4.11774")
+
+        if iVersion < 4011070:
+            Domoticz.Error(
+                "Votre version de Domoticz est trop ancienne")
+            return
 
             # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
         Parameters.pop("Username", None)
