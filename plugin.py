@@ -1374,6 +1374,7 @@ class BasePlugin:
         if iVersion < 4011070:
             Domoticz.Error(
                 "Votre version de Domoticz est trop ancienne")
+            self.isEnabled = False
             return
 
             # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
