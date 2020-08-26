@@ -1202,7 +1202,7 @@ class BasePlugin:
                 self.iDataErrorCount = self.iDataErrorCount + 1
                 if self.iDataErrorCount > 1:
                     #self.showStatusError(True, Data)
-                    self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte, activé la courbe de charge et demandé la collecte des données par heure sur le site d'Enedis ?")
+                    self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
                     self.bHasAFail = True
                 self.sConnectionStep = "prod"
             # If status 429, retry later
