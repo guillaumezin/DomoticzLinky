@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -233,7 +233,7 @@ class BasePlugin:
     fdyear = None
     # received device code
     sDeviceCode = None
-    # interval to ask for device authorization
+    # interval to retry
     iInterval = 5
     # peak mode
     bPeakMode = None
@@ -842,7 +842,9 @@ class BasePlugin:
                         if (val >= 0.0):
                             # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
                             # Enedis and Domoticz doesn't set the same date for used energy, add offset
-                            curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
+                            #TODO shift to be confirmed
+                            #curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
+                            curDate = enedisDateTimeToDatetime(data["date"])
                             # Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
                             # Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
@@ -1161,11 +1163,10 @@ class BasePlugin:
                 self.getDeviceCode()
 
         # We should never reach this
-        elif self.sConnectionStep == "connecting":
+        elif self.sConnectionStep == "connecting" or self.sConnectionStep == "sending":
             if (self.iTimeoutCount >= 3):
-                self.showSimpleStepError("Timeout à la connexion")
-                self.sConnectionStep = "done"
-                self.bHasAFail = True
+                self.sConnectionStep = "retry"
+                self.setNextConnectionForLater(self.iInterval)
             else:
                 self.iTimeoutCount = self.iTimeoutCount + 1
 
@@ -1202,7 +1203,7 @@ class BasePlugin:
         # Retry
         elif self.sConnectionStep == "retry":
             if (self.iResendCount >= 3):
-                self.showSimpleStepError("Trop d'échec d'envoi, le plugin réessaiera plus tard")
+                self.showSimpleStepError("Trop d'échecs de communication, le plugin réessaiera plus tard")
                 self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
@@ -1263,7 +1264,6 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 # Analyse data for hours
-                self.iDataErrorCount = 0
                 if not self.exploreDataHours(Data, self.bProdMode):
                     self.bHasAFail = True
                 # self.sConnectionStep = "save"
@@ -1560,7 +1560,8 @@ class BasePlugin:
         Domoticz.Debug("onConnect called")
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)):
             if self.sBuffer:
-                self.sConnectionStep = self.sConnectionNextStep
+                self.iTimeoutCount = 0
+                self.sConnectionStep = "sending"
                 Connection.Send(self.sBuffer)
                 self.sBuffer = None
             else:
@@ -1572,7 +1573,8 @@ class BasePlugin:
         Domoticz.Debug("onMessage called")
 
         # if started and not stopping
-        if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)):
+        if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)) and (self.sConnectionStep == "sending"):
+            self.sConnectionStep = self.sConnectionNextStep
             self.handleConnection(Data)
 
     def onDisconnect(self, Connection):
