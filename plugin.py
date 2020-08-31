@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1163,7 +1163,7 @@ class BasePlugin:
                 self.getDeviceCode()
 
         # We should never reach this
-        elif self.sConnectionStep == "connecting" or self.sConnectionStep == "sending":
+        elif (self.sConnectionStep == "connecting") or (self.sConnectionStep == "sending"):
             if (self.iTimeoutCount >= 3):
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
@@ -1583,13 +1583,16 @@ class BasePlugin:
     def onHeartbeat(self):
         Domoticz.Debug("onHeartbeat() called")
 
-        if self.isEnabled and (datetime.now() > self.dateNextConnection):
-            # self.savedDateEndDays = self.dateNextConnection
-            self.resetDates(
-                datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day))
-            # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
-            self.setNextConnection(True)
-            self.handleConnection()
+        if self.isEnabled:
+            if datetime.now() > self.dateNextConnection:
+                # self.savedDateEndDays = self.dateNextConnection
+                self.resetDates(
+                    datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day))
+                # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
+                self.setNextConnection(True)
+                self.handleConnection()
+            elif (self.sConnectionStep == "connecting") or (self.sConnectionStep == "sending"):
+                self.handleConnection()
 
 
 global _plugin
