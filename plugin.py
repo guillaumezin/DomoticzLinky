@@ -1260,7 +1260,7 @@ class BasePlugin:
                 self.setNextConnectionForLater(self.iInterval)
             elif iStatus != 200:
                 self.showStatusError(True, Data)
-                self.sConnectionStep = "save"
+                self.sConnectionStep = "prod"
                 self.bHasAFail = True
             else:
                 # Analyse data for hours
@@ -1311,7 +1311,7 @@ class BasePlugin:
                 self.setNextConnectionForLater(self.iInterval)
             elif (iStatus != 200):
                 self.showStatusError(False, Data)
-                self.sConnectionStep = "save"
+                self.sConnectionStep = "prod"
                 self.bHasAFail = True
             else:
                 if not self.exploreDataDays(Data, True, self.bProdMode):
