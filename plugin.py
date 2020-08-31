@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -463,7 +463,7 @@ class BasePlugin:
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
-        if iStatus == 429:
+        if (iStatus == 429) or (iStatus == 500):
             return "retry"
         elif sError == "authorization_pending":
             self.myDebug("pending")
@@ -1254,8 +1254,8 @@ class BasePlugin:
                     self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
                     self.bHasAFail = True
                 self.sConnectionStep = "prod"
-            # If status 429, retry later
-            elif iStatus == 429:
+            # If status 429 or 500, retry later
+            elif (iStatus == 429) or (iStatus == 500):
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
             elif iStatus != 200:
@@ -1305,8 +1305,8 @@ class BasePlugin:
                     "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
             elif iStatus == 404:
                 self.sConnectionStep = "prod"
-            # If status 429, retry later
-            elif iStatus == 429:
+            # If status 429 or 500, retry later
+            elif (iStatus == 429) or (iStatus == 500):
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
             elif (iStatus != 200):
