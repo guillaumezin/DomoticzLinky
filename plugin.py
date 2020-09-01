@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -840,9 +840,7 @@ class BasePlugin:
                         except:
                             val = -1.0
                         if (val >= 0.0):
-                            # Shift to +1 hour for Domoticz, because bars/hours for graph are shifted to -1 hour in Domoticz, cf. constructTime() call in WebServer.cpp
-                            # Enedis and Domoticz doesn't set the same date for used energy, add offset
-                            #TODO shift to be confirmed
+                            # cf. constructTime() call in WebServer.cpp to see if time shift needed
                             #curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
                             curDate = enedisDateTimeToDatetime(data["date"])
                             # Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
@@ -965,6 +963,8 @@ class BasePlugin:
                     except:
                         self.showStepError(False, "Erreur dans la donnée de date JSON : " + str(sys.exc_info()[0]))
                         return False
+                    dataSeenToTheEnd = False
+                    endDate = endDate - timedelta(days=1)
                     for index, data in enumerate(dJson["meter_reading"]["interval_reading"]):
                         try:
                             val = float(data["value"])
@@ -975,13 +975,17 @@ class BasePlugin:
                                 curDate = enedisDateTimeToDatetime(data["date"])
                             else:
                                 curDate = enedisDateToDatetime(data["date"])
+                            if curDate >= endDate:
+                                dataSeenToTheEnd = True
                             #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             # self.dumpDictToLog(values)
                             # self.dayAccumulate(curDate, val)
                             # if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
                             # return False
                             self.manageDataDays(val, curDate, bPeak, bProduction)
-                    return True
+                    if not dataSeenToTheEnd:
+                        self.showStepError(False, "Données manquantes")
+                    return dataSeenToTheEnd
                 else:
                     self.showStepError(False, "Erreur à la réception de données JSON")
         else:
