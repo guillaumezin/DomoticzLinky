@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -175,7 +175,8 @@ class BasePlugin:
     # string: step name of the next state machine during connection
     sConnectionNextStep = None
     # boolean: true if a step failed
-    # bHasAFail = None
+    bHasAFail = None
+    bGlobalHasAFail = None
     # datetime: start date for short log
     dateBeginHours = None
     # datetime: end date for short log
@@ -274,6 +275,7 @@ class BasePlugin:
         self.httpDataConn = None
         self.sConnectionStep = "idle"
         self.bHasAFail = False
+        self.bGlobalHasAFail = False
         self.sBuffer = None
         self.iTimeoutCount = 0
         self.iResendCount = 0
@@ -661,7 +663,7 @@ class BasePlugin:
             return ("all" in self.dHc) or (lUsagePointCurrentId[0] in self.dHc)
     
     # Write data from memory to Domoticz DB
-    def saveDataToDb(self, sUsagePointCurrentId):
+    def saveDataToDb(self, sUsagePointCurrentId, bHasAFail):
         if sUsagePointCurrentId not in self.dData:
             return False
 
@@ -715,10 +717,13 @@ class BasePlugin:
                                         dOneData["production2"], sDate):
                     return False
         # self.dumpDictToLog(self.dCalculate)
-        return self.updateDashboard(oDevice, sUsagePointCurrentId)
+        if not bHasAFail:
+            return self.updateDashboard(oDevice, sUsagePointCurrentId)
+        else:
+            return False
 
     # Merge counters with only consumption with counters with only production into new virtual counters
-    def mergeCounters(self):
+    def mergeCounters(self, bHasAFail):
         bResult = True
         dCalculateCopy = self.dCalculate.copy()
         for sUsagePointConsumptionId in dCalculateCopy:
@@ -752,7 +757,7 @@ class BasePlugin:
                                 dMergedData["peak"] = dProdData["peak"]
                                 self.dData[sNewUsagePointId][sDate] = dMergedData
 
-                        if not self.saveDataToDb(sNewUsagePointId):
+                        if not self.saveDataToDb(sNewUsagePointId, bHasAFail):
                             bResult = False
         return bResult
 
@@ -1145,6 +1150,7 @@ class BasePlugin:
         self.dData = dict()
         self.dCalculate = dict()
         self.bHasAFail = False
+        self.bGlobalHasAFail = False
         self.bRefreshToken = False
 
     # Handle the connection state machine
@@ -1353,14 +1359,14 @@ class BasePlugin:
 
         # Next connection time depends on success
         if self.sConnectionStep == "save":
-            if not self.saveDataToDb(self.sUsagePointId):
+            if not self.saveDataToDb(self.sUsagePointId, self.bHasAFail):
                 self.bHasAFail = True
             # check if another usage point to grab
             self.iUsagePointIndex = self.iUsagePointIndex + 1
             if self.iUsagePointIndex < len(self.lUsagePointIndex):
                 self.sConnectionStep = "nextcons"
             else:
-                if not self.mergeCounters():
+                if not self.mergeCounters(self.bHasAFail):
                     self.bHasAFail = True
                 self.sConnectionStep = "done"
 
@@ -1368,6 +1374,9 @@ class BasePlugin:
         if self.sConnectionStep == "nextcons":
             self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex]
             Domoticz.Log("Traitement pour le point de livraison " + self.sUsagePointId)
+            if self.bHasAFail:
+                self.bGlobalHasAFail = True
+                self.bHasAFail = False
             self.bProdMode = False
             self.iDataErrorCount = 0
             self.sConnectionStep = "next"
@@ -1382,6 +1391,8 @@ class BasePlugin:
         # Next connection time depends on success
         if self.sConnectionStep == "done":
             if self.bHasAFail:
+                self.bGlobalHasAFail = True
+            if self.bGlobalHasAFail:
                 self.setNextConnection(False)
             self.clearData()
             self.sConnectionStep = "idle"
