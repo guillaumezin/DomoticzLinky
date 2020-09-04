@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.0.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -109,7 +109,6 @@
 
 import Domoticz
 import sys
-from base64 import b64encode
 import json
 from urllib.parse import quote
 # import re
@@ -119,7 +118,6 @@ from datetime import timedelta
 from time import strptime
 # from random import randint
 # import html
-from pprint import pprint
 import re
 
 CLIENT_ID = ["d198fd52-61c0-4b77-8725-06a1ef90da9f", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
@@ -205,6 +203,8 @@ class BasePlugin:
     lUsagePointIndex = None
     # integer: usage point id index in list
     iUsagePointIndex = None
+    # string: current usage point
+    sUsagePointId = None
     # string: consumption to show = current week ("cweek"), the previous week ("lweek", the current month ("cmonth"), the previous month ("lmonth"), or year ("cyear"), prefix "max_" for max calculation
     sConsumptionType1 = None
     sConsumptionType2 = None
@@ -268,7 +268,13 @@ class BasePlugin:
     iAlternateAddress = 0
     # to know that we come from refresh token step
     bRefreshToken = None
-
+    # dict of timeout
+    dUsagePointTimeout = None
+    # global timeout
+    dtGlobalTimeout = None
+    # last refresh
+    dtNextRefresh = None
+    
     def __init__(self):
         self.isStarted = False
         self.httpLoginConn = None
@@ -279,6 +285,8 @@ class BasePlugin:
         self.sBuffer = None
         self.iTimeoutCount = 0
         self.iResendCount = 0
+        self.lUsagePointIndex = []
+        self.dUsagePointTimeout = {}
 
     def myDebug(self, message):
         if self.iDebugLevel:
@@ -331,7 +339,7 @@ class BasePlugin:
     # get default headers
     def initHeaders(self, uri):
         headers = dict(HEADERS)
-        headers["Host"] = uri;
+        headers["Host"] = uri
         return headers
 
     # get access token
@@ -355,23 +363,24 @@ class BasePlugin:
         self.connectAndSendForAuthorize(sendData)
 
     def showStatusError(self, hours, Data):
-        sErrorSentence = "Erreur status : " + str(getStatus(Data))
-        if Data and ("Data" in Data):
-            try:
-                dJson = json.loads(Data["Data"].decode())
-            except ValueError:
-                pass
-            else:
-                if dJson and ("error" in dJson):
-                    sErrorSentence = sErrorSentence + " - code : " + dJson["error"]
-                if dJson and ("error_description" in dJson):
-                    sErrorSentence = sErrorSentence + " - description : " + dJson["error_description"]
-                if dJson and ("error_uri" in dJson):
-                    sErrorSentence = sErrorSentence + " - URI : " + dJson["error_uri"]
+        sErrorSentence = "Erreur"
+        iStatus = getStatus(Data)
+        if iStatus != 504:
+            sErrorSentence = sErrorSentence + " status : " + str(getStatus(Data))
+        sError, sErrorDescription, sErrorUri = getError(Data)
+        if sError:
+            sErrorSentence = sErrorSentence + " - code " + sError
+        if sErrorDescription:
+            sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
+        if sErrorUri:
+            sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
         self.showStepError(hours, sErrorSentence)
 
     def showSimpleStatusError(self, Data):
-        sErrorSentence = "Erreur status : " + str(getStatus(Data))
+        sErrorSentence = "Erreur"
+        iStatus = getStatus(Data)
+        if iStatus != 504:
+            sErrorSentence = sErrorSentence + " status : " + str(getStatus(Data))
         sError, sErrorDescription, sErrorUri = getError(Data)
         if sError:
             sErrorSentence = sErrorSentence + " - code " + sError
@@ -384,8 +393,6 @@ class BasePlugin:
     def parseDeviceCode(self, Data):
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
-        if iStatus == 429:
-            return "retry"
         if iStatus == 200:
             if Data and ("Data" in Data):
                 try:
@@ -413,7 +420,7 @@ class BasePlugin:
                 self.showSimpleStepError("Pas de données reçue")
         else:
             self.showSimpleStatusError(Data)
-        return "error"
+        return "retry"
 
     # get access token
     def getAccessToken(self):
@@ -465,29 +472,31 @@ class BasePlugin:
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
-        if (iStatus == 429) or (iStatus == 500):
-            return "retry"
-        elif sError == "authorization_pending":
+        sError = sError.lower()
+        if (sError == "unauthorized") or (sError == "invalid_grant"):
+            self.showSimpleStatusError(Data)
+            return "error"
+        if sError == "authorization_pending":
             self.myDebug("pending")
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
                 except ValueError as err:
                     self.showSimpleStepError("Les données reçues ne sont pas du JSON : " + str(err))
-                    return False
+                    return "retry"
                 if dJson and ("interval" in dJson):
                     try:
                         self.iInterval = int(dJson["interval"])
                     except:
                         self.iInterval = 5
-            return "pending";
-        elif (sError != "invalid_grant") and (iStatus == 200):
+            return "pending"
+        elif iStatus == 200:
             if Data and ("Data" in Data):
                 try:
                     dJson = json.loads(Data["Data"].decode())
                 except ValueError as err:
                     self.showSimpleStepError("Les données reçues ne sont pas du JSON : " + str(err))
-                    return False
+                    return "retry"
                 if dJson and ("usage_points_id" in dJson):
                     setConfigItem("usage_points_id", str(dJson["usage_points_id"]).split(","))
                 count = 0
@@ -508,7 +517,7 @@ class BasePlugin:
                 self.showSimpleStepError("Pas de données reçue")
         else:
             self.showSimpleStatusError(Data)
-        return "error"
+        return "retry"
 
     # Get data
     def getData(self, uri, start, end):
@@ -582,7 +591,8 @@ class BasePlugin:
             Type=self.lType[self.iAlternateDevice],
             Subtype=self.lSubType[self.iAlternateDevice],
             Switchtype=self.lSwitchType[self.iAlternateDevice],
-            Options=self.lOptions[self.iAlternateDevice])
+            Options=self.lOptions[self.iAlternateDevice],
+            TimedOut=0)
         return True
 
     # Show error in state machine context
@@ -604,7 +614,7 @@ class BasePlugin:
         sLocalUsagePointId = "all"
 
         # Exemple 963222123213 12h30-14h00
-        for matchHc in re.finditer("(?:(\d+)\s+)?(\d+)\s*[h:]\s*(\d+)?\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)?", sHcParameter):
+        for matchHc in re.finditer(r"(?:(\d+)\s+)?(\d+)\s*[h:]\s*(\d+)?\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)?", sHcParameter):
             #Domoticz.Log("match " + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5))
             if matchHc.group(1):
                 sLocalUsagePointId = matchHc.group(1)
@@ -881,7 +891,6 @@ class BasePlugin:
     def resetDayAccumulate(self):
         self.curDay = self.savedDateEndDays2.replace(hour=0, minute=0, second=0, microsecond=0)
         self.prevDay = self.curDay - timedelta(days=1)
-        self.daysCalculate = 0.0
         self.fdmonth = self.prevDay.replace(day=1)
         ldpmonth = self.fdmonth - timedelta(days=1)
         self.fdpmonth = ldpmonth.replace(day=1)
@@ -1071,6 +1080,9 @@ class BasePlugin:
             if SCalcT2 in self.dCalculate[sUsagePointCurrentId][sProd1T2]:
                 fSecVal2 = self.dCalculate[sUsagePointCurrentId][sProd1T2][SCalcT2]
 
+        dtTimeout = setTimeout()
+        self.dtGlobalTimeout = dtTimeout
+        self.dUsagePointTimeout[sUsagePointCurrentId] = dtTimeout
         return self.updateDevice(oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2)
 
     # Calculate days and date left for next batch
@@ -1153,6 +1165,14 @@ class BasePlugin:
         self.bGlobalHasAFail = False
         self.bRefreshToken = False
 
+    def disablePlugin(self):
+        self.isEnabled = False
+        resetTokens()
+        for oDevice in Devices.values():
+            oDevice.Update(nValue=oDevice.nValue, sValue=oDevice.sValue, TimedOut=1)
+        self.showSimpleStepError(
+            "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+
     # Handle the connection state machine
     def handleConnection(self, Data=None):
         self.myDebug("Etape " + self.sConnectionStep)
@@ -1192,12 +1212,9 @@ class BasePlugin:
             if result == "done":
                 self.sConnectionStep = "parseaccesstoken"
                 self.getAccessToken()
-            elif result == "retry":
+            else:
                 self.sConnectionStep = "retry"
                 self.setNextConnectionForLater(self.iInterval)
-            else:
-                self.sConnectionStep = "done"
-                self.bHasAFail = True
 
         # Wait for user to complete authorization process with his web browser
         elif self.sConnectionStep == "askagainaccesscode":
@@ -1237,10 +1254,7 @@ class BasePlugin:
                 self.sConnectionStep = "askagainaccesscode"
                 self.setNextConnectionForLater(self.iInterval)
             else:
-                self.isEnabled = False
-                resetTokens()
-                self.showSimpleStepError(
-                    "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+                self.disablePlugin()
 
         # Ask data for hours
         elif self.sConnectionStep == "getdatahours":
@@ -1248,15 +1262,12 @@ class BasePlugin:
             iStatus = getStatus(Data)
             #self.dumpDictToLog(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
-            if (iStatus == 403) and (sError == "invalid_token") and (not self.bRefreshToken):
+            if (sError.lower() == "invalid_token") and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
-                self.isEnabled = False
-                resetTokens()
                 self.showSimpleStatusError(Data)
-                self.showSimpleStepError(
-                    "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+                self.disablePlugin()
             elif (iStatus == 404) or self.bProdMode and (iStatus == 400):
                 self.iDataErrorCount = self.iDataErrorCount + 1
                 if self.iDataErrorCount > 1:
@@ -1304,15 +1315,12 @@ class BasePlugin:
             # Check if access token still valid
             iStatus = getStatus(Data)
             sError, sErrorDescription, sErrorUri = getError(Data)
-            if (iStatus == 403) and (sError == "invalid_token") and (not self.bRefreshToken):
+            if sError.lower() == "invalid_token" and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
-                self.isEnabled = False
-                resetTokens()
                 self.showSimpleStatusError(Data)
-                self.showSimpleStepError(
-                    "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+                self.disablePlugin()
             elif iStatus == 404:
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
@@ -1420,7 +1428,7 @@ class BasePlugin:
         self.myDebug("onStart called")
 
         self.iAlternateDevice = 1
-        matchVersions = re.search("(\d+)\.(\d+)", Parameters["DomoticzVersion"]) 
+        matchVersions = re.search(r"(\d+)\.(\d+)", Parameters["DomoticzVersion"])
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
@@ -1561,7 +1569,10 @@ class BasePlugin:
         Domoticz.Log(
             "Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
 
-        self.dateNextConnection = datetime.now()
+        dtNow = datetime.now()
+        self.dtNextRefresh = setRefreshTime(dtNow)
+        self.dateNextConnection = dtNow
+        self.dtGlobalTimeout = setTimeout(dtNow)
 
         # Now we can enabling the plugin
         self.isStarted = True
@@ -1599,7 +1610,27 @@ class BasePlugin:
         Domoticz.Debug("onHeartbeat() called")
 
         if self.isEnabled:
-            if datetime.now() > self.dateNextConnection:
+            dtNow = datetime.now()
+
+            if dtNow > self.dtNextRefresh:
+                self.dtNextRefresh = setRefreshTime(dtNow)
+                if dtNow > self.dtGlobalTimeout:
+                    bHasGlobalTimeout = True
+                else:
+                    bHasGlobalTimeout = False
+                    
+                for oDevice in Devices.values():
+                    bHasLocalTimeout = False
+                    if oDevice.DeviceID in self.dUsagePointTimeout:
+                        if dtNow > self.dUsagePointTimeout[oDevice.DeviceID]:
+                            bHasLocalTimeout = True
+                    # Update the device at a regular basis to prevent usage to be shown at 0
+                    if bHasGlobalTimeout or bHasLocalTimeout:
+                        oDevice.Update(nValue=oDevice.nValue, sValue=oDevice.sValue, TimedOut=1)
+                    else:
+                        oDevice.Touch()
+
+            if dtNow > self.dateNextConnection:
                 # self.savedDateEndDays = self.dateNextConnection
                 self.resetDates(
                     datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day))
@@ -1667,6 +1698,14 @@ def onHeartbeat():
 
 
 # Generic helper functions
+def setTimeout(dtDate=datetime.now()):
+    return dtDate + timedelta(days=1, hours=12)
+
+
+def setRefreshTime(dtDate=datetime.now()):
+#    return dtDate + timedelta(minutes=10)
+    return dtDate + timedelta(seconds=50)
+
 
 def getConfigItem(Key=None, Default={}):
     Value = Default
@@ -1727,7 +1766,7 @@ def getError(Data):
         try:
             dJson = json.loads(Data["Data"].decode())
         except ValueError:
-            return ""
+            pass
         else:
             if dJson:
                 if "error" in dJson:
@@ -1759,21 +1798,6 @@ def getStatus(Data):
             return 504
     else:
         return 504
-
-
-def DumpConfigToLog():
-    for x in Parameters:
-        if Parameters[x] != "":
-            self.myDebug("'" + x + "':'" + str(Parameters[x]) + "'")
-    self.myDebug("Device count: " + str(len(Devices)))
-    for x in Devices:
-        self.myDebug("Device:           " + str(x) + " - " + str(Devices[x]))
-        self.myDebug("Device ID:       '" + str(Devices[x].ID) + "'")
-        self.myDebug("Device Name:     '" + Devices[x].Name + "'")
-        self.myDebug("Device iValue:    " + str(Devices[x].iValue))
-        self.myDebug("Device sValue:   '" + Devices[x].sValue + "'")
-        self.myDebug("Device LastLevel: " + str(Devices[x].LastLevel))
-    return
 
 
 # Convert Enedis datetime string to datetime object
