@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.0.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1770,22 +1770,22 @@ def getError(Data):
         else:
             if dJson:
                 if "error" in dJson:
-                    sError = dJson["error"]
+                    sError = str(dJson["error"])
                 if "error_description" in dJson:
-                    sErrorDescription = dJson["error_description"]
+                    sErrorDescription = str(dJson["error_description"])
                 if "error_uri" in dJson:
-                    sErrorUri = dJson["error_uri"]
+                    sErrorUri = str(dJson["error_uri"])
     if not sError:
         if Data and ("Headers" in Data) and ("WWW-Authenticate" in Data["Headers"]):
             sAuthenticate = Data["Headers"]["WWW-Authenticate"]
             if "," in sAuthenticate:
                 dError = dict(item.split("=", 1) for item in sAuthenticate.split(","))
                 if "error" in dError:
-                    sError = dError["error"].strip("\"")
+                    sError = str(dError["error"]).strip("\"")
                 if "error_description" in dError:
-                    sErrorDescription = dError["error_description"].strip("\"")
+                    sErrorDescription = str(dError["error_description"]).strip("\"")
                 if "error_uri" in dError:
-                    sErrorUri = dError["error_uri"].strip("\"")
+                    sErrorUri = str(dError["error_uri"].strip("\""))
     return sError, sErrorDescription, sErrorUri
 
 
