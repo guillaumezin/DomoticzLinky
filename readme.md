@@ -43,11 +43,17 @@ A la première installation, commencez par vérifier dans les paramètres de Dom
 Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matériel.
 
 Vous pouvez remplir le champ "Heures creuses" pour choisir les plages horaires d'heures ("Utilisation 2" dans les courbes), ou laisser vide pour désactiver, voici des exemples :
+
 "2h00-7h00 13h00-16h00" : configure les heures creuses de 2h à 7h et de 13h à 16h.
+
 "2h00-7h00 13h00-16h00 mercredi 08h00-15h00 samedi 09h00-11h00 12h00-16h00" : configure les heures creuses de 8h à 15 le mercredi, de 9h à 11h et de 12h à 16h le samedi et de 2h à 7h et de 13h à 16h les autres jours de la semaine.
+
 "2h00-7h00 13h00-16h00 me 08h00-15h00 sa 09h00-16h00" : configure les heures creuses de 8h à 15 le mercredi, de 9h à 16h le samedi et de 2h à 7h et de 13h à 16h les autres jours de la semaine.
+
 "12345678901234 1h00-6h00 12h00-14h00 88888888888888 13h00-16h00" : configure les heures creuses pour les plages horaires "1h00-6h00 12h00-14h00" pour le point de livraison "12345678901234" et la plage horaire "13h00-16h00" pour le point de livraison "88888888888888".
+
 "02h00-04h00 16h00-19h00 12345678901234 1h00-6h00 12h00-14h00 mercredi 11h00-16h00 88888888888888 13h00-16h00" configure les heures creuses pour la plage horaire "11h00-16h00" le mercredi et "1h00-6h00 12h00-14h00" pour les autres jours de la semaine pour le point de livraison "12345678901234", la plage horaire "13h00-16h00" pour le point de livraison "88888888888888" et les plages horaires "02h00-04h00 16h00-19h00" pour tous les autres points de livraison.
+
 "02h00-04h00 16h00-19h00 12345678901234 88888888888888 13h00-16h00" désactive les heures creuses pour le point de livraison 12345678901234, configure les heures creuses pour la plage horaire "13h00-16h00" pour le point de livraison "88888888888888" et les plages horaires "02h00-04h00 16h00-19h00" pour tous les autres points de livraison.
 
 Vous pouvez également choisir le nombre à afficher tableau de bord.
@@ -123,12 +129,18 @@ On first install, check that "Accept new Hardware Devices" is enabled, at least 
 
 Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
 
-You can fill in the "Off-peak hours" field to choose the hourly time ranges ("Use 2" in the curves), or leave blank to deactivate, here are some examples:
+You can fill in the "Off-peak hours" field to choose the hourly time ranges ("Usage 2" in the curves), or leave blank to deactivate, here are some examples:
+
 "2:00-7:00 13:00-16:00": configure off-peak hours from 2h to 7h and from 13h to 16h.
+
 "2:00-7:00 13:00-16:00 Wednesday 8:00-15:00 Saturday 09:00-11:00 12:00-16:00": configures off-peak hours from 8am to 3pm on Wednesday, from 9am to 11am and from 12pm to 4pm on Saturday and from 2am to 7am and from 1pm at 4pm the other days of the week.
+
 "2:00-7:00 13:00-16:00 me 08:00-15:00 sat 09:00-16:00": configures off-peak hours from 8am to 3pm on Wednesday, from 9am to 4pm on Saturday and from 2am to 7am and from 1pm to 4pm the other days of the week .
+
 "12345678901234 1:00-6:00 12:00-14:00 88888888888888 13:00-16:00": configure the off-peak hours for the time slots "1:00-6:00 12:00-14:00" for the delivery point "12345678901234" and the time slot "13:00-16:00" for the point delivery code "88888888888888".
+
 "2:00-04:00 16:00-19:00 12345678901234 1:00-6:00 12:00-14:00 Wednesday 11:00-16:00 88888888888888 13:00-16:00" configures the off-peak hours for the time slot "11:00-16:00" on Wednesday and "1:00-6:00 12:00-14:00" for the others days of the week for the delivery point "12345678901234", the time slot "13:00-16:00" for the delivery point "88888888888888" and the time slots "02:00-04:00 16:00-19:00" for all the other delivery points.
+
 "02:00-04:00 16:00-19:00 12345678901234 88888888888888 13:00-16:00" disables off-peak hours for the delivery point 12345678901234, configures off-peak hours for the "13:00-16:00" time slot for the "8888888888888888" delivery point and the time slots "02:00-04:00 16:00-19:00" for all other delivery points.
 
 You can choose the number you want to see on the dashboard.
