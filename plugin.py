@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -612,25 +612,47 @@ class BasePlugin:
     def parseHcParameter(self, sHcParameter):
         self.dHc = {}
         sLocalUsagePointId = "all"
+        iWeekday = 7
 
         # Exemple 963222123213 12h30-14h00
-        for matchHc in re.finditer(r"(?:(\d+)\s+)?(\d+)\s*[h:]\s*(\d+)?\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)?", sHcParameter):
+        # https://regex101.com/r/cMWfqj/4
+        for matchHc in re.finditer(r"(?:(\d+)\s+)?(?:\s*(\D+)\s+)?(\d+)\s*[h:]\s*(\d+)?\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)?", sHcParameter):
             #Domoticz.Log("match " + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5))
             if matchHc.group(1):
-                sLocalUsagePointId = matchHc.group(1)
+                sLocalUsagePointId = matchHc.group(1).upper().strip()
+                #Domoticz.Log(sLocalUsagePointId)
+            if matchHc.group(2):
+                sDay = matchHc.group(2).lower().strip()
+                #Domoticz.Log(sDay)
+                if sDay.startswith("lu") or sDay.startswith("mo"):
+                    iWeekday = 0
+                elif sDay.startswith("ma") or sDay.startswith("tu"):
+                    iWeekday = 1
+                elif sDay.startswith("me") or sDay.startswith("we"):
+                    iWeekday = 2
+                elif sDay.startswith("je") or sDay.startswith("th"):
+                    iWeekday = 3
+                elif sDay.startswith("ve") or sDay.startswith("fr"):
+                    iWeekday = 4
+                elif sDay.startswith("sa") or sDay.startswith("sa"):
+                    iWeekday = 5
+                elif sDay.startswith("di") or sDay.startswith("su"):
+                    iWeekday = 6
                 #Domoticz.Log(sLocalUsagePointId)
             if not sLocalUsagePointId in self.dHc:
-                self.dHc[sLocalUsagePointId] = []
-            if matchHc.group(3):
+                self.dHc[sLocalUsagePointId] = {}
+            if not iWeekday in self.dHc[sLocalUsagePointId]:
+                self.dHc[sLocalUsagePointId][iWeekday] = []
+            if matchHc.group(4):
                 iMinutesBegin = int(matchHc.group(3))
             else:
                 iMinutesBegin = 0
-            if matchHc.group(5):
+            if matchHc.group(6):
                 iMinutesEnd = int(matchHc.group(5))
             else:
                 iMinutesEnd = 0
-            datetimeBegin = datetime(2010, 1, 1, int(matchHc.group(2)), iMinutesBegin)
-            datetimeEnd = datetime(2010, 1, 1, int(matchHc.group(4)), iMinutesEnd)
+            datetimeBegin = datetime(2010, 1, 1, int(matchHc.group(3)), iMinutesBegin)
+            datetimeEnd = datetime(2010, 1, 1, int(matchHc.group(5)), iMinutesEnd)
             if (datetimeBegin.minute >= 30) :
                 datetimeBegin = datetimeBegin + timedelta(hours=1)
             datetimeBegin = datetimeBegin.replace(minute=0)
@@ -638,26 +660,34 @@ class BasePlugin:
                 datetimeEnd = datetimeEnd + timedelta(hours=1)
             datetimeEnd = datetimeEnd.replace(minute=0)
             if datetimeEnd < datetimeBegin:
-                self.dHc[sLocalUsagePointId].append([datetimeBegin.time(), time(23,59,59,999999)])
-                self.dHc[sLocalUsagePointId].append([time(), datetimeEnd.time()])
+                self.dHc[sLocalUsagePointId][iWeekday].append([datetimeBegin.time(), time(23,59,59,999999)])
+                self.dHc[sLocalUsagePointId][iWeekday].append([time(), datetimeEnd.time()])
             else:
-                self.dHc[sLocalUsagePointId].append([datetimeBegin.time(), datetimeEnd.time()])
+                self.dHc[sLocalUsagePointId][iWeekday].append([datetimeBegin.time(), datetimeEnd.time()])
         #self.dumpDictToLog(self.dHc)
 
     # Check date if in cost 1 or cost 2
     def isCost2(self, dtDate, bProduction=False):
         tDate = dtDate.time()
+        iWeekday = dtDate.weekday()
         lUsagePointCurrentId = self.sUsagePointId.split(USAGE_POINT_SEPARATOR)
         if bProduction and (len(lUsagePointCurrentId) > 1):
             sLocalUsagePointId = lUsagePointCurrentId[1]
         else:
             sLocalUsagePointId = lUsagePointCurrentId[0]
         if sLocalUsagePointId in self.dHc:
-            lHc = self.dHc[self.sUsagePointId]
+            dHc = self.dHc[self.sUsagePointId]
         elif "all" in self.dHc:
-            lHc = self.dHc["all"]
+            dHc = self.dHc["all"]
         else:
             return False
+        
+        if iWeekday in dHc:
+            lHc = dHc[iWeekday]
+        elif 7 in dHc:
+            lHc = dHc[7]
+        else:
+            return False            
         
         for lDateInterval in lHc:
             if (tDate > lDateInterval[0]) and (tDate <= lDateInterval[1]):
@@ -1380,7 +1410,7 @@ class BasePlugin:
 
         # next consumption point
         if self.sConnectionStep == "nextcons":
-            self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex]
+            self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex].upper().strip()
             Domoticz.Log("Traitement pour le point de livraison " + self.sUsagePointId)
             if self.bHasAFail:
                 self.bGlobalHasAFail = True
@@ -1412,15 +1442,15 @@ class BasePlugin:
                 self.myDebug("Dict details (" + str(len(dictToLog)) + "):")
                 for x in dictToLog:
                     if isinstance(dictToLog[x], dict):
-                        self.myDebug("--->'" + x + " (" + str(len(dictToLog[x])) + "):")
+                        self.myDebug("--->'" + str(x) + " (" + str(len(dictToLog[x])) + "):")
                         for y in dictToLog[x]:
                             if isinstance(dictToLog[x][y], dict):
                                 for z in dictToLog[x][y]:
-                                    self.myDebug("----------->'" + z + "':'" + str(dictToLog[x][y][z]) + "'")
+                                    self.myDebug("----------->'" + str(z) + "':'" + str(dictToLog[x][y][z]) + "'")
                             else:
-                                self.myDebug("------->'" + y + "':'" + str(dictToLog[x][y]) + "'")
+                                self.myDebug("------->'" + str(y) + "':'" + str(dictToLog[x][y]) + "'")
                     else:
-                        self.myDebug("--->'" + x + "':'" + str(dictToLog[x]) + "'")
+                        self.myDebug("--->'" + str(x) + "':'" + str(dictToLog[x]) + "'")
             else:
                 self.myDebug("Received no dict: " + str(dictToLog))
 
