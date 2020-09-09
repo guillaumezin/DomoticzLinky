@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -362,7 +362,7 @@ class BasePlugin:
         self.dumpDictToLog(sendData)
         self.connectAndSendForAuthorize(sendData)
 
-    def showStatusError(self, hours, Data):
+    def showStatusError(self, hours, Data, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -374,7 +374,7 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
-        self.showStepError(hours, sErrorSentence)
+        self.showStepError(hours, sErrorSentence, bDebug)
 
     def showSimpleStatusError(self, Data):
         sErrorSentence = "Erreur"
@@ -596,17 +596,25 @@ class BasePlugin:
         return True
 
     # Show error in state machine context
-    def showSimpleStepError(self, logMessage):
-        Domoticz.Error("durant l'étape : " + self.sConnectionStep + " - " + logMessage)
+    def showSimpleStepError(self, logMessage, bDebug=False):
+        sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
+        if bDebug:
+            self.myDebug(sMessage)
+        else:
+            Domoticz.Error(sMessage)
 
     # Show error in state machine context with dates
-    def showStepError(self, hours, logMessage):
+    def showStepError(self, hours, logMessage, bDebug=False):
         if hours:
-            Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
-                self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage)
+            sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
+                self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage
         else:
-            Domoticz.Error("durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
-                self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage)
+            sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
+                self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage
+        if bDebug:
+            self.myDebug(sMessage)
+        else:
+            Domoticz.Error(sMessage)
 
     # Parse HP/HC parameter string and store result in dHc
     def parseHcParameter(self, sHcParameter):
@@ -1125,7 +1133,7 @@ class BasePlugin:
         else:
             self.savedDateEndDays = self.savedDateEndDays2
             self.savedDateEndDaysForHoursView = self.savedDateEndDays2
-
+            
         self.iDaysLeft = self.iHistoryDaysForPeakDaysView
         if self.iHistoryDaysForDaysView < self.iHistoryDaysForHoursView:
             self.iDaysLeftHoursView = self.iHistoryDaysForHoursView
@@ -1135,6 +1143,7 @@ class BasePlugin:
         # self.dateEndHours = self.savedDateEndDays
 
         self.calculateDaysLeft()
+        self.bFirstBatch = True
 
     # Calculate days and date left for next batch
     def calculateDaysLeft(self):
@@ -1159,6 +1168,8 @@ class BasePlugin:
         self.dateBeginHours = self.savedDateEndDaysForHoursView - timedelta(days=daysToGet)
         self.dateEndHours = self.savedDateEndDaysForHoursView
         self.savedDateEndDaysForHoursView = self.dateBeginHours
+
+        self.bFirstBatch = False
 
         # Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
 
@@ -1299,11 +1310,13 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
             elif (iStatus == 404) or self.bProdMode and (iStatus == 400):
-                self.iDataErrorCount = self.iDataErrorCount + 1
-                if self.iDataErrorCount > 1:
-                    #self.showStatusError(True, Data)
-                    self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
-                    self.bHasAFail = True
+                self.showStatusError(True, Data, True)
+                if self.bFirstBatch:
+                    self.iDataErrorCount = self.iDataErrorCount + 1
+                    if self.iDataErrorCount > 1:
+                        #self.showStatusError(True, Data)
+                        self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
+                        self.bHasAFail = True
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
@@ -1421,6 +1434,7 @@ class BasePlugin:
 
         # next consumption or production point
         if self.sConnectionStep == "next":
+            self.resetDates()
             self.sConnectionStep = "getdatahours"
             self.getData(
                 API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE,
@@ -1652,6 +1666,7 @@ class BasePlugin:
                 for oDevice in Devices.values():
                     bHasLocalTimeout = False
                     if oDevice.DeviceID in self.dUsagePointTimeout:
+                        #Domoticz.Log(str(bHasGlobalTimeout) + " " + str(bHasLocalTimeout) + " " + str(self.dUsagePointTimeout[oDevice.DeviceID]) + " " + str(self.dtGlobalTimeout) + " " + str(self.dtNextRefresh))
                         if dtNow > self.dUsagePointTimeout[oDevice.DeviceID]:
                             bHasLocalTimeout = True
                     # Update the device at a regular basis to prevent usage to be shown at 0
