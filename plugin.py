@@ -1198,7 +1198,7 @@ class BasePlugin:
                 Domoticz.Error("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
             minutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = dtNow + timedelta(days=1)
-            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8, minute=0)
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
         # Randomize minutes to lower load on Enedis website
         # randint makes domoticz crash on RPI
@@ -1213,10 +1213,10 @@ class BasePlugin:
         self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
         if self.dateNextConnection.hour >= 22: 
             self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
-            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8, minute=0)
             bTomorrow = True
         elif self.dateNextConnection.hour < 8: 
-            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8, minute=0)
             bTomorrow = True
         if bTomorrow:
             minutesRand = round(dtNow.microsecond / 10000) % 60
