@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -236,8 +236,6 @@ class BasePlugin:
     sDeviceCode = None
     # interval to retry
     iInterval = 5
-    # peak mode
-    bPeakMode = None
     # count data packet Error
     iDataErrorCount = None
     # production mode
@@ -1368,9 +1366,8 @@ class BasePlugin:
                         self.dateBeginHours, self.dateEndHours)
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or save
-                    # if not self.bPeakMode:
                     # No production peak available yet in Enedis API
-                    if self.bProdMode or (not self.bPeakMode):
+                    if self.bProdMode:
                         self.sConnectionStep = "prod"
                     # Get peak data
                     else:
@@ -1576,27 +1573,26 @@ class BasePlugin:
 
         if self.sConsumptionType1.endswith("_cweek") and (self.iHistoryDaysForDaysView < 7):
             self.iHistoryDaysForDaysView = 7
-        elif self.sConsumptionType1.endswith("_lweek")  and (self.iHistoryDaysForPeakDaysView < 14):
+        elif self.sConsumptionType1.endswith("_lweek")  and (self.iHistoryDaysForDaysView < 14):
             self.iHistoryDaysForDaysView = 14
-        elif self.sConsumptionType1.endswith("_cmonth") and (self.iHistoryDaysForPeakDaysView < 32):
+        elif self.sConsumptionType1.endswith("_cmonth") and (self.iHistoryDaysForDaysView < 32):
             self.iHistoryDaysForDaysView = 32
-        elif self.sConsumptionType1.endswith("_lmonth") and (self.iHistoryDaysForPeakDaysView < 63):
+        elif self.sConsumptionType1.endswith("_lmonth") and (self.iHistoryDaysForDaysView < 63):
             self.iHistoryDaysForDaysView = 63
-        elif self.sConsumptionType1.endswith("_year") and (self.iHistoryDaysForPeakDaysView < 366):
+        elif self.sConsumptionType1.endswith("_year") and (self.iHistoryDaysForDaysView < 366):
             self.iHistoryDaysForDaysView = 366
 
         self.iHistoryDaysForPeakDaysView = 1
-        self.bPeakMode = True
         if self.sConsumptionType2.endswith("_cweek"):
-            self.iHistoryDaysForDaysView = 7
+            self.iHistoryDaysForPeakDaysView = 7
         elif self.sConsumptionType2.endswith("_lweek"):
-            self.iHistoryDaysForDaysView = 14
+            self.iHistoryDaysForPeakDaysView = 14
         elif self.sConsumptionType2.endswith("_cmonth"):
-            self.iHistoryDaysForDaysView = 32
+            self.iHistoryDaysForPeakDaysView = 32
         elif self.sConsumptionType2.endswith("_lmonth"):
-            self.iHistoryDaysForDaysView = 63
+            self.iHistoryDaysForPeakDaysView = 63
         elif self.sConsumptionType2.endswith("_year"):
-            self.iHistoryDaysForDaysView = 366
+            self.iHistoryDaysForPeakDaysView = 366
 
         if self.sTarif:
             Domoticz.Log("Heures creuses mises à " + self.sTarif)
@@ -1606,9 +1602,8 @@ class BasePlugin:
             "Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType1 + " / " + self.sConsumptionType2)
         Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
         Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
-        if self.bPeakMode:
-            Domoticz.Log(
-                "Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
+        Domoticz.Log(
+            "Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
         Domoticz.Log("Debug mis à " + str(self.iDebugLevel))
 
         # Parameter for tarif 1/2
