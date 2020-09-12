@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -285,6 +285,7 @@ class BasePlugin:
         self.sBuffer = None
         self.iTimeoutCount = 0
         self.iResendCount = 0
+        self.iUsagePointIndex = 0
         self.lUsagePointIndex = []
         self.dUsagePointTimeout = {}
 
@@ -831,10 +832,9 @@ class BasePlugin:
         if bPeak:
             self.dData[self.sUsagePointId][sDate]["peak"] = True
             if bProduction:
-                pfData = self.dData[self.sUsagePointId][sDate]["productionpeak"]
+                self.dData[self.sUsagePointId][sDate]["productionpeak"] = fData
             else:
-                pfData = self.dData[self.sUsagePointId][sDate]["consumptionpeak"]
-            pfData = fData
+                pfData = self.dData[self.sUsagePointId][sDate]["consumptionpeak"] = fData
         else:
             self.dData[self.sUsagePointId][sDate]["data"] = True
             if bProduction:
@@ -1186,25 +1186,45 @@ class BasePlugin:
         else:
             return self.iDaysLeftHoursView > 0
 
-    # Calculate next complete grab, for tomorrow between 5 and 6 am if tomorrow is true, for next hour otherwise
-    # TODO inderdire les connexions entre 23h et 7h ?
-    def setNextConnection(self, tomorrow):
+    # Calculate next complete grab, for tomorrow between 8 and 9 am if tomorrow is true, for next hour otherwise, prevent connection between 10 pm and 8 am
+    def setNextConnection(self, bTomorrow):
+        bForceTomorrow = False
         self.iUsagePointIndex = 0
-        if tomorrow:
-            self.dateNextConnection = datetime.now() + timedelta(days=1)
-            self.dateNextConnection = self.dateNextConnection.replace(hour=5)
-        else:
-            self.dateNextConnection = datetime.now() + timedelta(hours=1)
+        dtNow = datetime.now()
+        if not bTomorrow:
+            self.dateNextConnection = dtNow + timedelta(hours=1)
+            if self.dateNextConnection.hour >= 22: 
+                bForceTomorrow = True
+        if bTomorrow or bForceTomorrow:
+            if bForceTomorrow:
+                Domoticz.Error("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            minutesRand = round(dtNow.microsecond / 10000) % 60
+            self.dateNextConnection = dtNow + timedelta(days=1)
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
         # Randomize minutes to lower load on Enedis website
         # randint makes domoticz crash on RPI
         # self.dateNextConnection = self.dateNextConnection + timedelta(minutes=randint(0, 59), seconds=randint(0, 59))
         # We take microseconds to randomize
-        minutesRand = round(datetime.now().microsecond / 10000) % 60
-        self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
+        return bTomorrow
 
-    # Calculate next connection after a few seconds
+    # Calculate next connection after a few seconds, prevent connection between 10 pm and 8 am
     def setNextConnectionForLater(self, iInterval):
-        self.dateNextConnection = datetime.now() + timedelta(seconds=iInterval)
+        bTomorrow = False
+        dtNow = datetime.now()
+        self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
+        if self.dateNextConnection.hour >= 22: 
+            self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            bTomorrow = True
+        elif self.dateNextConnection.hour < 8: 
+            self.dateNextConnection = self.dateNextConnection.replace(hour=8)
+            bTomorrow = True
+        if bTomorrow:
+            minutesRand = round(dtNow.microsecond / 10000) % 60
+            self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
+            Domoticz.Error("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+        return bTomorrow
 
     def clearData(self):
         self.dData = dict()
@@ -1602,8 +1622,8 @@ class BasePlugin:
 
         dtNow = datetime.now()
         self.dtNextRefresh = setRefreshTime(dtNow)
-        self.dateNextConnection = dtNow
         self.dtGlobalTimeout = setTimeout(dtNow)
+        self.setNextConnectionForLater(0)
 
         # Now we can enabling the plugin
         self.isStarted = True
