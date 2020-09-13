@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -881,15 +881,12 @@ class BasePlugin:
             else:
                 if dJson and ("meter_reading" in dJson):
                     try:
-                        beginDate = enedisDateToDatetime(dJson["meter_reading"]["start"])
-                        endDate = enedisDateToDatetime(dJson["meter_reading"]["end"])
-                    except (TypeError, ValueError) as err:
-                        self.showStepError(True, "Erreur dans le format de donnée de date JSON : " + str(err))
-                        return False
+                        sReceivedUsagePointId = dJson["meter_reading"]["usage_point_id"]
                     except:
-                        self.showStepError(True, "Erreur dans la donnée de date JSON : " + str(sys.exc_info()[0]) +
-                                           dJson["graphe"]["periode"]["dateDebut"] + dJson["graphe"]["periode"][
-                                               "dateFin"])
+                        self.showStepError(True, "Données reçues sans numéro de point de livraison")
+                        return False
+                    if sReceivedUsagePointId != self.sUsagePointId:
+                        self.showStepError(True, "Données reçues pour un autre point de livraison")
                         return False
                     # We accumulate data because Enedis sends kWh for every 30 minutes and Domoticz expects data only for every hour
                     accumulation = 0.0
@@ -906,7 +903,6 @@ class BasePlugin:
                             # cf. constructTime() call in WebServer.cpp to see if time shift needed
                             #curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
                             curDate = enedisDateTimeToDatetime(data["date"])
-                            # Domoticz.Log("date " + datetimeToSQLDateTimeString(curDate) + " " + datetimeToSQLDateTimeString(endDate))
                             accumulation = accumulation + val
                             # Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
@@ -1013,6 +1009,14 @@ class BasePlugin:
                 return False
             else:
                 if dJson and ("meter_reading" in dJson):
+                    try:
+                        sReceivedUsagePointId = str(dJson["meter_reading"]["usage_point_id"])
+                    except:
+                        self.showStepError(True, "Données reçues sans numéro de point de livraison")
+                        return False
+                    if sReceivedUsagePointId != self.sUsagePointId:
+                        self.showStepError(True, "Données reçues pour un autre point de livraison")
+                        return False
                     dataSeen = False
                     for index, data in enumerate(dJson["meter_reading"]["interval_reading"]):
                         try:
