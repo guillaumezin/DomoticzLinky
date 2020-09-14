@@ -56,6 +56,10 @@ Vous pouvez remplir le champ "Heures creuses" pour choisir les plages horaires d
 
 "02h00-04h00 16h00-19h00 12345678901234 88888888888888 13h00-16h00" : désactive les heures creuses pour le point de livraison 12345678901234, configure les heures creuses pour la plage horaire "13h00-16h00" pour le point de livraison "88888888888888" et les plages horaires "02h00-04h00 16h00-19h00" pour tous les autres points de livraison.
 
+"02h00-04h00 16h00-19h00 P 17h00-22h00 mercredi 11h00-16h00 12345678901234 88888888888888 13h00-16h00" : désactive les heures creuses pour le point de livraison 12345678901234, configure les heures creuses pour la plage horaire "13h00-16h00" pour le point de livraison "88888888888888" et les plages horaires "02h00-04h00 16h00-19h00" en consommation et "11h00-16h00" le mercredi et "17h00-22h00" pour les autres jours de la semaine en production pour tous les autres points de livraison.
+
+"02h00-04h00 16h00-19h00 P" : configure les heures creuses pour la plage horaire en consommation et "17h00-22h00" et désactive les heures creuses en production pour tous les points de livraison.
+
 Vous pouvez également choisir le nombre à afficher tableau de bord.
 
 Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures et pour les autres vues. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique. En dehors des premières synchronisations, il est recommandé de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis.
@@ -142,6 +146,10 @@ You can fill in the "Off-peak hours" field to choose the hourly time ranges ("Us
 "2:00-04:00 16:00-19:00 12345678901234 1:00-6:00 12:00-14:00 Wednesday 11:00-16:00 88888888888888 13:00-16:00": configures the off-peak hours for the time slot "11:00-16:00" on Wednesday and "1:00-6:00 12:00-14:00" for the others days of the week for the delivery point "12345678901234", the time slot "13:00-16:00" for the delivery point "88888888888888" and the time slots "02:00-04:00 16:00-19:00" for all the other delivery points.
 
 "02:00-04:00 16:00-19:00 12345678901234 88888888888888 13:00-16:00": disables off-peak hours for the delivery point 12345678901234, configures off-peak hours for the "13:00-16:00" time slot for the "8888888888888888" delivery point and the time slots "02:00-04:00 16:00-19:00" for all other delivery points.
+
+"02:00-04:00 16:00-19:00 P 17:00-22:00 Wednesday 11:00-16:00 12345678901234 88888888888888 13:00-16:00": disables off-peak hours for the delivery point 12345678901234, configures off-peak hours for the "13:00-16:00" time slot for the "8888888888888888" delivery point and the time slots "02:00-04:00 16:00-19:00" for consumption and "11:00-16:00" on Wednesday and "17:00-22:00" fot the other days of the week for production for all other delivery points.
+
+"02:00-04:00 16:00-19:00 P": configures the off-peak hours for the time slots "02:00-04:00 16:00-19:00" for consumption and disables off-peak hours for production for all delivery points.
 
 You can choose the number you want to see on the dashboard.
 

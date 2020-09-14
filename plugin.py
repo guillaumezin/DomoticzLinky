@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -620,16 +620,30 @@ class BasePlugin:
         self.dHc = {}
         sLocalUsagePointId = "all"
         iWeekday = 7
+        sProd = "all"
+        
+        sHcParameter = sHcParameter.lower().strip()
 
         # Exemple 963222123213 12h30-14h00
-        # https://regex101.com/r/cMWfqj/4
-        for matchHc in re.finditer(r"(?:(\d+)\s+)?(?:\s*(\D+)\s+)?(\d+)\s*[h:]\s*(\d+)?\s*[-_aà]+\s*(\d+)\s*[h:]\s*(\d+)?", sHcParameter):
-            #Domoticz.Log("match " + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5))
+        # https://regex101.com/r/cMWfqj/8
+        for matchHc in re.finditer(r"(?:(\d+)(?:$|\s))?(?:([a-z]+)(?:$|\s))?(?:([a-z]+)(?:$|\s))?(?:(\d+)\s*[h:]\s*(\d+)?\s*(?:[-_aà]|to)+\s*(\d+)\s*[h:]\s*(\d+)?)?", sHcParameter):
+            #Domoticz.Log("match " + matchHc.group(1) + " "  + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5) + " " + matchHc.group(6) + " " + matchHc.group(7))
             if matchHc.group(1):
                 sLocalUsagePointId = matchHc.group(1).upper().strip()
+                iWeekday = 7
+                sProd = "all"
                 #Domoticz.Log(sLocalUsagePointId)
-            if matchHc.group(2):
-                sDay = matchHc.group(2).lower().strip()
+            sMG2 = matchHc.group(2)
+            if sMG2:
+                sMG2 = sMG2.lower().strip()
+                sMG3 = matchHc.group(3)
+                if sMG3:
+                    sMG3 = sMG3.lower().strip()
+                    sDay = sMG3
+                else:
+                    sDay = sMG2
+                if sMG2.startswith("p"):
+                    sProd = "prod"
                 #Domoticz.Log(sDay)
                 if sDay.startswith("lu") or sDay.startswith("mo"):
                     iWeekday = 0
@@ -648,29 +662,32 @@ class BasePlugin:
                 #Domoticz.Log(sLocalUsagePointId)
             if not sLocalUsagePointId in self.dHc:
                 self.dHc[sLocalUsagePointId] = {}
-            if not iWeekday in self.dHc[sLocalUsagePointId]:
-                self.dHc[sLocalUsagePointId][iWeekday] = []
+            if not sProd in self.dHc[sLocalUsagePointId]:
+                self.dHc[sLocalUsagePointId][sProd] = {}
+            if not iWeekday in self.dHc[sLocalUsagePointId][sProd]:
+                self.dHc[sLocalUsagePointId][sProd][iWeekday] = []
             if matchHc.group(4):
-                iMinutesBegin = int(matchHc.group(3))
-            else:
-                iMinutesBegin = 0
-            if matchHc.group(6):
-                iMinutesEnd = int(matchHc.group(5))
-            else:
-                iMinutesEnd = 0
-            datetimeBegin = datetime(2010, 1, 1, int(matchHc.group(3)), iMinutesBegin)
-            datetimeEnd = datetime(2010, 1, 1, int(matchHc.group(5)), iMinutesEnd)
-            if (datetimeBegin.minute >= 30) :
-                datetimeBegin = datetimeBegin + timedelta(hours=1)
-            datetimeBegin = datetimeBegin.replace(minute=0)
-            if (datetimeEnd.minute >= 30) :
-                datetimeEnd = datetimeEnd + timedelta(hours=1)
-            datetimeEnd = datetimeEnd.replace(minute=0)
-            if datetimeEnd < datetimeBegin:
-                self.dHc[sLocalUsagePointId][iWeekday].append([datetimeBegin.time(), time(23,59,59,999999)])
-                self.dHc[sLocalUsagePointId][iWeekday].append([time(), datetimeEnd.time()])
-            else:
-                self.dHc[sLocalUsagePointId][iWeekday].append([datetimeBegin.time(), datetimeEnd.time()])
+                if matchHc.group(5):
+                    iMinutesBegin = int(matchHc.group(5))
+                else:
+                    iMinutesBegin = 0
+                if matchHc.group(7):
+                    iMinutesEnd = int(matchHc.group(7))
+                else:
+                    iMinutesEnd = 0
+                datetimeBegin = datetime(2010, 1, 1, int(matchHc.group(4)), iMinutesBegin)
+                datetimeEnd = datetime(2010, 1, 1, int(matchHc.group(6)), iMinutesEnd)
+                if (datetimeBegin.minute >= 30) :
+                    datetimeBegin = datetimeBegin + timedelta(hours=1)
+                datetimeBegin = datetimeBegin.replace(minute=0)
+                if (datetimeEnd.minute >= 30) :
+                    datetimeEnd = datetimeEnd + timedelta(hours=1)
+                datetimeEnd = datetimeEnd.replace(minute=0)
+                if datetimeEnd < datetimeBegin:
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([datetimeBegin.time(), time(23,59,59,999999)])
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([time(), datetimeEnd.time()])
+                else:
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([datetimeBegin.time(), datetimeEnd.time()])
         #self.dumpDictToLog(self.dHc)
 
     # Check date if in cost 1 or cost 2
@@ -683,19 +700,32 @@ class BasePlugin:
         else:
             sLocalUsagePointId = lUsagePointCurrentId[0]
         if sLocalUsagePointId in self.dHc:
-            dHc = self.dHc[self.sUsagePointId]
+            dHc = self.dHc[sLocalUsagePointId]
         elif "all" in self.dHc:
             dHc = self.dHc["all"]
         else:
             return False
-        
-        if iWeekday in dHc:
-            lHc = dHc[iWeekday]
-        elif 7 in dHc:
-            lHc = dHc[7]
+
+        if bProduction:
+            if "prod" in dHc:
+                dPHc = dHc["prod"]
+            elif "all" in dHc:
+                dPHc = dHc["all"]
+            else:
+                return False
+        else:
+            if "all" in dHc:
+                dPHc = dHc["all"]
+            else:
+                return False
+
+        if iWeekday in dPHc:
+            lHc = dPHc[iWeekday]
+        elif 7 in dPHc:
+            lHc = dPHc[7]
         else:
             return False            
-        
+
         for lDateInterval in lHc:
             if (tDate > lDateInterval[0]) and (tDate <= lDateInterval[1]):
                 return True
@@ -1215,7 +1245,7 @@ class BasePlugin:
         bTomorrow = False
         dtNow = datetime.now()
         self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
-        if self.dateNextConnection.hour >= 22: 
+        if self.dateNextConnection.hour >= 24: 
             self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
             self.dateNextConnection = self.dateNextConnection.replace(hour=8, minute=0)
             bTomorrow = True
