@@ -1245,7 +1245,7 @@ class BasePlugin:
         bTomorrow = False
         dtNow = datetime.now()
         self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
-        if self.dateNextConnection.hour >= 24: 
+        if self.dateNextConnection.hour >= 22: 
             self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
             self.dateNextConnection = self.dateNextConnection.replace(hour=8, minute=0)
             bTomorrow = True
