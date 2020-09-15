@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.1.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.1.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -630,8 +630,8 @@ class BasePlugin:
             #Domoticz.Log("match " + matchHc.group(1) + " "  + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5) + " " + matchHc.group(6) + " " + matchHc.group(7))
             if matchHc.group(1):
                 sLocalUsagePointId = matchHc.group(1).upper().strip()
-                iWeekday = 7
                 sProd = "all"
+                iWeekday = 7
                 #Domoticz.Log(sLocalUsagePointId)
             sMG2 = matchHc.group(2)
             if sMG2:
@@ -644,6 +644,7 @@ class BasePlugin:
                     sDay = sMG2
                 if sMG2.startswith("p"):
                     sProd = "prod"
+                    iWeekday = 7
                 #Domoticz.Log(sDay)
                 if sDay.startswith("lu") or sDay.startswith("mo"):
                     iWeekday = 0
