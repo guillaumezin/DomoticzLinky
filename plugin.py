@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -119,6 +119,7 @@ from time import strptime
 # from random import randint
 # import html
 import re
+import tempfile
 
 CLIENT_ID = ["d198fd52-61c0-4b77-8725-06a1ef90da9f", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
 
@@ -272,6 +273,8 @@ class BasePlugin:
     dtGlobalTimeout = None
     # last refresh
     dtNextRefresh = None
+    # debug file
+    fDebug = None
     
     def __init__(self):
         self.isStarted = False
@@ -287,10 +290,26 @@ class BasePlugin:
         self.lUsagePointIndex = []
         self.dUsagePointTimeout = {}
 
+    def myLog(self, message):
+        Domoticz.Log(message)
+        if self.fDebug:
+            try:
+                self.fDebug.writelines(message + "\n")
+            except:
+                pass
+
     def myDebug(self, message):
         if self.iDebugLevel:
-            Domoticz.Log(message)
-
+            self.myLog(message)
+            
+    def myError(self, message):
+        Domoticz.Error(message)
+        if self.fDebug:
+            try:
+                self.fDebug.writelines(message + "\n")
+            except:
+                pass
+            
     # resend same data
     def reconnectAndResend(self):
         self.sBuffer = self.sMemData
@@ -410,7 +429,7 @@ class BasePlugin:
                     sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode)
                     if self.iFalseCustomer:
                         sUrl = sUrl + "&state=" + str(self.iFalseCustomer)
-                    Domoticz.Error(
+                    self.myError(
                         "Connectez-vous à l'adresse " + sUrl + " pour lancer la demande de consentement avec le code " + sUserCode)
                     return "done"
                 else:
@@ -600,7 +619,7 @@ class BasePlugin:
         if bDebug:
             self.myDebug(sMessage)
         else:
-            Domoticz.Error(sMessage)
+            self.myError(sMessage)
 
     # Show error in state machine context with dates
     def showStepError(self, hours, logMessage, bDebug=False):
@@ -613,7 +632,7 @@ class BasePlugin:
         if bDebug:
             self.myDebug(sMessage)
         else:
-            Domoticz.Error(sMessage)
+            self.myError(sMessage)
 
     # Parse HP/HC parameter string and store result in dHc
     def parseHcParameter(self, sHcParameter):
@@ -683,12 +702,13 @@ class BasePlugin:
                 datetimeBegin = datetimeBegin.replace(minute=0)
                 if (datetimeEnd.minute >= 30) :
                     datetimeEnd = datetimeEnd + timedelta(hours=1)
-                datetimeEnd = datetimeEnd.replace(minute=0)
-                if datetimeEnd < datetimeBegin:
-                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([datetimeBegin.time(), time(23,59,59,999999)])
-                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([time(), datetimeEnd.time()])
+                timeEnd = datetimeEnd.replace(minute=0).time()
+                timeBegin = datetimeBegin.time()
+                if timeEnd < timeBegin:
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([timeBegin, time(23,59,59,999999)])
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([time(), timeEnd])
                 else:
-                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([datetimeBegin.time(), datetimeEnd.time()])
+                    self.dHc[sLocalUsagePointId][sProd][iWeekday].append([timeBegin, timeEnd])
         #self.dumpDictToLog(self.dHc)
 
     # Check date if in cost 1 or cost 2
@@ -774,11 +794,11 @@ class BasePlugin:
                 if not dOneData["data"]:
                     continue
                 if dOneData["date"] >= self.savedDateEndDays2:
-                    # Domoticz.Error("Skip " + sDate)
+                    # self.myError("Skip " + sDate)
                     continue
                 # We want only iHistoryDaysForHoursView days
                 if (self.iHistoryDaysForHoursView < 1) or (dOneData["date"] < self.dateBeginDaysHistoryView):
-                    # Domoticz.Error("Skip " + sDate)
+                    # self.myError("Skip " + sDate)
                     continue
                 iConsumption1 = iConsumption1 + dOneData["consumption1"]
                 iConsumption2 = iConsumption2 + dOneData["consumption2"]
@@ -797,7 +817,7 @@ class BasePlugin:
                     continue
                 # We don't want the last day = today, it's incomplete
                 if dOneData["date"] >= self.savedDateEndDays2:
-                    # Domoticz.Error("Skip " + sDate)
+                    # self.myError("Skip " + sDate)
                     continue
                 if not self.addToDevice(oDevice, dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"],
                                         dOneData["production2"], sDate):
@@ -935,10 +955,10 @@ class BasePlugin:
                             #curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
                             curDate = enedisDateTimeToDatetime(data["date"])
                             accumulation = accumulation + val
-                            # Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
+                            # self.myLog("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
                             if curDate.minute == 0:
                                 # Check that we had enough data, as expected
-                                # Domoticz.Log("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
+                                # self.myLog("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 # if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                 # return False
                                 self.manageDataHours(accumulation / steps, curDate, bProduction)
@@ -970,7 +990,7 @@ class BasePlugin:
         ldpweek = self.fdweek - timedelta(days=1)
         self.fdpweek = ldpweek - timedelta(days=6)
         self.fdyear = self.prevDay.replace(day=1, month=1)
-        #Domoticz.Log(
+        #self.myLog(
         #    str(self.prevDay) + " " + str(self.curDay) + " " + str(self.fdmonth) + " " + str(self.fdpmonth) + " " + str(
         #       self.fdweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
 
@@ -1060,7 +1080,7 @@ class BasePlugin:
                                 curDate = enedisDateTimeToDatetime(data["date"])
                             else:
                                 curDate = enedisDateToDatetime(data["date"])
-                            #Domoticz.Log("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
+                            #self.myLog("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
                             # self.dumpDictToLog(values)
                             # self.dayAccumulate(curDate, val)
                             # if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
@@ -1196,7 +1216,7 @@ class BasePlugin:
         self.dateEndDays = self.savedDateEndDays
         self.savedDateEndDays = self.dateBeginDays
 
-        # Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
+        # self.myLog("Dates : " + datetimeToSQLDateTimeString(self.dateBeginDays) + " " + datetimeToSQLDateTimeString(self.dateEndDays) + " " + datetimeToSQLDateTimeString(self.savedDateEndDays))
 
         # No more than 7 days at once
         self.iDaysLeftHoursView = self.iDaysLeftHoursView - 7
@@ -1210,7 +1230,7 @@ class BasePlugin:
 
         self.bFirstBatch = False
 
-        # Domoticz.Log("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
+        # self.myLog("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
 
     # Still data to get
     def stillDays(self, bPeak):
@@ -1234,7 +1254,7 @@ class BasePlugin:
             minutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
             if bForceTomorrow:
-                Domoticz.Error("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+                self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         # Randomize minutes to lower load on Enedis website
         # randint makes domoticz crash on RPI
         # self.dateNextConnection = self.dateNextConnection + timedelta(minutes=randint(0, 59), seconds=randint(0, 59))
@@ -1256,7 +1276,7 @@ class BasePlugin:
         if bTomorrow:
             minutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
-            Domoticz.Error("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         return bTomorrow
 
     def clearData(self):
@@ -1280,7 +1300,7 @@ class BasePlugin:
 
         # First and last step
         if self.sConnectionStep == "idle":
-            Domoticz.Log("Récupération des données...")
+            self.myLog("Récupération des données...")
             # Reset data
             self.clearData()
 
@@ -1483,7 +1503,7 @@ class BasePlugin:
         # next consumption point
         if self.sConnectionStep == "nextcons":
             self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex].upper().strip()
-            Domoticz.Log("Traitement pour le point de livraison " + self.sUsagePointId)
+            self.myLog("Traitement pour le point de livraison " + self.sUsagePointId)
             if self.bHasAFail:
                 self.bGlobalHasAFail = True
                 self.bHasAFail = False
@@ -1507,7 +1527,7 @@ class BasePlugin:
                 self.setNextConnection(False)
             self.clearData()
             self.sConnectionStep = "idle"
-            Domoticz.Log("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            self.myLog("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
 
     def dumpDictToLog(self, dictToLog):
         if self.iDebugLevel:
@@ -1528,6 +1548,27 @@ class BasePlugin:
                 self.myDebug("Received no dict: " + str(dictToLog))
 
     def onStart(self):
+        try:
+            self.iDebugLevel = int(Parameters["Mode3"])
+        except ValueError:
+            self.iDebugLevel = 0
+            
+        if self.iDebugLevel > 1:
+            self.fDebug = tempfile.NamedTemporaryFile(mode='w+t', delete=False, prefix="DomoticzLinky" + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S_"), suffix=".log")
+
+        if self.iDebugLevel > 2:
+            Domoticz.Debugging(1)
+
+        if self.iDebugLevel == 3:
+            resetTokens()
+
+        if self.iDebugLevel >= 10:
+            self.iAlternateAddress = 1
+            self.iFalseCustomer = self.iDebugLevel - 10
+        else:
+            self.iAlternateAddress = 0
+            self.iFalseCustomer = 0
+
         self.myDebug("onStart called")
 
         self.iAlternateDevice = 1
@@ -1543,11 +1584,11 @@ class BasePlugin:
         # self.iAlternateDevice = 1
 
         if self.iAlternateDevice:
-            Domoticz.Log(
+            self.myLog(
                 "Ce plugin est compatible avec Domoticz version 4.11070 mais la visualisation d'énergie produite et de tarification horaire ne peuvent fonctionner qu'à partir de la version 4.11774")
 
         if iVersion < 4011070:
-            Domoticz.Error(
+            self.myError(
                 "Votre version de Domoticz est trop ancienne")
             self.isEnabled = False
             return
@@ -1567,24 +1608,6 @@ class BasePlugin:
 
         if not self.sConsumptionType2:
             self.sConsumptionType2 = "peak_day"
-
-        try:
-            self.iDebugLevel = int(Parameters["Mode3"])
-        except ValueError:
-            self.iDebugLevel = 0
-
-        if self.iDebugLevel > 1:
-            Domoticz.Debugging(1)
-
-        if self.iDebugLevel == 3:
-            resetTokens()
-
-        if self.iDebugLevel >= 10:
-            self.iAlternateAddress = 1
-            self.iFalseCustomer = self.iDebugLevel - 10
-        else:
-            self.iAlternateAddress = 0
-            self.iFalseCustomer = 0
 
         # History for short log is 7 days max (default to 7)
         try:
@@ -1630,16 +1653,18 @@ class BasePlugin:
             self.iHistoryDaysForPeakDaysView = 366
 
         if self.sTarif:
-            Domoticz.Log("Heures creuses mises à " + self.sTarif)
+            self.myLog("Heures creuses mises à " + self.sTarif)
         else:
-            Domoticz.Log("Heures creuses désactivées")
-        Domoticz.Log(
+            self.myLog("Heures creuses désactivées")
+        self.myLog(
             "Consommation à montrer sur le tableau de bord mis à " + self.sConsumptionType1 + " / " + self.sConsumptionType2)
-        Domoticz.Log("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
-        Domoticz.Log("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
-        Domoticz.Log(
+        self.myLog("Nombre de jours à récupérer pour la vue par heures mis à " + str(self.iHistoryDaysForHoursView))
+        self.myLog("Nombre de jours à récupérer pour les autres vues mis à " + str(self.iHistoryDaysForDaysView))
+        self.myLog(
             "Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
-        Domoticz.Log("Debug mis à " + str(self.iDebugLevel))
+        self.myLog("Debug mis à " + str(self.iDebugLevel))
+        if self.fDebug:
+            self.myLog("Log dans le fichier " + self.fDebug.name + " pour la version " + str(Parameters["Version"]) + " du plugin")
 
         # Parameter for tarif 1/2
         self.parseHcParameter(self.sTarif)
@@ -1647,7 +1672,7 @@ class BasePlugin:
         # most init
         self.__init__()
 
-        Domoticz.Log(
+        self.myLog(
             "Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
 
         dtNow = datetime.now()
@@ -1662,6 +1687,8 @@ class BasePlugin:
         Domoticz.Debug("onStop called")
         # prevent error messages during disabling plugin
         self.isStarted = False
+        if self.fDebug:
+            self.fDebug.flush()
 
     def onConnect(self, Connection, Status, Description):
         Domoticz.Debug("onConnect called")
@@ -1703,7 +1730,7 @@ class BasePlugin:
                 for oDevice in Devices.values():
                     bHasLocalTimeout = False
                     if oDevice.DeviceID in self.dUsagePointTimeout:
-                        #Domoticz.Log(str(bHasGlobalTimeout) + " " + str(bHasLocalTimeout) + " " + str(self.dUsagePointTimeout[oDevice.DeviceID]) + " " + str(self.dtGlobalTimeout) + " " + str(self.dtNextRefresh))
+                        #self.myLog(str(bHasGlobalTimeout) + " " + str(bHasLocalTimeout) + " " + str(self.dUsagePointTimeout[oDevice.DeviceID]) + " " + str(self.dtGlobalTimeout) + " " + str(self.dtNextRefresh))
                         if dtNow > self.dUsagePointTimeout[oDevice.DeviceID]:
                             bHasLocalTimeout = True
                     # Update the device at a regular basis to prevent usage to be shown at 0
@@ -1804,7 +1831,7 @@ def getConfigItem(Key=None, Default={}):
     except KeyError:
         Value = Default
     except Exception as inst:
-        Domoticz.Error("Domoticz.Configuration read failed: '" + str(inst) + "'")
+        self.myError("Domoticz.Configuration read failed: '" + str(inst) + "'")
     return Value
 
 
@@ -1818,7 +1845,7 @@ def setConfigItem(Key=None, Value=None):
             Config = Value  # set whole configuration if no key specified
         Config = Domoticz.Configuration(Config)
     except Exception as inst:
-        Domoticz.Error("Domoticz.Configuration operation failed: '" + str(inst) + "'")
+        self.myError("Domoticz.Configuration operation failed: '" + str(inst) + "'")
     return Config
 
 
