@@ -1553,10 +1553,10 @@ class BasePlugin:
         except ValueError:
             self.iDebugLevel = 0
             
-        if self.iDebugLevel > 1:
+        if self.iDebugLevel > 0:
             self.fDebug = tempfile.NamedTemporaryFile(mode='w+t', delete=False, prefix="DomoticzLinky" + datetime.now().strftime("_%Y_%m_%d_%H_%M_%S_"), suffix=".log")
 
-        if self.iDebugLevel > 2:
+        if self.iDebugLevel > 1:
             Domoticz.Debugging(1)
 
         if self.iDebugLevel == 3:
