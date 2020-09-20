@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -290,25 +290,22 @@ class BasePlugin:
         self.lUsagePointIndex = []
         self.dUsagePointTimeout = {}
 
+    def myDebug(self, message, bNoLog=False):
+        if (not bNoLog) and (self.iDebugLevel > 1):
+            Domoticz.Log(message)
+        if self.fDebug:
+            try:
+                self.fDebug.writelines(message + "\n")
+            except:
+                pass
+            
     def myLog(self, message):
         Domoticz.Log(message)
-        if self.fDebug:
-            try:
-                self.fDebug.writelines(message + "\n")
-            except:
-                pass
+        self.myDebug(message, True)
 
-    def myDebug(self, message):
-        if self.iDebugLevel:
-            self.myLog(message)
-            
     def myError(self, message):
         Domoticz.Error(message)
-        if self.fDebug:
-            try:
-                self.fDebug.writelines(message + "\n")
-            except:
-                pass
+        self.myDebug(message, True)
             
     # resend same data
     def reconnectAndResend(self):
