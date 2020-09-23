@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -684,6 +684,9 @@ class BasePlugin:
             if not iWeekday in self.dHc[sLocalUsagePointId][sProd]:
                 self.dHc[sLocalUsagePointId][sProd][iWeekday] = []
             if matchHc.group(4):
+                iHoursBegin = int(matchHc.group(4))
+                iHoursEnd = int(matchHc.group(6))
+
                 if matchHc.group(5):
                     iMinutesBegin = int(matchHc.group(5))
                 else:
@@ -692,8 +695,31 @@ class BasePlugin:
                     iMinutesEnd = int(matchHc.group(7))
                 else:
                     iMinutesEnd = 0
-                datetimeBegin = datetime(2010, 1, 1, int(matchHc.group(4)), iMinutesBegin)
-                datetimeEnd = datetime(2010, 1, 1, int(matchHc.group(6)), iMinutesEnd)
+
+                if iHoursBegin > 23:
+                    iHoursBegin = 23
+                    iMinutesBegin = 59
+                elif iHoursBegin < 0:
+                    iHoursBegin = 0
+
+                if iHoursEnd > 23:
+                    iHoursEnd = 23
+                    iMinutesEnd = 59
+                elif iHoursEnd < 0:
+                    iHoursEnd = 0
+
+                if iMinutesBegin > 59:
+                    iMinutesBegin = 59
+                elif iMinutesBegin < 0:
+                    iMinutesBegin = 0
+
+                if iMinutesEnd > 59:
+                    iMinutesEnd = 59
+                elif iMinutesEnd < 0:
+                    iMinutesEnd = 0
+
+                datetimeBegin = datetime(2010, 1, 1, iHoursBegin, iMinutesBegin)
+                datetimeEnd = datetime(2010, 1, 1, iHoursEnd, iMinutesEnd, 59, 999999)
                 if (datetimeBegin.minute >= 30) :
                     datetimeBegin = datetimeBegin + timedelta(hours=1)
                 datetimeBegin = datetimeBegin.replace(minute=0)
