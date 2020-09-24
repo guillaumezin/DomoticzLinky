@@ -101,7 +101,7 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 ### Nombre de jours à récupérer
 * Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique
 
-* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis
+* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz.
 
 ## Auteurs
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
@@ -224,7 +224,7 @@ You can choose the number you want to see on the dashboard:
 ### Data collect
 * You can choose the number of days to collect data for the short log (day). You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
 
-* You can choose the number of days to collect data for week/month/year log. After the first synchronizations, it is **highy recommended** to keep the number of days to recover for the other views less than or equal to 7 so as not to overload the Enedis servers.
+* You can choose the number of days to collect data for week/month/year log. After the first synchronizations, it is **highy recommended** to keep the number of days to recover for the other views less than or equal to 7 so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 
 ## Authors
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
