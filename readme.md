@@ -79,7 +79,7 @@ See also the list of [contributors](https://github.com/guillaumezin/DomoticzLink
 
 ## Licence
 
-Ce projet est sous licence GPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de détails.
+Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de détails.
 
 ## Remerciements
 
@@ -170,7 +170,7 @@ See also the list of [contributors](https://github.com/guillaumezin/DomoticzLink
 
 ## License
 
-This project is licensed under the GPLv3 license - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the AGPLv3 license - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
