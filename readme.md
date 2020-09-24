@@ -202,7 +202,7 @@ disables off-peak hours for the delivery point 12345678901234, configures off-pe
 ```
 02:00-04:00 16:00-19:00 P 17:00-22:00 Wednesday 11:00-16:00 12345678901234 88888888888888 13:00-16:00
 ```
-disables off-peak hours for the delivery point 12345678901234, configures off-peak hours for the "13:00-16:00" time slot for the "8888888888888888" delivery point and the time slots "02:00-04:00 16:00-19:00" for consumption and "11:00-16:00" on Wednesday and "17:00-22:00" fot the other days of the week for production for all other delivery points.
+disables off-peak hours for the delivery point 12345678901234, configures off-peak hours for the "13:00-16:00" time slot for the "8888888888888888" delivery point and the time slots "02:00-04:00 16:00-19:00" for consumption and "11:00-16:00" on Wednesday and "17:00-22:00" for the other days of the week for production for all other delivery points.
 
 ```
 02:00-04:00 16:00-19:00 P
@@ -219,7 +219,7 @@ You can choose the number you want to see on the dashboard:
 
 * on first line: it is the instant consumption (Watt)
 
-* on second line: it is the energy consumption (kWh). The "Today" value before is always 0, because Enedis doesn't provide the value for the day before
+* on second line: it is the energy consumption (kWh). The "Today" value before is always 0, because Enedis provides the value for the day before only
 
 ### Data collect
 * You can choose the number of days to collect data for the short log (day). You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
