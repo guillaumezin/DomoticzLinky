@@ -101,7 +101,7 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 ### Nombre de jours à récupérer
 * Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique
 
-* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz.
+* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Auteurs
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
