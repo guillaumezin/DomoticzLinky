@@ -87,9 +87,9 @@ désactive les heures creuses pour le point de livraison 12345678901234, configu
 configure les heures creuses pour les plages horaires "02h00-04h00 16h00-19h00" en consommation et désactive les heures creuses en production pour tous les points de livraison.
 
 ```
-02h00-04h00 sa 00h00-23h59 di 00h00-23h59
+02h00-04h00 sa 00h00-23h59 di 00h00-23h59 fe 00h00-23h59
 ```
-configure les heures creuses pour la plage horaire "02h00-04h00" et pour le week-end.
+configure les heures creuses pour la plage horaire "02h00-04h00", pour le week-end et pour les jours fériés.
 
 ### Affichage
 Vous pouvez choisir le nombre à afficher sur le tableau de bord :
@@ -210,9 +210,9 @@ disables off-peak hours for the delivery point 12345678901234, configures off-pe
 configures the off-peak hours for the time slots "02:00-04:00 16:00-19:00" for consumption and disables off-peak hours for production for all delivery points.
 
 ```
-02:00-04:00 sa 00:00-23:59 su 00:00-23:59
+02:00-04:00 sa 00:00-23:59 su 00:00-23:59 ba 00:00-23:59
 ```
-configures the off-peak hours for the time slot "02:00-04:00" and during the week-end.
+configures the off-peak hours for the time slot "02:00-04:00", during the week-end and during bank holiday.
 
 ### Display
 You can choose the number you want to see on the dashboard:
