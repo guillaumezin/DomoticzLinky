@@ -94,7 +94,7 @@ configure les heures creuses pour la plage horaire "02h00-04h00" et pour le week
 ### Affichage
 Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
-* sur la première ligne : il s'agit d'un pic de consommation instantanné (Wh)
+* sur la première ligne : il s'agit d'un pic de consommation instantanné (Watt)
 
 * sur la deuxième ligne : il s'agit d'une énergie consommée (kWh). La valeur "Aujourd'hui" qui précède reste à 0, c'est normal car Enedis ne fournit que la valeur de la veille
 
@@ -217,7 +217,7 @@ configures the off-peak hours for the time slot "02:00-04:00" and during the wee
 ### Display
 You can choose the number you want to see on the dashboard:
 
-* on first line: it is the instant consumption (Wh)
+* on first line: it is the instant consumption (Watt)
 
 * on second line: it is the energy consumption (kWh). The "Today" value before is always 0, because Enedis doesn't provide the value for the day before
 
