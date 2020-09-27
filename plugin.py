@@ -8,20 +8,21 @@
 #                       Modified (C) 2018 Barberousse
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Affero General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Affero General Public
+# License # along with this program.  If not, see
+# <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -642,8 +643,8 @@ class BasePlugin:
         sHcParameter = sHcParameter.lower().strip()
 
         # Exemple 963222123213 12h30-14h00
-        # https://regex101.com/r/cMWfqj/8
-        for matchHc in re.finditer(r"(?:(\d+)(?:$|\s))?(?:([a-z]+)(?:$|\s))?(?:([a-z]+)(?:$|\s))?(?:(\d+)\s*[h:]\s*(\d+)?\s*(?:[-_aà]|to)+\s*(\d+)\s*[h:]\s*(\d+)?)?", sHcParameter):
+        # https://regex101.com/r/cMWfqj/11
+        for matchHc in re.finditer(r"(?:(\d+)(?:$|\s))?(?:([a-zéè]+)(?:$|\s))?(?:([a-zéè]+)(?:$|\s))?(?:(\d+)\s*[h:]\s*(\d+)?\s*(?:[-_aà]|to)+\s*(\d+)\s*[h:]\s*(\d+)?)?", sHcParameter):
             #Domoticz.Log("match " + matchHc.group(1) + " "  + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5) + " " + matchHc.group(6) + " " + matchHc.group(7))
             if matchHc.group(1):
                 sLocalUsagePointId = matchHc.group(1).upper().strip()
@@ -677,8 +678,10 @@ class BasePlugin:
                     iWeekday = 5
                 elif sDay.startswith("di") or sDay.startswith("su"):
                     iWeekday = 6
-                elif sDay.startswith("fe") or sDay.startswith("fé") or sDay.startswith("jo") or sDay.startswith("pu")  or sDay.startswith("ba") or sDay.startswith("ho"):
+                elif sDay.startswith("fe") or sDay.startswith("fé") or sDay.startswith("fè") or sDay.startswith("jo") or sDay.startswith("pu")  or sDay.startswith("ba") or sDay.startswith("ho"):
                     iWeekday = 8
+                else:
+                    iWeekday = 7
                 #Domoticz.Log(sLocalUsagePointId)
             if not sLocalUsagePointId in self.dHc:
                 self.dHc[sLocalUsagePointId] = {}
@@ -720,17 +723,12 @@ class BasePlugin:
                     iMinutesEnd = 59
                 elif iMinutesEnd < 0:
                     iMinutesEnd = 0
-
+                    
                 datetimeBegin = datetime(2010, 1, 1, iHoursBegin, iMinutesBegin)
-                datetimeEnd = datetime(2010, 1, 1, iHoursEnd, iMinutesEnd, 59, 999999)
-                if (datetimeBegin.minute >= 30) :
-                    datetimeBegin = datetimeBegin + timedelta(hours=1)
-                datetimeBegin = datetimeBegin.replace(minute=0)
-                if (datetimeEnd.minute >= 30) :
-                    datetimeEnd = datetimeEnd + timedelta(hours=1)
-                timeEnd = datetimeEnd.replace(minute=0).time()
+                datetimeEnd = datetime(2010, 1, 1, iHoursEnd, iMinutesEnd)
                 timeBegin = datetimeBegin.time()
-                if timeEnd < timeBegin:
+                timeEnd = datetimeEnd.time()
+                if datetimeEnd <  datetimeBegin:
                     self.dHc[sLocalUsagePointId][sProd][iWeekday].append([timeBegin, time(23,59,59,999999)])
                     self.dHc[sLocalUsagePointId][sProd][iWeekday].append([time(), timeEnd])
                 else:
@@ -739,6 +737,7 @@ class BasePlugin:
 
     # Check date if in cost 1 or cost 2
     def isCost2(self, dtDate, bProduction=False):
+        dtDate = dtDate - timedelta(minutes=30)
         tDate = dtDate.time()
         dDate = dtDate.date()
         iWeekday = dtDate.weekday()
@@ -777,7 +776,7 @@ class BasePlugin:
             return False            
 
         for lDateInterval in lHc:
-            if (tDate > lDateInterval[0]) and (tDate <= lDateInterval[1]):
+            if (tDate >= lDateInterval[0]) and (tDate < lDateInterval[1]):
                 return True
         return False
 
@@ -1975,6 +1974,18 @@ def datetimeToSQLDateString(datetimeObj):
 def datetimeToSQLDateTimeString(datetimeObj):
     return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
 
+
+# The JoursFeries class code after that comes from https://github.com/etalab/jours-feries-france and here is its original license:
+
+#MIT License
+
+#Copyright (c) 2020 Etalab
+
+#Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+#The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 class JoursFeries(object):
     ZONES = [
