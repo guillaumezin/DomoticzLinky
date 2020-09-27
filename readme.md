@@ -212,7 +212,7 @@ configures the off-peak hours for the time slots "02:00-04:00 16:00-19:00" for c
 ```
 02:00-04:00 sa 00:00-23:59 su 00:00-23:59 ba 00:00-23:59
 ```
-configures the off-peak hours for the time slot "02:00-04:00", during the week-end and during bank holiday.
+configures the off-peak hours for the time slot "02:00-04:00", during the week-end and during bank holidays.
 
 ### Display
 You can choose the number you want to see on the dashboard:
