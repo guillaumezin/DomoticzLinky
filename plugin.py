@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -300,15 +300,19 @@ class BasePlugin:
                 self.fDebug.writelines(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + message + "\n")
             except:
                 pass
-            
+
     def myLog(self, message):
         Domoticz.Log(message)
         self.myDebug(message, True)
 
+    def myStatus(self, message):
+        Domoticz.Status(message)
+        self.myDebug("Status : " + message, True)
+
     def myError(self, message):
         Domoticz.Error(message)
-        self.myDebug("Erreur " + message, True)
-            
+        self.myDebug("Erreur : " + message, True)
+
     # resend same data
     def reconnectAndResend(self):
         self.sBuffer = self.sMemData
@@ -1328,7 +1332,7 @@ class BasePlugin:
 
         # First and last step
         if self.sConnectionStep == "idle":
-            self.myLog("Récupération des données...")
+            self.myStatus("Récupération des données...")
             # Reset data
             self.clearData()
 
@@ -1531,7 +1535,7 @@ class BasePlugin:
         # next consumption point
         if self.sConnectionStep == "nextcons":
             self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex].upper().strip()
-            self.myLog("Traitement pour le point de livraison " + self.sUsagePointId)
+            self.myStatus("Traitement pour le point de livraison " + self.sUsagePointId)
             if self.bHasAFail:
                 self.bGlobalHasAFail = True
                 self.bHasAFail = False
@@ -1555,7 +1559,7 @@ class BasePlugin:
                 self.setNextConnection(False)
             self.clearData()
             self.sConnectionStep = "idle"
-            self.myLog("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            self.myStatus("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
 
     def dumpDictToLog(self, dictToLog):
         if self.iDebugLevel:
@@ -1692,7 +1696,7 @@ class BasePlugin:
             "Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
         self.myLog("Debug mis à " + str(self.iDebugLevel))
         if self.fDebug:
-            self.myLog("Log dans le fichier " + self.fDebug.name + " pour la version " + str(Parameters["Version"]) + " du plugin")
+            self.myStatus("Log dans le fichier " + self.fDebug.name + " pour la version " + str(Parameters["Version"]) + " du plugin")
 
         # Parameter for tarif 1/2
         self.parseHcParameter(self.sTarif)
