@@ -3,7 +3,7 @@
 # Plugin Linky pour Domoticz
 Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
-![Exemple de vue des données](assets/devicelog.jpg)
+![Exemple de vue des données](assets/devicelogfr.jpg)
 
 ## Prérequis
 La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.14 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
@@ -142,7 +142,7 @@ Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de 
 # Linky plugin for Domoticz
 This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
 
-![Example of data view](assets/devicelogfr.jpg)
+![Example of data view](assets/devicelogen.jpg)
 
 ## Prerequisites
 Domoticz version must be at least 4.11070. Domoticz version must be at least 4.11774 or 2020.1 to see energy production and day / night tariff differences.
