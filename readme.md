@@ -52,7 +52,7 @@ A la première installation, commencez par vérifier dans les paramètres de Dom
 
 Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matériel.
 
-![Ajout du matériel Linky](assets/addhardwaremenufr.jpg)
+![Ajout du matériel Linky](assets/hardwaremenufr.jpg)
 
 ![Ajout du matériel Linky](assets/addhardwarefr.jpg)
 
@@ -197,7 +197,7 @@ On first install, check that "Accept new Hardware Devices" is enabled, at least 
 
 Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
 
-![Ajout du matériel Linky](assets/addhardwaremenuen.jpg)
+![Ajout du matériel Linky](assets/hardwaremenuen.jpg)
 
 ![Add Linky hardware](assets/addhardwareen.jpg)
 
