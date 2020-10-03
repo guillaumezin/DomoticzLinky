@@ -46,7 +46,13 @@ Quand on efface le dispositif ou qu'on met à jour de la version 1 à la version
 ## Configuration
 A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Configuration / Paramètres / Système / Matériel/dispositifs).
 
+![Ajout du matériel Linky](assets/systemmenufr.jpg)
+
+![Ajout du matériel Linky](assets/addhardware5minfr.jpg)
+
 Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matériel.
+
+![Ajout du matériel Linky](assets/addhardwaremenufr.jpg)
 
 ![Ajout du matériel Linky](assets/addhardwarefr.jpg)
 
@@ -185,7 +191,13 @@ When the device is deleted or update the plugin from version 1 to version 2, the
 ## Configuration
 On first install, check that "Accept new Hardware Devices" is enabled, at least temporaly (in Setup / Settings / System / Hardware/Devices).
 
+![Ajout du matériel Linky](assets/systemmenuen.jpg)
+
+![Ajout du matériel Linky](assets/addhardware5minen.jpg)
+
 Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
+
+![Ajout du matériel Linky](assets/addhardwaremenuen.jpg)
 
 ![Add Linky hardware](assets/addhardwareen.jpg)
 
