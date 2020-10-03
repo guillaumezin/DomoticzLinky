@@ -3,8 +3,12 @@
 # Plugin Linky pour Domoticz
 Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
+[Exemple de vue des données](assets/devicelog.jpg)
+
 ## Prérequis
 La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.14 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
+
+Le framework python 3 doit être installé, suivez le guide https://www.domoticz.com/wiki/Using_Python_plugins, en particulier faites attention à installer la version "dev" si vous ne voyez pas apparaître le plugin dans la liste dans l'onglet de configuration Configuration / Matériel après avoir redémarré Domoticz.
 
 Vous devez avoir un compteur Linky, créer un compte utilisateur sur [Enedis](http://www.enedis.fr), accepter les conditions d'utilisation et vérifier que vous visualisez bien les courbes sur le site. En particulier, vérifiez la vue par heures (allez sur "Suivre les mesures" et passez "affiché(e)s en" sur "heures"), Enedis peut vous demander la permission la première fois pour collecter et enregistrer les données par heure, ce plugin ne fonctionnera pas pleinement si vous n'avez pas passé cette étape. Vous pouvez activer la collecte et l'enregistrement des données par heure sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Collecte de la consommation horaire" et dans l'encart "Enregistrement de la consommation horaire". Les données peuvent ne pas être disponibles après l'installation ou l'activation de Linky, soyez patient et vérifiez que vous recevez les données sur le site [Enedis](http://www.enedis.fr) avant de rejetter la faute sur le plugin.
 
@@ -27,7 +31,11 @@ chmod ugo+x plugin.py
 
 Redémarrez Domoticz.
 
-Si vous ne recevez pas de données ou obtenez des valeurs incohérentes, en particulier après une mise à jour, revérifiez que sont activés la collecte et l'enregistrement des données par heure sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Collecte de la consommation horaire" et dans l'encart "Enregistrement de la consommation horaire" et attendez 2 jours.
+Si vous ne recevez pas de données ou obtenez des valeurs incohérentes, en particulier après une mise à jour, revérifiez que sont activés l'enregistrement et la collecte de la consommation pa heure sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Enregistrement de la consommation horaire" et dans l'encart "Collecte de la consommation horaire" et attendez 2 jours.
+
+[Menu "Gérer l'accès à mes données"](assets/enedisaccess.jpg)
+
+[Activation de la collecte des données](assets/enediscollecte.jpg)
 
 Si après ça, ce n'est toujours pas bon, il faut effacer le dispositif, et relancer le plugin en cliquant sur le matériel Linky dans les paramètres et en cliquant sur "Modifier", ou relancer Domoticz.
 
@@ -37,6 +45,8 @@ Quand on efface le dispositif ou qu'on met à jour de la version 1 à la version
 A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Configuration / Paramètres / Système / Matériel/dispositifs).
 
 Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matériel.
+
+[Ajout du matériel Linky](assets/addhardware.jpg)
 
 ### Obtention du consentement
 Commencez par surveiller votre Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
@@ -94,6 +104,8 @@ configure les heures creuses pour la plage horaire "02h00-04h00", pour le week-e
 ### Affichage
 Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
+[Vue du dispositif sur le tableau de bord](assets/dashboard.jpg)
+
 * sur la première ligne : il s'agit d'un pic de consommation instantanné (Watt)
 
 * sur la deuxième ligne : il s'agit d'une énergie consommée (kWh). La valeur "Aujourd'hui" qui précède reste à 0, c'est normal car Enedis ne fournit que la valeur de la veille
@@ -126,8 +138,12 @@ Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de 
 # Linky plugin for Domoticz
 This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
 
+[Example of data view](assets/devicelog.jpg)
+
 ## Prerequisites
 Domoticz version must be at least 4.11070. Domoticz version must be at least 4.11774 or 2020.1 to see energy production and day / night tariff differences.
+
+The python 3 framework must be installed, follow the guide https://www.domoticz.com/wiki/Using_Python_plugins, in particular be careful to install the "dev" version if you do not see the plugin in the list in the Setup / Hardware configuration tab after restarting Domoticz.
 
 You need to have a Linky meter, create a user account on [Enedis](http://www.enedis.fr), accept conditions on the website and check that you receive data on the website. In particular, check the hour view (go to "Suivre les mesures" and switch "affiché(e)s en" to "heures"), Enedis might ask for your permission the first time to collect hours data, this plugin won't work if you didn't fulfill this step. You can activate the recording and collection of data per hour on your Enedis account on "Gérer l'accès à mes données" in "Enregistrement de la consommation horaire" area and in "Collecte de la consommation horaire" area. Data might be not available the first weeks after Linky has be installed or enabled, be patient and check you get data on [Enedis](http://www.enedis.fr) website before blaming the plugin.
 
@@ -152,6 +168,10 @@ Restart Domoticz.
 
 If you do not receive any data or get inconsistent values, in particular after an update, double-check that the recording and collection of data per hour are enabled on your Enedis account on "Gérer l'accès à mes données" in "Enregistrement de la consommation horaire" area and in "Collecte de la consommation horaire" area and wait 2 days.
 
+["Gérer l'accès à mes données" menu](assets/enedisaccess.jpg)
+
+[Activate data collecting](assets/enediscollecte.jpg)
+
 If after that, it is still not good, you have to delete the device, and restart the plugin by clicking on the Linky hardware in the settings and clicking on "Modify", or restart Domoticz.
 
 When the device is deleted or update the plugin from version 1 to version 2, the history is lost, which can be redownloaded over 730 days max (by modifying the parameter "Nombre de jours à récupérer pour les autres vues" of the plugin). The V2 plugin version 2 does not know how to retrieve the history of a device from the plugin version 1, the tables in the database are quite different.
@@ -160,6 +180,8 @@ When the device is deleted or update the plugin from version 1 to version 2, the
 On first install, check that "Accept new Hardware Devices" is enabled, at least temporaly (in Setup / Settings / System / Hardware/Devices).
 
 Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
+
+[Add Linky hardware](assets/addhardware.jpg)
 
 ### Give consent
 To start, go to Setup / Log. At first connections, the plugin shall give you the web address https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
@@ -216,6 +238,8 @@ configures the off-peak hours for the time slot "02:00-04:00", during the week-e
 
 ### Display
 You can choose the number you want to see on the dashboard:
+
+[Device on dashboard](assets/dashboard.jpg)
 
 * on first line: it is the instant consumption (Watt)
 
