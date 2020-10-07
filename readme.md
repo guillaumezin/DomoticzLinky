@@ -3,7 +3,15 @@
 # Plugin Linky pour Domoticz
 Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
+![Vue du dispositif sur le tableau de bord](assets/dashboardfr.jpg)
+
+En cliquant sur le bouton "Log" :
+
 ![Exemple de vue des données](assets/devicelogfr.jpg)
+
+En cliquant sur le bouton "Rapport" :
+
+![Exemple de rapport](assets/reportfr.jpg)
 
 ## Prérequis
 La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.14 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
@@ -14,7 +22,6 @@ Vous devez avoir un compteur Linky, créer un compte utilisateur sur [Enedis](ht
 
 ## Installation
 Copiez plugin.py dans le sous-répertoire plugins/DomoticzLinky de Domoticz ou placez vous dans le sous répertoire plugins de Domoticz and tapez la commande suivante :
-
 ```
 git clone https://github.com/guillaumezin/DomoticzLinky
 ```
@@ -43,6 +50,8 @@ Si après ça, ce n'est toujours pas bon, il faut effacer le dispositif, et rela
 
 Quand on efface le dispositif ou qu'on met à jour de la version 1 à la version 2 du plugin, on perd l'historique, qu'il est possible de retélécharger sur 730 jours max (en modifiant le paramètre "Nombre de jours à récupérer pour les autres vues" du plugin). Lorsque vous avez récupéré l'historique, n'oubliez pas de redescendre le chiffre à 7 par exemple pour ne pas surcharger les serveurs d'Enedis. Le plugin version 2 ne sait pas récupérer l'historique d'un dispositif du plugin version 1, ce ne sont plus tout à fait les mêmes tables dans la base de données.
 
+Si en récupérant les données, le plugin détecte un dispositif avec seulement des données de consommation, et un autre avec seulement des données de production, il créera un nouveau dispositif fusionnant les données pour faciliter la consultation.
+
 ## Configuration
 A la première installation, commencez par vérifier dans les paramètres de Domoticz que "Accepter de nouveaux dispositifs matériels" est activé au moins temporairement (Configuration / Paramètres / Système / Matériel/dispositifs).
 
@@ -55,6 +64,10 @@ Ajoutez le matériel Linky dans l'onglet de configuration Configuration / Matér
 ![Ajout du matériel Linky](assets/hardwaremenufr.jpg)
 
 ![Ajout du matériel Linky](assets/addhardwarefr.jpg)
+
+Vous pouvez configurer les tarifs heures pleines (Coûts T1 pour la consommation et R1 pour la production) et heures creuses (Coûts T2 pour la consommation et R2 pour la production) dans le menu Configuration / Paramètres / Sondes/Compteurs. Dans ce menu, vérifiez que "Electricité" est bien mis à 1000.
+
+![Configuration du coût horaire](assets/costsettingfr.jpg)
 
 ### Obtention du consentement
 Commencez par surveiller votre Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
@@ -123,6 +136,8 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 ### Nombre de jours à récupérer
 * Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique
 
+![Log history setting](assets/loghistoryfr.jpg)
+
 * Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Auteurs
@@ -148,7 +163,15 @@ Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de 
 # Linky plugin for Domoticz
 This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
 
+![Device on dashboard](assets/dashboarden.jpg)
+
+When clicking on "Log" button:
+
 ![Example of data view](assets/devicelogen.jpg)
+
+When clicking on "Report" button:
+
+![Exemple de rapport](assets/reporten.jpg)
 
 ## Prerequisites
 Domoticz version must be at least 4.11070. Domoticz version must be at least 4.11774 or 2020.1 to see energy production and day / night tariff differences.
@@ -159,7 +182,6 @@ You need to have a Linky meter, create a user account on [Enedis](http://www.ene
 
 ## Installing
 Copy the plugin.py to domoticz directory/plugins/DomoticzLinky or change directory to domoticz directory/plugins and issue the following command:
-
 ```
 git clone https://github.com/guillaumezin/DomoticzLinky
 ```
@@ -188,6 +210,8 @@ If after that, it is still not good, you have to delete the device, and restart 
 
 When the device is deleted or update the plugin from version 1 to version 2, the history is lost, which can be redownloaded over 730 days max (by modifying the parameter "Nombre de jours à récupérer pour les autres vues" of the plugin). When you have retrieved the history, do not forget to lower the number to 7, for example, so as not to overload the Enedis servers. The V2 plugin version 2 does not know how to retrieve the history of a device from the plugin version 1, the tables in the database are quite different.
 
+If while retrieving the data, the plugin detects a device with only consumption data, and another with only production data, it will create a new device merging the data for easy consultation.
+
 ## Configuration
 On first install, check that "Accept new Hardware Devices" is enabled, at least temporaly (in Setup / Settings / System / Hardware/Devices).
 
@@ -200,6 +224,10 @@ Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
 ![Ajout du matériel Linky](assets/hardwaremenuen.jpg)
 
 ![Add Linky hardware](assets/addhardwareen.jpg)
+
+You can configure the peak hour tariffs (Costs T1 for consumption and R1 for production) and off-peak hours (Costs T2 for consumption and R2 for production) in the Setup / Setup / Meters/Counters menu. In this menu, check that "Energy" is set to 1000.
+
+![Set hour tariffs](assets/costsettingen.jpg)
 
 ### Give consent
 To start, go to Setup / Log. At first connections, the plugin shall give you the web address https://opensrcdev.alwaysdata.net/domoticzlinkyconnect/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
@@ -267,6 +295,8 @@ You can choose the number you want to see on the dashboard:
 
 ### Data collect
 * You can choose the number of days to collect data for the short log (day). You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
+
+![Log history setting](assets/loghistoryen.jpg)
 
 * You can choose the number of days to collect data for week/month/year log. After the first synchronizations, it is **highy recommended** to keep the number of days to recover for the other views less than or equal to 7 so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 

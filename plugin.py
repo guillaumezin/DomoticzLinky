@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.2.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -259,7 +259,7 @@ class BasePlugin:
     dHc = None
     # dict with calculation to show on dashboard
     dCalculate = None
-    # date
+    # datetime
     dateNextConnection = None
     # integer: which device to use
     iAlternateDevice = 0
@@ -277,6 +277,8 @@ class BasePlugin:
     dtNextRefresh = None
     # debug file
     fDebug = None
+    # datetime: last data sent
+    dtLastSend = None
     
     def __init__(self):
         self.isStarted = False
@@ -291,6 +293,7 @@ class BasePlugin:
         self.iUsagePointIndex = 0
         self.lUsagePointIndex = []
         self.dUsagePointTimeout = {}
+        self.dtLastSend = datetime(2000, 1, 1)
 
     def myDebug(self, message, bNoLog=False):
         if (not bNoLog) and (self.iDebugLevel > 1):
@@ -337,13 +340,21 @@ class BasePlugin:
         self.sBuffer = data
         self.sConnectionNextStep = self.sConnectionStep
         self.sMemConnectionStep = self.sConnectionStep
-        self.sConnectionStep = "connecting"
         self.iTimeoutCount = 0
         self.iResendCount = 0
-        conn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=address,
-                                   Port=port)
-        conn.Connect()
-        return conn
+        dtNow = datetime.now()
+        # Prevent too quick connections, to not trigger protection mechanism
+        if dtNow > (self.dtLastSend + timedelta(seconds=5)):
+            self.dtLastSend = dtNow
+            self.sConnectionStep = "connecting"
+            conn = Domoticz.Connection(Name="HTTPS connection", Transport="TCP/IP", Protocol="HTTPS", Address=address,
+                                Port=port)
+            conn.Connect()
+            return conn
+        else:
+            self.sConnectionStep = "retry"
+            self.setNextConnectionForLater(self.iInterval)
+            return None
 
     # Connect for login
     def connectAndSendForAuthorize(self, data):
@@ -862,9 +873,21 @@ class BasePlugin:
         bResult = True
         dCalculateCopy = self.dCalculate.copy()
         for sUsagePointConsumptionId in dCalculateCopy:
-            if (not dCalculateCopy[sUsagePointConsumptionId]["production1"]["value_year"]) and (not dCalculateCopy[sUsagePointConsumptionId]["production2"]["value_year"]):
+            # Check if consumption only
+            if (
+                not dCalculateCopy[sUsagePointConsumptionId]["production1"]["value_year"]
+                and not dCalculateCopy[sUsagePointConsumptionId]["production2"]["value_year"]
+                and (dCalculateCopy[sUsagePointConsumptionId]["consumption1"]["value_year"]
+                    or dCalculateCopy[sUsagePointConsumptionId]["consumption2"]["value_year"])
+            ):
                 for sUsagePointProductionId in dCalculateCopy:
-                    if (not dCalculateCopy[sUsagePointProductionId]["consumption1"]["value_year"]) and (not dCalculateCopy[sUsagePointProductionId]["consumption2"]["value_year"]):
+                    # Merge with production only
+                    if (
+                        not dCalculateCopy[sUsagePointProductionId]["consumption1"]["value_year"]
+                        and not dCalculateCopy[sUsagePointProductionId]["consumption2"]["value_year"]
+                        and (dCalculateCopy[sUsagePointProductionId]["production1"]["value_year"]
+                            or dCalculateCopy[sUsagePointProductionId]["production2"]["value_year"])
+                    ):
                         # Do merge
                         sNewUsagePointId = sUsagePointConsumptionId + USAGE_POINT_SEPARATOR + sUsagePointProductionId
 
@@ -1274,11 +1297,10 @@ class BasePlugin:
     # Calculate next complete grab, for tomorrow between 8 and 9 am if tomorrow is true, for next hour otherwise, prevent connection between 10 pm and 8 am
     def setNextConnection(self, bTomorrow):
         bForceTomorrow = False
-        self.iUsagePointIndex = 0
         dtNow = datetime.now()
         if not bTomorrow:
             self.dateNextConnection = dtNow + timedelta(hours=1)
-            if self.dateNextConnection.hour >= 22: 
+            if self.dateNextConnection.hour >= 22:
                 bForceTomorrow = True
         if bTomorrow or bForceTomorrow:
             self.dateNextConnection = dtNow.replace(hour=8, minute=0)
@@ -1308,10 +1330,12 @@ class BasePlugin:
         if bTomorrow:
             minutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
+            self.sConnectionStep = "idle"
             self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         return bTomorrow
 
     def clearData(self):
+        self.iUsagePointIndex = 0
         self.dData = dict()
         self.dCalculate = dict()
         self.bHasAFail = False
