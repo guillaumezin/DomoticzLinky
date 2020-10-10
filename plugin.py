@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.2.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -239,8 +239,10 @@ class BasePlugin:
     sDeviceCode = None
     # interval to retry
     iInterval = 5
-    # count data packet Error
-    iDataErrorCount = None
+    # no consumption data
+    bNoConsumption = None
+    # no production data
+    bNoProduction = None
     # production mode
     bProdMode = None
     # send nuffer
@@ -822,12 +824,17 @@ class BasePlugin:
 
         # sorting needed to accumulate
         for sDate, dOneData in sorted(dUsagePointData.items()):
+            # transform hour data in day data
+            dOneData["consumption1"] = 0
             for iHour, fValue in dOneData["consumption1_hours"].items():
                 dOneData["consumption1"] = dOneData["consumption1"] + fValue
+            dOneData["consumption2"] = 0
             for iHour, fValue in dOneData["consumption2_hours"].items():
                 dOneData["consumption2"] = dOneData["consumption2"] + fValue
+            dOneData["production1"] = 0
             for iHour, fValue in dOneData["production1_hours"].items():
                 dOneData["production1"] = dOneData["production1"] + fValue
+            dOneData["production2"] = 0
             for iHour, fValue in dOneData["production2_hours"].items():
                 dOneData["production2"] = dOneData["production2"] + fValue
             # hour
@@ -923,6 +930,8 @@ class BasePlugin:
                                 dMergedData["peak"] = dProdData["peak"]
                                 self.dData[sNewUsagePointId][sDate] = dMergedData
 
+                        self.bNoConsumption = False
+                        self.bNoProduction = False
                         if not self.saveDataToDb(sNewUsagePointId):
                             bResult = False
         return bResult
@@ -1228,6 +1237,16 @@ class BasePlugin:
             if SCalcT2 in self.dCalculate[sUsagePointCurrentId][sProd1T2]:
                 fSecVal2 = self.dCalculate[sUsagePointCurrentId][sProd1T2][SCalcT2]
 
+        # Set value to 0 when no production only or no consumption only, to not trigger error
+        if self.bNoConsumption and (not self.bNoProduction):
+            fConsoVal1 = 0
+            fConsoVal2 = 0
+            fSecVal1 = 0
+            fSecVal2 = 0
+        elif self.bNoProduction and (not self.bNoConsumption):
+            fProdVal1 =0
+            fProdVal2 =0
+
         if (fConsoVal1 < 0) or (fConsoVal2 < 0) or (fProdVal1 < 0) or (fProdVal2 < 0) or (fSecVal1 < 0) or (fSecVal2 < 0):
             self.showStepError(False, "Données manquantes pour mettre à jour le tableau de bord")
             return False
@@ -1359,6 +1378,7 @@ class BasePlugin:
             self.myStatus("Récupération des données...")
             # Reset data
             self.clearData()
+            self.resetDates(datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day) - timedelta(days=1))
 
             # If we have access tokens, try do grab data, otherwise ask for tokens
             if getConfigItem("access_token", ""):
@@ -1446,10 +1466,13 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
             elif (iStatus == 404) or self.bProdMode and (iStatus == 400):
-                self.showStatusError(True, Data, True)
+                #self.showStatusError(True, Data, True)
                 if self.bFirstBatch:
-                    self.iDataErrorCount = self.iDataErrorCount + 1
-                    if self.iDataErrorCount > 1:
+                    if (self.bProdMode):
+                        self.bNoProduction = True
+                    else:
+                        self.bNoConsumption = True
+                    if self.bNoConsumption and self.bNoProduction:
                         #self.showStatusError(True, Data)
                         self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
                         self.bHasAFail = True
@@ -1564,7 +1587,8 @@ class BasePlugin:
                 self.bGlobalHasAFail = True
                 self.bHasAFail = False
             self.bProdMode = False
-            self.iDataErrorCount = 0
+            self.bNoConsumption = False
+            self.bNoProduction = False
             self.sConnectionStep = "next"
 
         # next consumption or production point
@@ -1799,9 +1823,6 @@ class BasePlugin:
                         oDevice.Touch()
 
             if dtNow > self.dateNextConnection:
-                # self.savedDateEndDays = self.dateNextConnection
-                self.resetDates(
-                    datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day))
                 # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
                 self.setNextConnection(True)
                 self.handleConnection()
