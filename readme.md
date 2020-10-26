@@ -1,5 +1,15 @@
 *English below*
 
+# Participer aux frais d'hébergement et au développement du plugin
+
+Le proxy permettant de gérer l'authentification auprès d'Enedis pour que le plugin Linky puisse récupérer les consommations / productions d'électricité, est hébergé sur un serveur dédié. Si vous le souhaitez, vous pouvez participer aux frais d'hébergement en cliquant sur le bouton ci-dessous.
+
+[![Faire un don pour l'hébergement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7FJWZVDPXFTEG&source=url)
+
+Si vous le souhaitez, vous pouvez également faire un don pour encourager le développement du plugin en cliquant sur le bouton ci-dessous.
+
+[![Faire un don pour pour le développement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=92UJFSAJTMBBL&item_name=Plugin+Domoticz+Linky+%28d%C3%A9veloppement%29&currency_code=EUR)
+
 # Plugin Linky pour Domoticz
 Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
@@ -129,7 +139,7 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
 ![Vue du dispositif sur le tableau de bord](assets/dashboardfr.jpg)
 
-* sur la première ligne : il s'agit d'un pic de consommation instantanné (Watt)
+* sur la première ligne : il s'agit d'un pic de consommation instantané (Watt)
 
 * sur les lignes suivantes : il s'agit d'une énergie consommée (kWh). La valeur "Aujourd'hui" qui précède reste à 0, c'est normal car Enedis ne fournit que la valeur de la veille
 
@@ -138,15 +148,16 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
 ![Log history setting](assets/loghistoryfr.jpg)
 
-* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. En dehors des premières synchronisations, il est **très fortement recommandé** de garder le nombre de jours à récupérer pour les autres vues inférieur ou égal à 7 pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
+* Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. Si la valeur est supérieur à 35, le plugin ne fera la récupération que de temps en temps ou quand le paramètre est modifié, pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Auteurs
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
 * **Asdepique777** - *Jeedom Linky plugin* - [jeedom_linky](https://github.com/Asdepique777/jeedom_linky)
 * **epierre** - *Linky external script for Domoticz* - [domoticz_linky](https://github.com/empierre/domoticz_linky)
-* **Guillaume Zin** - *Port to Domoticz plugin framework* - [DomoticzLinky](https://github.com/guillaumezin/DomoticzLinky)
+* **Guillaume Zin** - *Portage vers le plugin framework de Domoticz et adaptation du code de Device Flow Proxy Server pour Enedis* - [DomoticzLinky](https://github.com/guillaumezin/DomoticzLinky) et [DomoticzFlowProxyServer](https://github.com/guillaumezin/Device-Flow-Proxy-Server)
+* **Frédéric Caillet** - *Contractualisation, maintenance et hébergement du code de Device Flow Proxy Server pour Enedis* - [DomoticzFlowProxyServer](https://github.com/russandol-sarl/Device-Flow-Proxy-Server)
 
-See also the list of [contributors](https://github.com/guillaumezin/DomoticzLinky/contributors) who participated in this project.
+Vous pouvez aussi dans la liste des [contributeurs](https://github.com/guillaumezin/DomoticzLinky/contributors) qui a participé au projet.
 
 ## Licence
 Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de détails.
@@ -159,6 +170,16 @@ Ce projet est sous licence AGPLv3 - cf. fichier [LICENSE](LICENSE) pour plus de 
 * Domoticz team
 
 ----------------------------------------------------------------
+
+# Contribute to hosting costs and plugin development
+
+The proxy used to manage authentication with Enedis so that the Linky plugin can grab electricity consumption / production data is hosted on a dedicated server. If you wish, you can participate in the accommodation costs by clicking on the button below.
+
+[![Faire un don pour l'hébergement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=7FJWZVDPXFTEG&source=url)
+
+If you wish, you can also donate to encourage the development of the plugin by clicking on the button below.
+
+[![Faire un don pour pour le développement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=92UJFSAJTMBBL&item_name=Domoticz+Linky+plugin+%28development%29&currency_code=EUR)
 
 # Linky plugin for Domoticz
 This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
@@ -298,13 +319,14 @@ You can choose the number you want to see on the dashboard:
 
 ![Log history setting](assets/loghistoryen.jpg)
 
-* You can choose the number of days to collect data for week/month/year log. After the first synchronizations, it is **highy recommended** to keep the number of days to recover for the other views less than or equal to 7 so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
+* You can choose the number of days to collect data for week/month/year log. If the value is greater than 35, the plugin will grab data only from time to time or when the value is changed, so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 
 ## Authors
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
 * **Asdepique777** - *Jeedom Linky plugin* - [jeedom_linky](https://github.com/Asdepique777/jeedom_linky)
 * **epierre** - *Linky external script for Domoticz* - [domoticz_linky](https://github.com/empierre/domoticz_linky)
-* **Guillaume Zin** - *Port to Domoticz plugin framework* - [DomoticzLinky](https://github.com/guillaumezin/DomoticzLinky)
+* **Guillaume Zin** - *Port to Domoticz plugin framework and adaptation of Device Flow Proxy Server code for Enedis* - [DomoticzLinky](https://github.com/guillaumezin/DomoticzLinky) and [DomoticzFlowProxyServer](https://github.com/guillaumezin/Device-Flow-Proxy-Server)
+* **Frédéric Caillet** - *Contracting, maintenance and hosting of Device Flow Proxy Server code for Enedis* - [DomoticzFlowProxyServer](https://github.com/russandol-sarl/Device-Flow-Proxy-Server)
 
 See also the list of [contributors](https://github.com/guillaumezin/DomoticzLinky/contributors) who participated in this project.
 

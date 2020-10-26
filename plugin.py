@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -54,10 +54,10 @@
             <options>
                 <option label="Pic consommation journée dernière" value="peak_day" />
                 <option label="Pic consommation semaine en cours" value="peak_cweek" />
-                <option label="Pic consommation semaine dernière" value="peak_lweek" />
+                <!-- <option label="Pic consommation semaine dernière" value="peak_lweek" />
                 <option label="Pic consommation mois en cours" value="peak_cmonth" />
                 <option label="Pic consommation mois dernier" value="peak_lmonth" />
-                <option label="Pic consommation année en cours" value="peak_year" />
+                <option label="Pic consommation année en cours" value="peak_year" /> -->
             </options>
         </param>
         <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="500px">
@@ -66,20 +66,20 @@
                 <option label="Consommation / production semaine en cours" value="value_cweek" />
                 <option label="Consommation / production semaine dernière" value="value_lweek" />
                 <option label="Consommation / production mois en cours" value="value_cmonth" />
-                <option label="Consommation / production mois dernier" value="value_lmonth" />
-                <option label="Consommation / production année en cours" value="value_year" />
+                <!-- <option label="Consommation / production mois dernier" value="value_lmonth" />
+                <option label="Consommation / production année en cours" value="value_year" /> -->
                 <option label="Consommation / production horaire max journée dernière" value="max_day" />
                 <option label="Consommation / production horaire max semaine en cours" value="max_cweek" />
                 <option label="Consommation / production horaire max semaine dernière" value="max_lweek" />
                 <option label="Consommation / production horaire max mois en cours" value="max_cmonth" />
-                <option label="Consommation / production horaire max mois dernier" value="max_lmonth" />
-                <option label="Consommation / production horaire max année en cours" value="max_year" />
+                <!-- <option label="Consommation / production horaire max mois dernier" value="max_lmonth" />
+                <option label="Consommation / production horaire max année en cours" value="max_year" /> -->
                 <option label="Consommation / production horaire moyenne journée dernière" value="mean_day" />
                 <option label="Consommation / production horaire moyenne semaine en cours" value="mean_cweek" />
                 <option label="Consommation / production horaire moyenne semaine dernière" value="mean_lweek" />
                 <option label="Consommation / production horaire moyenne mois en cours" value="mean_cmonth" />
-                <option label="Consommation / production horaire moyenne mois dernier" value="mean_lmonth" />
-                <option label="Consommation / production horaire moyenne année en cours" value="mean_year" />
+                <!-- <option label="Consommation / production horaire moyenne mois dernier" value="mean_lmonth" />
+                <option label="Consommation / production horaire moyenne année en cours" value="mean_year" /> -->
             </options>
         </param>
         <param field="Mode1" label="Nombre de jours à récupérer pour la vue par heures (0 min, pour désactiver la récupération par heures, 7 max)" width="50px" required="false" default="7"/>
@@ -147,6 +147,7 @@ HEADERS = {
 }
 
 USAGE_POINT_SEPARATOR = " / "
+NB_WEEKS_LONG_HISTORY = 5
 
 class BasePlugin:
     # boolean: is plugin isEnabled
@@ -189,6 +190,7 @@ class BasePlugin:
     # integer: number of days of data to grab for short log
     iHistoryDaysForHoursView = None
     # integer: number of days of data to grab for history
+    iSavedHistoryDaysForDaysView = None
     iHistoryDaysForDaysView = None
     # integer: number of days left fot next batch of data
     iDaysLeft = None
@@ -281,6 +283,10 @@ class BasePlugin:
     fDebug = None
     # datetime: last data sent
     dtLastSend = None
+    # has iHistoryDaysForDaysView changed?
+    bHistoryDaysForDaysViewChanged = False
+    # should we grab all days for day view?
+    bHistoryDaysForDaysViewGrabAll = False
     
     def __init__(self):
         self.isStarted = False
@@ -873,7 +879,9 @@ class BasePlugin:
                                         dOneData["production2"], sDate):
                     return False
         # self.dumpDictToLog(self.dCalculate)
-        return self.updateDashboard(oDevice, sUsagePointCurrentId)
+        # Do not return an error if dashboard update is not possible, to prevent retries all day long
+        self.updateDashboard(oDevice, sUsagePointCurrentId)
+        return True
 
     # Merge counters with only consumption with counters with only production into new virtual counters
     def mergeCounters(self):
@@ -1165,13 +1173,13 @@ class BasePlugin:
             return False
         self.dumpDictToLog(self.dCalculate[sUsagePointCurrentId])
 
-        dataMissing = False
         fConsoVal1 = -1
         fConsoVal2 = -1
         fProdVal1 = -1
         fProdVal2 = -1
-        fSecVal1 = -1
-        fSecVal2 = -1
+        # silently ignore missing peak values, it happens too often
+        fSecVal1 = 0
+        fSecVal2 = 0
 
         if self.sConsumptionType1.startswith("peak_"):
             SCalcT1 = self.sConsumptionType1.replace("peak_", "max_")
@@ -1313,6 +1321,44 @@ class BasePlugin:
         else:
             return self.iDaysLeftHoursView > 0
 
+    # limit history days to prevent Enedis servers overload
+    def setHistoryDays(self):
+        iNbDaysLongHistory = NB_WEEKS_LONG_HISTORY * 7
+        bGrabAll = False
+        if self.bHistoryDaysForDaysViewChanged:
+            bGrabAll = True
+        else:
+            dtNow = datetime.now()
+            dtLastConnection = datetime.fromtimestamp(getConfigItem("previous_successful_connection_date", datetime(2000, 1, 1)))
+            dtGrab = datetime.fromtimestamp(getConfigItem("next_history_grab_date", datetime(2000, 1, 1)))
+            if (dtGrab <= dtNow) or ((dtLastConnection + timedelta(days = self.iSavedHistoryDaysForDaysView)) <= dtNow):
+                bGrabAll = True
+        if bGrabAll and (self.iSavedHistoryDaysForDaysView > iNbDaysLongHistory):
+            self.myStatus("Récupération des données avec l'historique complet")
+            self.bHistoryDaysForDaysViewGrabAll = True
+        else:
+            self.myStatus("Récupération des données avec l'historique court")
+            if self.iHistoryDaysForDaysView > iNbDaysLongHistory:
+                self.iHistoryDaysForDaysView = iNbDaysLongHistory
+            self.bHistoryDaysForDaysViewGrabAll = False
+
+    # Save date of connection if successful
+    def savePreviousSuccessfulConnectionDate(self, bError):
+        iNbDaysLongHistory = NB_WEEKS_LONG_HISTORY * 7
+        dtNow = datetime.now()
+        if not bError:
+            setConfigItem("previous_successful_connection_date", dtNow)
+            if self.bHistoryDaysForDaysViewGrabAll:
+                dtGrab = dtNow + timedelta(days = self.iSavedHistoryDaysForDaysView / 2)
+                setConfigItem("next_history_grab_date", dtGrab)
+        elif self.bHistoryDaysForDaysViewGrabAll:
+            iDaysRand = (round(dtNow.microsecond / 10000) % 7) + 1
+            dtGrab = dtNow + timedelta(days = iDaysRand)
+            setConfigItem("next_history_grab_date", dtGrab)
+        if self.iSavedHistoryDaysForDaysView > iNbDaysLongHistory:
+            dtGrab = datetime.fromtimestamp(getConfigItem("next_history_grab_date", datetime(2000, 1, 1)))
+            self.myStatus("Prochaine récupération complète de l'historique : " + datetimeToSQLDateString(dtGrab))
+
     # Calculate next complete grab, for tomorrow between 8 and 9 am if tomorrow is true, for next hour otherwise, prevent connection between 10 pm and 8 am
     def setNextConnection(self, bTomorrow):
         bForceTomorrow = False
@@ -1324,8 +1370,8 @@ class BasePlugin:
         if bTomorrow or bForceTomorrow:
             self.dateNextConnection = dtNow.replace(hour=8, minute=0)
             self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
-            minutesRand = round(dtNow.microsecond / 10000) % 60
-            self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
+            iMinutesRand = round(dtNow.microsecond / 10000) % 60
+            self.dateNextConnection = self.dateNextConnection + timedelta(minutes=iMinutesRand)
             if bForceTomorrow:
                 self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         # Randomize minutes to lower load on Enedis website
@@ -1375,7 +1421,7 @@ class BasePlugin:
 
         # First and last step
         if self.sConnectionStep == "idle":
-            self.myStatus("Récupération des données...")
+            self.setHistoryDays()
             # Reset data
             self.clearData()
             self.resetDates(datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day) - timedelta(days=1))
@@ -1522,7 +1568,9 @@ class BasePlugin:
             elif iStatus == 403:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
+            # No peak available, it happens, ignore error silently
             elif iStatus == 404:
+                self.showStatusError(True, Data, True)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
@@ -1605,6 +1653,7 @@ class BasePlugin:
                 self.bGlobalHasAFail = True
             if self.bGlobalHasAFail:
                 self.setNextConnection(False)
+            self.savePreviousSuccessfulConnectionDate(self.bGlobalHasAFail)
             self.clearData()
             self.sConnectionStep = "idle"
             self.myStatus("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
@@ -1755,6 +1804,17 @@ class BasePlugin:
         self.myLog(
             "Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
 
+        iPreviousHistoryDaysForDaysView = getConfigItem("history_days", 0)
+        if self.iHistoryDaysForDaysView != iPreviousHistoryDaysForDaysView:
+            self.bHistoryDaysForDaysViewChanged = True
+            setConfigItem("history_days", self.iHistoryDaysForDaysView)
+        else:
+            self.bHistoryDaysForDaysViewChanged = False
+        self.iSavedHistoryDaysForDaysView = self.iHistoryDaysForDaysView
+
+        # For test purpose
+        #setConfigItem("next_history_grab_date", datetime(2020, 10, 26, 7, 34, 12))
+
         dtNow = datetime.now()
         self.dtNextRefresh = setRefreshTime(dtNow)
         self.dtGlobalTimeout = setTimeout(dtNow)
@@ -1899,7 +1959,7 @@ def setRefreshTime(dtDate=None):
         dtDate = datetime.now()
     return dtDate + timedelta(seconds=50)
 
-
+# Get config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
 def getConfigItem(Key=None, Default={}):
     Value = Default
     try:
@@ -1909,16 +1969,24 @@ def getConfigItem(Key=None, Default={}):
         else:
             Value = Config  # return the whole configuration if no key
     except KeyError:
-        Value = Default
+        try:
+            Value = Default.timestamp()
+        except:
+            Value = Default
     except Exception as inst:
         self.myError("Domoticz.Configuration read failed: '" + str(inst) + "'")
     return Value
 
 
+# Set config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
 def setConfigItem(Key=None, Value=None):
     Config = {}
     try:
         Config = Domoticz.Configuration()
+        try:
+            Value = Value.timestamp()
+        except:
+            pass
         if (Key != None):
             Config[Key] = Value
         else:
