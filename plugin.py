@@ -289,6 +289,12 @@ class BasePlugin:
     bHistoryDaysForDaysViewGrabAll = False
     
     def __init__(self):
+        """
+        Initialize the device
+
+        Args:
+            self: (todo): write your description
+        """
         self.isStarted = False
         self.httpLoginConn = None
         self.httpDataConn = None
@@ -304,6 +310,14 @@ class BasePlugin:
         self.dtLastSend = datetime(2000, 1, 1)
 
     def myDebug(self, message, bNoLog=False):
+        """
+        Logs a message to log.
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+            bNoLog: (todo): write your description
+        """
         if (not bNoLog) and (self.iDebugLevel > 1):
             Domoticz.Log(message)
         if self.fDebug:
@@ -313,19 +327,46 @@ class BasePlugin:
                 pass
 
     def myLog(self, message):
+        """
+        Logs a message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         Domoticz.Log(message)
         self.myDebug(message, True)
 
     def myStatus(self, message):
+        """
+        Acknowledge the status message
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         Domoticz.Status(message)
         self.myDebug("Status : " + message, True)
 
     def myError(self, message):
+        """
+        Called bytest message toDebug.
+
+        Args:
+            self: (todo): write your description
+            message: (str): write your description
+        """
         Domoticz.Error(message)
         self.myDebug("Erreur : " + message, True)
 
     # resend same data
     def reconnectAndResend(self):
+        """
+        Reconnect the connection.
+
+        Args:
+            self: (todo): write your description
+        """
         self.sBuffer = self.sMemData
         self.sConnectionNextStep = self.sMemConnectionStep
         self.sConnectionStep = "connecting"
@@ -344,6 +385,16 @@ class BasePlugin:
 
     # Prepare buffer and connect
     def connectAndSend(self, conn, data, address, port):
+        """
+        Send a connection to the device.
+
+        Args:
+            self: (todo): write your description
+            conn: (todo): write your description
+            data: (array): write your description
+            address: (str): write your description
+            port: (int): write your description
+        """
         self.sMemData = data
         self.sBuffer = data
         self.sConnectionNextStep = self.sConnectionStep
@@ -366,18 +417,39 @@ class BasePlugin:
 
     # Connect for login
     def connectAndSendForAuthorize(self, data):
+        """
+        Sends a message to the device.
+
+        Args:
+            self: (todo): write your description
+            data: (array): write your description
+        """
         self.bLoginConnect = True
         self.httpLoginConn = self.connectAndSend(self.httpLoginConn, data, LOGIN_BASE_URI[self.iAlternateAddress],
                                                  LOGIN_BASE_PORT[self.iAlternateAddress])
 
     # Connect for metering data
     def connectAndSendForMetering(self, data):
+        """
+        Sends a connection.
+
+        Args:
+            self: (todo): write your description
+            data: (array): write your description
+        """
         self.bLoginConnect = False
         self.httpDataConn = self.connectAndSend(self.httpDataConn, data, API_BASE_URI[self.iAlternateAddress],
                                                 API_BASE_PORT[self.iAlternateAddress])
 
     # get default headers
     def initHeaders(self, uri):
+        """
+        Initialize the http headers.
+
+        Args:
+            self: (todo): write your description
+            uri: (str): write your description
+        """
         headers = dict(HEADERS)
         headers["User-Agent"] = "DomoticzLinkyPlugin/" + Parameters["Version"]
         headers["Host"] = uri
@@ -385,6 +457,12 @@ class BasePlugin:
 
     # get access token
     def getDeviceCode(self):
+        """
+        Get device information.
+
+        Args:
+            self: (todo): write your description
+        """
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -404,6 +482,15 @@ class BasePlugin:
         self.connectAndSendForAuthorize(sendData)
 
     def showStatusError(self, hours, Data, bDebug=False):
+        """
+        Displays the status.
+
+        Args:
+            self: (todo): write your description
+            hours: (todo): write your description
+            Data: (array): write your description
+            bDebug: (bool): write your description
+        """
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -418,6 +505,13 @@ class BasePlugin:
         self.showStepError(hours, sErrorSentence, bDebug)
 
     def showSimpleStatusError(self, Data):
+        """
+        Shows the status of the status.
+
+        Args:
+            self: (todo): write your description
+            Data: (array): write your description
+        """
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -432,6 +526,13 @@ class BasePlugin:
         self.showSimpleStepError(sErrorSentence)
 
     def parseDeviceCode(self, Data):
+        """
+        Dump a data object
+
+        Args:
+            self: (todo): write your description
+            Data: (todo): write your description
+        """
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         if iStatus == 200:
@@ -465,6 +566,12 @@ class BasePlugin:
 
     # get access token
     def getAccessToken(self):
+        """
+        Get the access token.
+
+        Args:
+            self: (todo): write your description
+        """
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -487,6 +594,12 @@ class BasePlugin:
 
     # Refresh token
     def refreshToken(self):
+        """
+        Refresh the token
+
+        Args:
+            self: (todo): write your description
+        """
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
         headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -510,6 +623,13 @@ class BasePlugin:
 
     # Parse access token
     def parseAccessToken(self, Data):
+        """
+        Parses an access token.
+
+        Args:
+            self: (todo): write your description
+            Data: (todo): write your description
+        """
         self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
@@ -562,6 +682,15 @@ class BasePlugin:
 
     # Get data
     def getData(self, uri, start, end):
+        """
+        Make a get a get request
+
+        Args:
+            self: (todo): write your description
+            uri: (str): write your description
+            start: (int): write your description
+            end: (todo): write your description
+        """
         headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress] + ":" + API_BASE_PORT[self.iAlternateAddress])
         headers["Authorization"] = getConfigItem("token_type", "") + " " + getConfigItem("access_token", "")
 
@@ -582,6 +711,13 @@ class BasePlugin:
 
     # get and create if needed Domoticz device
     def getOrCreateDevice(self, sUsagePointCurrentId):
+        """
+        Returns a device name for a specific device.
+
+        Args:
+            self: (todo): write your description
+            sUsagePointCurrentId: (str): write your description
+        """
         for iIndexUnit, oDevice in Devices.items():
             if sUsagePointCurrentId == oDevice.DeviceID:
                 return oDevice
@@ -607,6 +743,18 @@ class BasePlugin:
 
     # insert usage in Domoticz DB
     def addToDevice(self, oDevice, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
+        """
+        This method adds to add tomodels todo.
+
+        Args:
+            self: (todo): write your description
+            oDevice: (todo): write your description
+            fConsumption1: (todo): write your description
+            fConsumption2: (todo): write your description
+            fProduction1: (todo): write your description
+            fProduction2: (todo): write your description
+            sDate: (todo): write your description
+        """
         if self.iAlternateDevice:
             sValue = "-1.0;" + str(fConsumption1 + fConsumption2) + ";" + sDate
         else:
@@ -622,6 +770,19 @@ class BasePlugin:
 
     # Update value shown on Domoticz dashboard
     def updateDevice(self, oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
+        """
+        Updates a device.
+
+        Args:
+            self: (todo): write your description
+            oDevice: (todo): write your description
+            fConsoVal1: (todo): write your description
+            fConsoVal2: (todo): write your description
+            fProdVal1: (str): write your description
+            fProdVal2: (str): write your description
+            fSecVal1: (todo): write your description
+            fSecVal2: (todo): write your description
+        """
         if self.iAlternateDevice:
             sValue = "-1.0;" + str(fSecVal1 + fSecVal2)
         else:
@@ -638,6 +799,14 @@ class BasePlugin:
 
     # Show error in state machine context
     def showSimpleStepError(self, logMessage, bDebug=False):
+        """
+        Show the log message
+
+        Args:
+            self: (todo): write your description
+            logMessage: (str): write your description
+            bDebug: (bool): write your description
+        """
         sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
@@ -646,6 +815,15 @@ class BasePlugin:
 
     # Show error in state machine context with dates
     def showStepError(self, hours, logMessage, bDebug=False):
+        """
+        Show the log
+
+        Args:
+            self: (todo): write your description
+            hours: (todo): write your description
+            logMessage: (str): write your description
+            bDebug: (bool): write your description
+        """
         if hours:
             sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage
@@ -659,6 +837,13 @@ class BasePlugin:
 
     # Parse HP/HC parameter string and store result in dHc
     def parseHcParameter(self, sHcParameter):
+        """
+        Parse a string representing the device object.
+
+        Args:
+            self: (todo): write your description
+            sHcParameter: (str): write your description
+        """
         self.dHc = {}
         sLocalUsagePointId = "all"
         iWeekday = 7
@@ -761,6 +946,14 @@ class BasePlugin:
 
     # Check date if in cost 1 or cost 2
     def isCost2(self, dtDate, bProduction=False):
+        """
+        Returns true if dt is a date isCost
+
+        Args:
+            self: (todo): write your description
+            dtDate: (todo): write your description
+            bProduction: (todo): write your description
+        """
         dtDate = dtDate - timedelta(minutes=30)
         tDate = dtDate.time()
         dDate = dtDate.date()
@@ -806,6 +999,13 @@ class BasePlugin:
 
     # Check current usage point has 2 costs
     def has2Costs(self, sUsagePointCurrentId):
+        """
+        Return true if the given lcid has a } has the given point
+
+        Args:
+            self: (todo): write your description
+            sUsagePointCurrentId: (str): write your description
+        """
         lUsagePointCurrentId = sUsagePointCurrentId.split(USAGE_POINT_SEPARATOR)
         if len(lUsagePointCurrentId) > 1:
             return ("all" in self.dHc) or (lUsagePointCurrentId[0] in self.dHc) or (lUsagePointCurrentId[1] in self.dHc)
@@ -814,6 +1014,13 @@ class BasePlugin:
     
     # Write data from memory to Domoticz DB
     def saveDataToDb(self, sUsagePointCurrentId):
+        """
+        Save the data of the specified target
+
+        Args:
+            self: (todo): write your description
+            sUsagePointCurrentId: (todo): write your description
+        """
         if sUsagePointCurrentId not in self.dData:
             return False
 
@@ -886,6 +1093,12 @@ class BasePlugin:
 
     # Merge counters with only consumption with counters with only production into new virtual counters
     def mergeCounters(self):
+        """
+        Merge all the stats to the current disk
+
+        Args:
+            self: (todo): write your description
+        """
         bResult = True
         dCalculateCopy = self.dCalculate.copy()
         for sUsagePointConsumptionId in dCalculateCopy:
@@ -947,6 +1160,18 @@ class BasePlugin:
 
     # Store data in memory
     def storeData(self, fData, sDate, dDate, bProduction, bCost2, bPeak):
+        """
+        Stores the data of the instance.
+
+        Args:
+            self: (todo): write your description
+            fData: (array): write your description
+            sDate: (todo): write your description
+            dDate: (todo): write your description
+            bProduction: (str): write your description
+            bCost2: (todo): write your description
+            bPeak: (todo): write your description
+        """
         if self.sUsagePointId not in self.dData:
             self.dData[self.sUsagePointId] = dict()
         if sDate not in self.dData[self.sUsagePointId]:
@@ -973,6 +1198,15 @@ class BasePlugin:
 
     # Manage data in memory for hours
     def manageDataHours(self, fData, dDate, bProduction=False):
+        """
+        Manage the data for the database
+
+        Args:
+            self: (todo): write your description
+            fData: (todo): write your description
+            dDate: (todo): write your description
+            bProduction: (todo): write your description
+        """
         sDateTime = datetimeToSQLDateTimeString(dDate)
         bCost2 = self.isCost2(dDate, bProduction)
         # Store hour
@@ -984,11 +1218,29 @@ class BasePlugin:
 
     # Manage data in memory for days
     def manageDataDays(self, fData, dDate, bPeak=False, bProduction=False):
+        """
+        Updates the datetime object
+
+        Args:
+            self: (todo): write your description
+            fData: (todo): write your description
+            dDate: (todo): write your description
+            bPeak: (todo): write your description
+            bProduction: (str): write your description
+        """
         sDate = datetimeToSQLDateTimeString(dDate)
         self.storeData(fData, sDate, dDate, bProduction, False, bPeak)
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data, bProduction=False):
+        """
+        Determine if data was received
+
+        Args:
+            self: (todo): write your description
+            Data: (array): write your description
+            bProduction: (str): write your description
+        """
         self.dumpDictToLog(Data)
         if Data and ("Data" in Data):
             try:
@@ -1048,12 +1300,25 @@ class BasePlugin:
         return False
 
     def resetCalculate(self, sUsagePointCurrentId):
+        """
+        Reset the progress bar.
+
+        Args:
+            self: (todo): write your description
+            sUsagePointCurrentId: (todo): write your description
+        """
         self.dCalculate[sUsagePointCurrentId] = {"consumption1": dict(), "consumption2": dict(), "production1": dict(),
                                                  "production2": dict(), "consumptionpeak": dict(),
                                                  "productionpeak": dict()}
 
     # Reset counters for power consumption
     def resetDayAccumulate(self):
+        """
+        Reset the day.
+
+        Args:
+            self: (todo): write your description
+        """
         self.curDay = self.savedDateEndDays2.replace(hour=0, minute=0, second=0, microsecond=0)
         self.prevDay = self.curDay - timedelta(days=1)
         self.fdmonth = self.prevDay.replace(day=1)
@@ -1069,6 +1334,15 @@ class BasePlugin:
 
     # Calculate and store
     def modifyCalculation(self, dCalculation, sParameter, fVal):
+        """
+        Modifies a parameter values of a parameter.
+
+        Args:
+            self: (todo): write your description
+            dCalculation: (str): write your description
+            sParameter: (todo): write your description
+            fVal: (todo): write your description
+        """
         sParameterComplete = "value_" + sParameter
         fCurrentVal = 0
         if sParameterComplete not in dCalculation:
@@ -1092,6 +1366,15 @@ class BasePlugin:
         dCalculation[sParameterComplete] = fCurrentVal / iCounter
 
     def doCalculation(self, dateCur, dCalculation, fVal):
+        """
+        \ writesculation of the given date.
+
+        Args:
+            self: (todo): write your description
+            dateCur: (todo): write your description
+            dCalculation: (str): write your description
+            fVal: (str): write your description
+        """
         if (dateCur > self.fdweek):
             self.modifyCalculation(dCalculation, "cweek", fVal)
         if (self.fdpweek < dateCur <= self.fdweek):
@@ -1107,6 +1390,15 @@ class BasePlugin:
 
     # Accumulate power consumption
     def dayAccumulate(self, sUsagePointCurrentId, dateCur, dVal):
+        """
+        This method is the day of the day.
+
+        Args:
+            self: (todo): write your description
+            sUsagePointCurrentId: (todo): write your description
+            dateCur: (todo): write your description
+            dVal: (todo): write your description
+        """
         if dVal["peak"]:
             self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumptionpeak"], dVal["consumptionpeak"])
             self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["productionpeak"], dVal["productionpeak"])
@@ -1118,6 +1410,15 @@ class BasePlugin:
 
     # Grab days data inside received JSON data for history
     def exploreDataDays(self, Data, bPeak, bProduction=False):
+        """
+        Returns the data from the data returned from the data
+
+        Args:
+            self: (todo): write your description
+            Data: (array): write your description
+            bPeak: (todo): write your description
+            bProduction: (str): write your description
+        """
         self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -1170,6 +1471,14 @@ class BasePlugin:
 
     # Update dashboard with accumulated value
     def updateDashboard(self, oDevice, sUsagePointCurrentId):
+        """
+        Update the oid
+
+        Args:
+            self: (todo): write your description
+            oDevice: (todo): write your description
+            sUsagePointCurrentId: (todo): write your description
+        """
         if not sUsagePointCurrentId in self.dCalculate:
             return False
         self.dumpDictToLog(self.dCalculate[sUsagePointCurrentId])
@@ -1267,6 +1576,13 @@ class BasePlugin:
 
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd=None):
+        """
+        Reset the modification.
+
+        Args:
+            self: (todo): write your description
+            dDateEnd: (str): write your description
+        """
         if dDateEnd:
             self.savedDateEndDays = dDateEnd
             self.savedDateEndDaysForHoursView = dDateEnd
@@ -1289,6 +1605,12 @@ class BasePlugin:
 
     # Calculate days and date left for next batch
     def calculateDaysLeft(self):
+        """
+        Calculate the current min and max number of the screen.
+
+        Args:
+            self: (todo): write your description
+        """
         # No more than 365 days at once
         self.iDaysLeft = self.iDaysLeft - 365
         if self.iDaysLeft <= 0:
@@ -1317,6 +1639,13 @@ class BasePlugin:
 
     # Still data to get
     def stillDays(self, bPeak):
+        """
+        Return the number of rows of the viewable.
+
+        Args:
+            self: (todo): write your description
+            bPeak: (todo): write your description
+        """
         if bPeak:
             return self.iDaysLeft > 0
         else:
@@ -1324,6 +1653,12 @@ class BasePlugin:
 
     # limit history days to prevent Enedis servers overload
     def setHistoryDays(self):
+        """
+        Sets the current history for this item.
+
+        Args:
+            self: (todo): write your description
+        """
         iNbDaysLongHistory = NB_WEEKS_LONG_HISTORY * 7
         bGrabAll = False
         if self.bHistoryDaysForDaysViewChanged:
@@ -1345,6 +1680,13 @@ class BasePlugin:
 
     # Save date of connection if successful
     def savePreviousSuccessfulConnectionDate(self, bError):
+        """
+        Creates the current working copy of the current working copy.
+
+        Args:
+            self: (todo): write your description
+            bError: (todo): write your description
+        """
         iNbDaysLongHistory = NB_WEEKS_LONG_HISTORY * 7
         dtNow = datetime.now()
         if not bError:
@@ -1362,6 +1704,13 @@ class BasePlugin:
 
     # Calculate next complete grab, for tomorrow between 8 and 9 am if tomorrow is true, for next hour otherwise, prevent connection between 10 pm and 8 am
     def setNextConnection(self, bTomorrow):
+        """
+        Sets the next redis.
+
+        Args:
+            self: (todo): write your description
+            bTomorrow: (todo): write your description
+        """
         bForceTomorrow = False
         dtNow = datetime.now()
         if not bTomorrow:
@@ -1383,6 +1732,13 @@ class BasePlugin:
 
     # Calculate next connection after a few seconds, prevent connection between 10 pm and 8 am
     def setNextConnectionForLater(self, iInterval):
+        """
+        Sets the next connection to the inputted value.
+
+        Args:
+            self: (todo): write your description
+            iInterval: (int): write your description
+        """
         bTomorrow = False
         dtNow = datetime.now()
         self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
@@ -1401,6 +1757,12 @@ class BasePlugin:
         return bTomorrow
 
     def clearData(self):
+        """
+        Clears the data
+
+        Args:
+            self: (todo): write your description
+        """
         self.iUsagePointIndex = 0
         self.dData = dict()
         self.dCalculate = dict()
@@ -1409,6 +1771,12 @@ class BasePlugin:
         self.bRefreshToken = False
 
     def disablePlugin(self):
+        """
+        Disables the usb devices.
+
+        Args:
+            self: (todo): write your description
+        """
         self.isEnabled = False
         resetTokens()
         for oDevice in Devices.values():
@@ -1418,6 +1786,13 @@ class BasePlugin:
 
     # Handle the connection state machine
     def handleConnection(self, Data=None):
+        """
+        Called when a connection is received.
+
+        Args:
+            self: (todo): write your description
+            Data: (todo): write your description
+        """
         self.myDebug("Etape " + self.sConnectionStep)
 
         # First and last step
@@ -1660,6 +2035,13 @@ class BasePlugin:
             self.myStatus("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
 
     def dumpDictToLog(self, dictToLog):
+        """
+        Dump a dictionary to a dictionary.
+
+        Args:
+            self: (todo): write your description
+            dictToLog: (dict): write your description
+        """
         if self.iDebugLevel:
             if isinstance(dictToLog, dict):
                 self.myDebug("Dict details (" + str(len(dictToLog)) + "):")
@@ -1678,6 +2060,12 @@ class BasePlugin:
                 self.myDebug("Received no dict: " + str(dictToLog))
 
     def onStart(self):
+        """
+        Initialize the device.
+
+        Args:
+            self: (todo): write your description
+        """
         try:
             self.iDebugLevel = int(Parameters["Mode3"])
         except ValueError:
@@ -1825,6 +2213,12 @@ class BasePlugin:
         self.isStarted = True
 
     def onStop(self):
+        """
+        Called when the handler.
+
+        Args:
+            self: (todo): write your description
+        """
         Domoticz.Debug("onStop called")
         # prevent error messages during disabling plugin
         self.isStarted = False
@@ -1832,6 +2226,15 @@ class BasePlugin:
             self.fDebug.flush()
 
     def onConnect(self, Connection, Status, Description):
+        """
+        Called when the connection is established.
+
+        Args:
+            self: (todo): write your description
+            Connection: (todo): write your description
+            Status: (str): write your description
+            Description: (str): write your description
+        """
         Domoticz.Debug("onConnect called")
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)):
             if self.sBuffer:
@@ -1845,6 +2248,14 @@ class BasePlugin:
                 self.handleConnection()
 
     def onMessage(self, Connection, Data):
+        """
+        Called when a message is received.
+
+        Args:
+            self: (todo): write your description
+            Connection: (todo): write your description
+            Data: (array): write your description
+        """
         Domoticz.Debug("onMessage called")
 
         # if started and not stopping
@@ -1853,9 +2264,22 @@ class BasePlugin:
             self.handleConnection(Data)
 
     def onDisconnect(self, Connection):
+        """
+        Called when the connection has been established.
+
+        Args:
+            self: (todo): write your description
+            Connection: (todo): write your description
+        """
         Domoticz.Debug("onDisconnect called")
 
     def onHeartbeat(self):
+        """
+        Called when a device has been received.
+
+        Args:
+            self: (todo): write your description
+        """
         Domoticz.Debug("onHeartbeat() called")
 
         if self.fDebug:
@@ -1896,65 +2320,152 @@ _plugin = BasePlugin()
 
 
 def onStart():
+    """
+    Called when the plugin.
+
+    Args:
+    """
     global _plugin
     _plugin.onStart()
 
 
 def onStop():
+    """
+    Called when plugin is closed
+
+    Args:
+    """
     global _plugin
     _plugin.onStop()
 
 
 def onConnect(Connection, Status, Description):
+    """
+    Called when the connection is closed.
+
+    Args:
+        Connection: (todo): write your description
+        Status: (str): write your description
+        Description: (str): write your description
+    """
     global _plugin
     _plugin.onConnect(Connection, Status, Description)
 
 
 def onMessage(Connection, Data):
+    """
+    The callback.
+
+    Args:
+        Connection: (todo): write your description
+        Data: (array): write your description
+    """
     global _plugin
     _plugin.onMessage(Connection, Data)
 
 
 def onCommand(Unit, Command, Level, Hue):
+    """
+    Called when the command.
+
+    Args:
+        Unit: (str): write your description
+        Command: (str): write your description
+        Level: (int): write your description
+        Hue: (todo): write your description
+    """
     global _plugin
     _plugin.onCommand(Unit, Command, Level, Hue)
 
 
 def onDeviceAdded(Unit):
+    """
+    OnDevice on the given unit.
+
+    Args:
+        Unit: (str): write your description
+    """
     global _plugin
 
 
 def onDeviceModified(Unit):
+    """
+    Sets function toDevice.
+
+    Args:
+        Unit: (str): write your description
+    """
     global _plugin
 
 
 def onDeviceRemoved(Unit):
+    """
+    Sets the device to the given unit.
+
+    Args:
+        Unit: (str): write your description
+    """
     global _plugin
 
 
 def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
+    """
+    Called when a notification is received.
+
+    Args:
+        Name: (str): write your description
+        Subject: (todo): write your description
+        Text: (str): write your description
+        Status: (str): write your description
+        Priority: (int): write your description
+        Sound: (str): write your description
+        ImageFile: (str): write your description
+    """
     global _plugin
     _plugin.onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile)
 
 
 def onDisconnect(Connection):
+    """
+    Initialize connection.
+
+    Args:
+        Connection: (todo): write your description
+    """
     global _plugin
     _plugin.onDisconnect(Connection)
 
 
 def onHeartbeat():
+    """
+    Called when the global callback.
+
+    Args:
+    """
     global _plugin
     _plugin.onHeartbeat()
 
 
 # Generic helper functions
 def setTimeout(dtDate=None):
+    """
+    Returns a datetime to the current day.
+
+    Args:
+        dtDate: (todo): write your description
+    """
     if dtDate is None:
         dtDate = datetime.now()
     return dtDate + timedelta(days=1, hours=12)
 
 
 def setRefreshTime(dtDate=None):
+    """
+    Sets the current date to the current instance.
+
+    Args:
+        dtDate: (todo): write your description
+    """
 #    return dtDate + timedelta(minutes=10)
     if dtDate is None:
         dtDate = datetime.now()
@@ -1962,6 +2473,13 @@ def setRefreshTime(dtDate=None):
 
 # Get config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
 def getConfigItem(Key=None, Default={}):
+    """
+    Returns a configuration item from the item
+
+    Args:
+        Key: (str): write your description
+        Default: (todo): write your description
+    """
     Value = Default
     try:
         Config = Domoticz.Configuration()
@@ -1981,6 +2499,13 @@ def getConfigItem(Key=None, Default={}):
 
 # Set config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
 def setConfigItem(Key=None, Value=None):
+    """
+    Sets a configuration item.
+
+    Args:
+        Key: (str): write your description
+        Value: (todo): write your description
+    """
     Config = {}
     try:
         Config = Domoticz.Configuration()
@@ -2000,6 +2525,11 @@ def setConfigItem(Key=None, Value=None):
 
 # Erase authorization tokens
 def resetTokens():
+    """
+    Reset the currently running item.
+
+    Args:
+    """
     setConfigItem("usage_points_id", [])
     setConfigItem("token_type", "")
     setConfigItem("refresh_token", "")
@@ -2007,10 +2537,22 @@ def resetTokens():
 
 
 def initData(dDate):
+    """
+    Initialize data.
+
+    Args:
+        dDate: (todo): write your description
+    """
     return {"consumption1": 0, "consumption2": 0, "production1": 0, "production2": 0, "consumption1_hours": {}, "consumption2_hours": {}, "production1_hours": {}, "production2_hours": {}, "consumptionpeak": 0, "productionpeak": 0, "data": False, "peak": False, "date": dDate}
 
 
 def dictToQuotedString(dParams):
+    """
+    Convert a dictionary of dict.
+
+    Args:
+        dParams: (dict): write your description
+    """
     result = ""
     for sKey, sValue in dParams.items():
         if result:
@@ -2021,6 +2563,12 @@ def dictToQuotedString(dParams):
 
 # Grab error inside received JSON
 def getError(Data):
+    """
+    Parses a data dictionary
+
+    Args:
+        Data: (str): write your description
+    """
     sError = ""
     sErrorDescription = ""
     sErrorUri = ""
@@ -2053,6 +2601,12 @@ def getError(Data):
 
 # Grab status inside received JSON
 def getStatus(Data):
+    """
+    Returns the status of rows.
+
+    Args:
+        Data: (todo): write your description
+    """
     if Data and "Status" in Data:
         try:
             return int(Data["Status"])
@@ -2064,6 +2618,12 @@ def getStatus(Data):
 
 # Convert Enedis datetime string to datetime object
 def enedisDateTimeToDatetime(datetimeStr):
+    """
+    Convert a datetime object to a datetime object.
+
+    Args:
+        datetimeStr: (todo): write your description
+    """
     # Buggy
     # return datetime.strptime(datetimeStr, "%d/%m/%Y")
     # Not buggy ?
@@ -2072,6 +2632,12 @@ def enedisDateTimeToDatetime(datetimeStr):
 
 # Convert Enedis date string to datetime object
 def enedisDateToDatetime(datetimeStr):
+    """
+    Convert datetime to a datetime.
+
+    Args:
+        datetimeStr: (todo): write your description
+    """
     # Buggy
     # return datetime.strptime(datetimeStr, "%d/%m/%Y")
     # Not buggy ?
@@ -2080,16 +2646,34 @@ def enedisDateToDatetime(datetimeStr):
 
 # Convert datetime object to Enedis date string
 def datetimeToEnedisDateString(datetimeObj):
+    """
+    Convert datetime object from the string representation.
+
+    Args:
+        datetimeObj: (todo): write your description
+    """
     return datetimeObj.strftime("%Y-%m-%d")
 
 
 # Convert datetime object to Domoticz date string
 def datetimeToSQLDateString(datetimeObj):
+    """
+    Returns a datetime object to a datetime object.
+
+    Args:
+        datetimeObj: (todo): write your description
+    """
     return datetimeObj.strftime("%Y-%m-%d")
 
 
 # Convert datetime object to Domoticz date and time string
 def datetimeToSQLDateTimeString(datetimeObj):
+    """
+    Returns a datetime.
+
+    Args:
+        datetimeObj: (todo): write your description
+    """
     return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -2123,10 +2707,22 @@ class JoursFeries(object):
     ]
 
     def __init__(self):
+        """
+        Initialize the jours.
+
+        Args:
+            self: (todo): write your description
+        """
         super(JoursFeries, self).__init__()
 
     @staticmethod
     def check_zone(zone):
+        """
+        Check if the zone exists
+
+        Args:
+            zone: (str): write your description
+        """
         zone = zone or "Métropole"
 
         if zone not in JoursFeries.ZONES:
@@ -2139,10 +2735,24 @@ class JoursFeries(object):
 
     @staticmethod
     def is_bank_holiday(date, zone=None):
+        """
+        Returns true if the given date is in the given bytestring is in the given date.
+
+        Args:
+            date: (todo): write your description
+            zone: (str): write your description
+        """
         return date in JoursFeries.for_year(date.year, zone).values()
 
     @staticmethod
     def next_bank_holiday(date, zone=None):
+        """
+        Returns the next day in the given date.
+
+        Args:
+            date: (todo): write your description
+            zone: (str): write your description
+        """
         while not JoursFeries.is_bank_holiday(date, zone):
             date = date + timedelta(days=1)
 
@@ -2154,6 +2764,13 @@ class JoursFeries(object):
 
     @staticmethod
     def for_year(year, zone=None):
+        """
+        Return the year for each year.
+
+        Args:
+            year: (int): write your description
+            zone: (str): write your description
+        """
         JoursFeries.check_zone(zone)
 
         bank_holidays = {
@@ -2181,6 +2798,12 @@ class JoursFeries(object):
 
     @staticmethod
     def paques(year):
+        """
+        Paques date.
+
+        Args:
+            year: (todo): write your description
+        """
         if year < 1886:
             return None
         a = year % 19
@@ -2195,84 +2818,171 @@ class JoursFeries(object):
 
     @staticmethod
     def lundi_paques(year):
+        """
+        Return a year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1886:
             return JoursFeries.paques(year) + timedelta(days=1)
         return None
 
     @staticmethod
     def vendredi_saint(year, zone):
+        """
+        Vendredi zone.
+
+        Args:
+            year: (todo): write your description
+            zone: (str): write your description
+        """
         if zone == JoursFeries.check_zone("Alsace-Moselle"):
             return JoursFeries.paques(year) - timedelta(days=2)
         return None
 
     @staticmethod
     def ascension(year):
+        """
+        Return the year of the year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1802:
             return JoursFeries.paques(year) + timedelta(days=39)
         return None
 
     @staticmethod
     def lundi_pentecote(year):
+        """
+        Returns the year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1886:
             return JoursFeries.paques(year) + timedelta(days=50)
         return None
 
     @staticmethod
     def premier_janvier(year):
+        """
+        Return a year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year > 1810:
             return date(year, 1, 1)
         return None
 
     @staticmethod
     def premier_mai(year):
+        """
+        Return the date object for the year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year > 1919:
             return date(year, 5, 1)
         return None
 
     @staticmethod
     def huit_mai(year):
+        """
+        Return the year of the year.
+
+        Args:
+            year: (str): write your description
+        """
         if (1953 <= year <= 1959) or year > 1981:
             return date(year, 5, 8)
         return None
 
     @staticmethod
     def quatorze_juillet(year):
+        """
+        Return the number of the year
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1880:
             return date(year, 7, 14)
         return None
 
     @staticmethod
     def toussaint(year):
+        """
+        Return a year of the given year.
+
+        Args:
+            year: (str): write your description
+        """
         if year >= 1802:
             return date(year, 11, 1)
         return None
 
     @staticmethod
     def assomption(year):
+        """
+        Assomposes a year.
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1802:
             return date(year, 8, 15)
         return None
 
     @staticmethod
     def onze_novembre(year):
+        """
+        Return the number of months.
+
+        Args:
+            year: (int): write your description
+        """
         if year >= 1918:
             return date(year, 11, 11)
         return None
 
     @staticmethod
     def jour_noel(year):
+        """
+        Return the number of months.
+
+        Args:
+            year: (todo): write your description
+        """
         if year >= 1802:
             return date(year, 12, 25)
         return None
 
     @staticmethod
     def deuxieme_jour_noel(year, zone):
+        """
+        Deuxiemieme date object.
+
+        Args:
+            year: (todo): write your description
+            zone: (str): write your description
+        """
         if zone == JoursFeries.check_zone("Alsace-Moselle"):
             return date(year, 12, 26)
         return None
 
     @staticmethod
     def abolition_esclavage(year, zone):
+        """
+        Determine date for the given year.
+
+        Args:
+            year: (int): write your description
+            zone: (todo): write your description
+        """
         if zone == JoursFeries.check_zone("Mayotte"):
             return date(year, 4, 27)
 
