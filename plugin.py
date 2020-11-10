@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -54,10 +54,10 @@
             <options>
                 <option label="Pic consommation journée dernière" value="peak_day" />
                 <option label="Pic consommation semaine en cours" value="peak_cweek" />
-                <!-- <option label="Pic consommation semaine dernière" value="peak_lweek" />
+                <option label="Pic consommation semaine dernière" value="peak_lweek" />
                 <option label="Pic consommation mois en cours" value="peak_cmonth" />
                 <option label="Pic consommation mois dernier" value="peak_lmonth" />
-                <option label="Pic consommation année en cours" value="peak_year" /> -->
+                <option label="Pic consommation année en cours" value="peak_year" />
             </options>
         </param>
         <param field="Mode6" label="Consommation à montrer sur le tableau de bord (affichage secondaire)" width="500px">
@@ -111,6 +111,7 @@
 import Domoticz
 import sys
 import json
+import copy
 from urllib.parse import quote
 # import re
 from datetime import datetime
@@ -148,6 +149,7 @@ HEADERS = {
 
 USAGE_POINT_SEPARATOR = " / "
 NB_WEEKS_LONG_HISTORY = 5
+
 
 class BasePlugin:
     # boolean: is plugin isEnabled
@@ -210,6 +212,8 @@ class BasePlugin:
     iUsagePointIndex = None
     # string: current usage point
     sUsagePointId = None
+    # string: previous usage point
+    sPrevUsagePointId = None
     # string: consumption to show = current week ("cweek"), the previous week ("lweek", the current month ("cmonth"), the previous month ("lmonth"), or year ("cyear"), prefix "max_" for max calculation
     sConsumptionType1 = None
     sConsumptionType2 = None
@@ -287,7 +291,9 @@ class BasePlugin:
     bHistoryDaysForDaysViewChanged = False
     # should we grab all days for day view?
     bHistoryDaysForDaysViewGrabAll = False
-    
+    # datetime of last successfull connection in memory
+
+
     def __init__(self):
         self.isStarted = False
         self.httpLoginConn = None
@@ -303,6 +309,7 @@ class BasePlugin:
         self.dUsagePointTimeout = {}
         self.dtLastSend = datetime(2000, 1, 1)
 
+
     def myDebug(self, message, bNoLog=False):
         if (not bNoLog) and (self.iDebugLevel > 1):
             Domoticz.Log(message)
@@ -312,17 +319,21 @@ class BasePlugin:
             except:
                 pass
 
+
     def myLog(self, message):
         Domoticz.Log(message)
         self.myDebug(message, True)
+
 
     def myStatus(self, message):
         Domoticz.Status(message)
         self.myDebug("Status : " + message, True)
 
+
     def myError(self, message):
         Domoticz.Error(message)
         self.myDebug("Erreur : " + message, True)
+
 
     # resend same data
     def reconnectAndResend(self):
@@ -341,6 +352,7 @@ class BasePlugin:
                                                     Address=API_BASE_URI[self.iAlternateAddress],
                                                     Port=API_BASE_PORT[self.iAlternateAddress])
             self.httpDataConn.Connect()
+
 
     # Prepare buffer and connect
     def connectAndSend(self, conn, data, address, port):
@@ -364,11 +376,13 @@ class BasePlugin:
             self.setNextConnectionForLater(self.iInterval)
             return None
 
+
     # Connect for login
     def connectAndSendForAuthorize(self, data):
         self.bLoginConnect = True
         self.httpLoginConn = self.connectAndSend(self.httpLoginConn, data, LOGIN_BASE_URI[self.iAlternateAddress],
                                                  LOGIN_BASE_PORT[self.iAlternateAddress])
+
 
     # Connect for metering data
     def connectAndSendForMetering(self, data):
@@ -376,12 +390,14 @@ class BasePlugin:
         self.httpDataConn = self.connectAndSend(self.httpDataConn, data, API_BASE_URI[self.iAlternateAddress],
                                                 API_BASE_PORT[self.iAlternateAddress])
 
+
     # get default headers
     def initHeaders(self, uri):
         headers = dict(HEADERS)
         headers["User-Agent"] = "DomoticzLinkyPlugin/" + Parameters["Version"]
         headers["Host"] = uri
         return headers
+
 
     # get access token
     def getDeviceCode(self):
@@ -403,6 +419,7 @@ class BasePlugin:
         self.dumpDictToLog(sendData)
         self.connectAndSendForAuthorize(sendData)
 
+
     def showStatusError(self, hours, Data, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
@@ -417,6 +434,7 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
         self.showStepError(hours, sErrorSentence, bDebug)
 
+
     def showSimpleStatusError(self, Data):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
@@ -430,6 +448,7 @@ class BasePlugin:
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
         self.showSimpleStepError(sErrorSentence)
+
 
     def parseDeviceCode(self, Data):
         self.dumpDictToLog(Data)
@@ -463,6 +482,7 @@ class BasePlugin:
             self.showSimpleStatusError(Data)
         return "retry"
 
+
     # get access token
     def getAccessToken(self):
         headers = self.initHeaders(
@@ -484,6 +504,7 @@ class BasePlugin:
 
         self.dumpDictToLog(sendData)
         self.connectAndSendForAuthorize(sendData)
+
 
     # Refresh token
     def refreshToken(self):
@@ -507,6 +528,7 @@ class BasePlugin:
         self.bRefreshToken = True
         self.dumpDictToLog(sendData)
         self.connectAndSendForAuthorize(sendData)
+
 
     # Parse access token
     def parseAccessToken(self, Data):
@@ -560,14 +582,15 @@ class BasePlugin:
             self.showSimpleStatusError(Data)
         return "retry"
 
+
     # Get data
-    def getData(self, uri, start, end):
+    def getData(self, uri, dtStart, dtEnd):
         headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress] + ":" + API_BASE_PORT[self.iAlternateAddress])
         headers["Authorization"] = getConfigItem("token_type", "") + " " + getConfigItem("access_token", "")
 
         query = {
-            "start": datetimeToEnedisDateString(start),
-            "end": datetimeToEnedisDateString(end),
+            "start": datetimeToEnedisDateString(dtStart),
+            "end": datetimeToEnedisDateString(dtEnd),
             "usage_point_id": self.sUsagePointId
         }
 
@@ -579,6 +602,7 @@ class BasePlugin:
 
         self.dumpDictToLog(sendData)
         self.connectAndSendForMetering(sendData)
+
 
     # get and create if needed Domoticz device
     def getOrCreateDevice(self, sUsagePointCurrentId):
@@ -605,6 +629,7 @@ class BasePlugin:
                 else:
                     return Devices[iIndexUnit]
 
+
     # insert usage in Domoticz DB
     def addToDevice(self, oDevice, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
         if self.iAlternateDevice:
@@ -619,6 +644,7 @@ class BasePlugin:
             Switchtype=self.lSwitchType[self.iAlternateDevice],
             Options=self.lOptions[self.iAlternateDevice])
         return True
+
 
     # Update value shown on Domoticz dashboard
     def updateDevice(self, oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
@@ -636,6 +662,7 @@ class BasePlugin:
             TimedOut=0)
         return True
 
+
     # Show error in state machine context
     def showSimpleStepError(self, logMessage, bDebug=False):
         sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
@@ -643,6 +670,7 @@ class BasePlugin:
             self.myDebug(sMessage)
         else:
             self.myError(sMessage)
+
 
     # Show error in state machine context with dates
     def showStepError(self, hours, logMessage, bDebug=False):
@@ -656,6 +684,7 @@ class BasePlugin:
             self.myDebug(sMessage)
         else:
             self.myError(sMessage)
+
 
     # Parse HP/HC parameter string and store result in dHc
     def parseHcParameter(self, sHcParameter):
@@ -759,6 +788,7 @@ class BasePlugin:
                     self.dHc[sLocalUsagePointId][sProd][iWeekday].append([timeBegin, timeEnd])
         #self.dumpDictToLog(self.dHc)
 
+
     # Check date if in cost 1 or cost 2
     def isCost2(self, dtDate, bProduction=False):
         dtDate = dtDate - timedelta(minutes=30)
@@ -804,6 +834,7 @@ class BasePlugin:
                 return True
         return False
 
+
     # Check current usage point has 2 costs
     def has2Costs(self, sUsagePointCurrentId):
         lUsagePointCurrentId = sUsagePointCurrentId.split(USAGE_POINT_SEPARATOR)
@@ -811,17 +842,18 @@ class BasePlugin:
             return ("all" in self.dHc) or (lUsagePointCurrentId[0] in self.dHc) or (lUsagePointCurrentId[1] in self.dHc)
         else:
             return ("all" in self.dHc) or (lUsagePointCurrentId[0] in self.dHc)
+
     
     # Write data from memory to Domoticz DB
     def saveDataToDb(self, sUsagePointCurrentId):
         if sUsagePointCurrentId not in self.dData:
             return False
-
+        
         oDevice = self.getOrCreateDevice(sUsagePointCurrentId)
         if not oDevice:
             return False
 
-        dUsagePointData = self.dData[sUsagePointCurrentId]
+        dUsagePointData = self.dData[sUsagePointCurrentId]["data"]
         iConsumption1 = 0
         iConsumption2 = 0
         iProduction1 = 0
@@ -829,60 +861,113 @@ class BasePlugin:
 
         self.resetCalculate(sUsagePointCurrentId)
 
-        # sorting needed to accumulate
-        for sDate, dOneData in sorted(dUsagePointData.items()):
-            # transform hour data in day data
-            dOneData["consumption1"] = 0
-            for iHour, fValue in dOneData["consumption1_hours"].items():
-                dOneData["consumption1"] = dOneData["consumption1"] + fValue
-            dOneData["consumption2"] = 0
-            for iHour, fValue in dOneData["consumption2_hours"].items():
-                dOneData["consumption2"] = dOneData["consumption2"] + fValue
-            dOneData["production1"] = 0
-            for iHour, fValue in dOneData["production1_hours"].items():
-                dOneData["production1"] = dOneData["production1"] + fValue
-            dOneData["production2"] = 0
-            for iHour, fValue in dOneData["production2_hours"].items():
-                dOneData["production2"] = dOneData["production2"] + fValue
-            # hour
-            if len(sDate) > 10:
-                # We don't want the last day = today, it breaks CounterToday value and log view
-                self.dayAccumulate(sUsagePointCurrentId, dOneData["date"], dOneData)
-                if not dOneData["data"]:
-                    continue
-                if dOneData["date"] >= self.savedDateEndDays2:
-                    # self.myError("Skip " + sDate)
-                    continue
-                # We want only iHistoryDaysForHoursView days
-                if (self.iHistoryDaysForHoursView < 1) or (dOneData["date"] < self.dateBeginDaysHistoryView):
-                    # self.myError("Skip " + sDate)
-                    continue
-                iConsumption1 = iConsumption1 + dOneData["consumption1"]
-                iConsumption2 = iConsumption2 + dOneData["consumption2"]
-                iProduction1 = iProduction1 + dOneData["production1"]
-                iProduction2 = iProduction2 + dOneData["production2"]
-                if self.iAlternateDevice:
-                    if not self.addToDevice(oDevice, dOneData["consumption1"], dOneData["consumption2"],
-                                            dOneData["production1"], dOneData["production2"], sDate):
-                        return False
-                else:
-                    if not self.addToDevice(oDevice, iConsumption1, iConsumption2, iProduction1, iProduction2, sDate):
-                        return False
-            # day
-            else:
-                if not dOneData["data"]:
-                    continue
-                # We don't want the last day = today, it's incomplete
-                if dOneData["date"] >= self.savedDateEndDays2:
-                    # self.myError("Skip " + sDate)
-                    continue
-                if not self.addToDevice(oDevice, dOneData["consumption1"], dOneData["consumption2"], dOneData["production1"],
-                                        dOneData["production2"], sDate):
-                    return False
+        iDConsumption1 = 0
+        iDConsumption2 = 0
+        iDProduction1 = 0
+        iDProduction2 = 0
+        iHourCount = 0
+        bHasConsoProd = False
+
+        # sorting needed
+        for sShortDate, dOneData in sorted(dUsagePointData.items()):
+            bHasConsoProd = False
+            #self.myDebug("Save data at " + str(sShortDate))
+            if dOneData["haspeak"]:
+                #self.myDebug("Save peak at " + str(dOneData["peakdate"]))
+                self.dayAccumulatePeak(sUsagePointCurrentId, dOneData["peakdate"], dOneData["consumptionpeak"], dOneData["productionpeak"])
+            if dOneData["hasconsoprod"]:
+                bHasConsoProd = True
+                dDate = dOneData["consoproddate"]
+                #self.myDebug("Save consoprod at " + str(dDate))
+                for iHour in range (0, 24):
+                    fValConso1 = 0
+                    fValConso2 = 0
+                    fValProd1 = 0
+                    fValProd2 = 0
+                    bHasData = False
+                    if iHour in dOneData["consumption1_hours"]:
+                        fValConso1 = dOneData["consumption1_hours"][iHour]
+                        iDConsumption1 = iDConsumption1 + fValConso1
+                        bHasData = True
+                    if iHour in dOneData["consumption2_hours"]:
+                        fValConso2 = dOneData["consumption2_hours"][iHour]
+                        iDConsumption2 = iDConsumption2 + fValConso2
+                        bHasData = True
+                    if iHour in dOneData["production1_hours"]:
+                        fValProd1 = dOneData["production1_hours"][iHour]
+                        iDProduction1 = iDProduction1 + fValProd1
+                        bHasData = True
+                    if iHour in dOneData["production2_hours"]:
+                        fValProd2 = dOneData["production2_hours"][iHour]
+                        iDProduction2 = iDProduction2 + fValProd2
+                        bHasData = True
+                    # Here we can shift data for hours view
+                    dDate2 = dDate + timedelta(hours = iHour)
+                    if (dDate2 >= self.curDay):
+                        break
+                    if bHasData:
+                        iHourCount = iHourCount + 1
+                        self.dayAccumulateConsoProd(sUsagePointCurrentId, dDate2, fValConso1, fValConso2, fValProd1, fValProd2)
+                        #self.myDebug("date " + str(dDate) + " " + str(iHour) + " " + str(dDate2) + " " + str(self.iHistoryDaysForHoursView) + " " + str(self.dateBeginDaysHistoryView))
+                        # We don't want the last day = today, it's incomplete and create a glitch in views
+                        if (self.iHistoryDaysForHoursView > 0) and (dDate2 >= self.dateBeginDaysHistoryView):
+                            sLongDate = datetimeToSQLDateTimeString(dDate2)
+                            if self.iAlternateDevice:
+                                if not self.addToDevice(oDevice, fValConso1, fValConso2, fValProd1, fValProd2, sLongDate):
+                                    return False
+                            else:
+                                iConsumption1 = iConsumption1 + fValConso1
+                                iConsumption2 = iConsumption2 + fValConso2
+                                iProduction1 = iProduction1 + fValProd1
+                                iProduction2 = iProduction2 + fValProd2
+                                if not self.addToDevice(oDevice, iConsumption1, iConsumption2, iProduction1, iProduction2, sLongDate):
+                                    return False
+                        # Here we can shift data for other views, choosing another hour as new date reference
+                    if iHour == 0:
+                        # Check we have enough data
+                        if iHourCount >= 24:
+                            # Here we can shift day accordingly to iHour, to use date from beginning of data
+                            sShortDate = datetimeToSQLDateString(dDate2 - timedelta(hours=iHourCount))
+                            if not self.addToDevice(oDevice, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
+                                return False
+                        iDConsumption1 = 0
+                        iDConsumption2 = 0
+                        iDProduction1 = 0
+                        iDProduction2 = 0
+                        iHourCount = 0
+
+        #self.myDebug("--- " + str(bHasConsoProd) + " " + str(iHourCount) +  " " + str(dDate2) +  " " + str(self.curDay))
+
+        # Store last day if we still have data
+        if bHasConsoProd and (iHourCount >= 1) and (dDate <= self.curDay):
+            # Here we can shift day accordingly to iHour, to use date from beginning of data
+            sShortDate = datetimeToSQLDateString(dDate2 - timedelta(hours=iHourCount))
+            if not self.addToDevice(oDevice, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
+                return False                    
+
+            # if we have not 24 hours per day, day is incomplete, ignore and go next
         # self.dumpDictToLog(self.dCalculate)
         # Do not return an error if dashboard update is not possible, to prevent retries all day long
         self.updateDashboard(oDevice, sUsagePointCurrentId)
         return True
+
+
+    # update date to manage cache in memory
+    def updateDataBeginEndDates(self, sUsagePointCurrentId, dDate, sType):
+        if dDate > self.dData[sUsagePointCurrentId]["state"][sType]["enddate"] :
+            self.dData[sUsagePointCurrentId]["state"][sType]["enddate"] = dDate
+        if dDate < self.dData[sUsagePointCurrentId]["state"][sType]["begindate"] :
+            self.dData[sUsagePointCurrentId]["state"][sType]["begindate"] = dDate
+
+
+    # update state of cache in memory
+    def updateCacheState(self, sUsagePointCurrentId):
+        for dState in self.dData[sUsagePointCurrentId]["state"].values():
+            if dState["begindate"] != datetime(2300, 1, 1):
+                dState["isempty"] = False
+            else:
+                dState["isempty"] = True
+
 
     # Merge counters with only consumption with counters with only production into new virtual counters
     def mergeCounters(self):
@@ -906,86 +991,88 @@ class BasePlugin:
                     ):
                         # Do merge
                         sNewUsagePointId = sUsagePointConsumptionId + USAGE_POINT_SEPARATOR + sUsagePointProductionId
+                        self.myStatus("Fusionne les points de livraison " + sNewUsagePointId)
 
                         # copy consumption data to merged device
-                        self.dData[sNewUsagePointId] = self.dData[sUsagePointConsumptionId].copy()
+                        self.dData[sNewUsagePointId] = copy.deepcopy(self.dData[sUsagePointConsumptionId])
 
                         # copy production data to merged device where dates coincide for consumption
-                        for sDate, dMergedData in self.dData[sNewUsagePointId].items():
-                            if sDate in self.dData[sUsagePointProductionId]:
-                                dProdData = self.dData[sUsagePointProductionId][sDate]
-                                dMergedData["production1"] = dProdData["production1"]
+                        for sDate, dMergedData in self.dData[sNewUsagePointId]["data"].items():
+                            if sDate in self.dData[sUsagePointProductionId]["data"]:
+                                dProdData = self.dData[sUsagePointProductionId]["data"][sDate]
                                 for iHour, fValue in dProdData["production1_hours"].items():
                                     dMergedData["production1_hours"][iHour] = fValue
-                                dMergedData["production2"] = dProdData["production2"]
                                 for iHour, fValue in dProdData["production2_hours"].items():
                                     dMergedData["production2_hours"][iHour] = fValue
                                 dMergedData["productionpeak"] = dProdData["productionpeak"]
-                                dMergedData["data"] = dMergedData["data"] or dProdData["data"]
-                                dMergedData["peak"] = dMergedData["peak"] or dProdData["peak"]
+                                dMergedData["hasconsoprod"] = dMergedData["hasconsoprod"] or dProdData["hasconsoprod"]
+                                dMergedData["haspeak"] = dMergedData["haspeak"] or dProdData["haspeak"]
+                                if dMergedData["hasconsoprod"]:
+                                    self.updateDataBeginEndDates(sNewUsagePointId, dMergedData["consoproddate"], "production")
+                                if dMergedData["haspeak"]:
+                                    self.updateDataBeginEndDates(sNewUsagePointId, dMergedData["peakdate"], "productionpeak")
 
                         # create production data to merged device where dates don't coincide for consumption
-                        for sDate, dProdData in self.dData[sUsagePointConsumptionId].items():
-                            if sDate not in self.dData[sNewUsagePointId]:
-                                dMergedData = initData(dProdData["date"])
-                                dMergedData["production1"] = dProdData["production1"]
+                        for sDate, dProdData in self.dData[sUsagePointConsumptionId]["data"].items():
+                            if sDate not in self.dData[sNewUsagePointId]["data"]:
+                                dMergedData = initData()
                                 for iHour, fValue in dProdData["production1_hours"].items():
                                     dMergedData["production1_hours"][iHour] = fValue
-                                dMergedData["production2"] = dProdData["production2"]
                                 for iHour, fValue in dProdData["production2_hours"].items():
                                     dMergedData["production2_hours"][iHour] = fValue
                                 dMergedData["productionpeak"] = dProdData["productionpeak"]
-                                dMergedData["data"] = dProdData["data"]
-                                dMergedData["peak"] = dProdData["peak"]
-                                self.dData[sNewUsagePointId][sDate] = dMergedData
-
+                                dMergedData["hasconsoprod"] = dProdData["hasconsoprod"]
+                                dMergedData["consoproddate"] = dProdData["consoproddate"]
+                                dMergedData["haspeak"] = dProdData["haspeak"]
+                                dMergedData["peakdate"] = dProdData["peakdate"]
+                                self.dData[sNewUsagePointId]["data"][sDate] = dMergedData
+                                if dMergedData["hasconsoprod"]:
+                                    self.updateDataBeginEndDates(sNewUsagePointId, sDate, dMergedData["consoproddate"], "production")
+                                if dMergedData["haspeak"]:
+                                    self.updateDataBeginEndDates(sNewUsagePointId, sDate, dMergedData["peakdate"], "productionpeak")
+                                
                         self.bNoConsumption = False
                         self.bNoProduction = False
                         if not self.saveDataToDb(sNewUsagePointId):
                             bResult = False
         return bResult
 
+
     # Store data in memory
-    def storeData(self, fData, sDate, dDate, bProduction, bCost2, bPeak):
+    def storeData(self, fVal, dtDate, bProduction, bPeak):
         if self.sUsagePointId not in self.dData:
-            self.dData[self.sUsagePointId] = dict()
-        if sDate not in self.dData[self.sUsagePointId]:
-            self.dData[self.sUsagePointId][sDate] = initData(dDate)
+            self.dData[self.sUsagePointId] = {"data": dict(), "state": initState()}
+        sShortDate = datetimeToSQLDateString(dtDate)
+        if sShortDate not in self.dData[self.sUsagePointId]["data"]:
+            self.dData[self.sUsagePointId]["data"][sShortDate] = initData()
         if bPeak:
-            self.dData[self.sUsagePointId][sDate]["peak"] = True
+            self.dData[self.sUsagePointId]["data"][sShortDate]["haspeak"] = True
+            self.dData[self.sUsagePointId]["data"][sShortDate]["peakdate"] = dtDate
             if bProduction:
-                self.dData[self.sUsagePointId][sDate]["productionpeak"] = fData
+                self.dData[self.sUsagePointId]["data"][sShortDate]["productionpeak"] = fVal
+                self.updateDataBeginEndDates(self.sUsagePointId, dtDate, "productionpeak")
             else:
-                pfData = self.dData[self.sUsagePointId][sDate]["consumptionpeak"] = fData
+                self.dData[self.sUsagePointId]["data"][sShortDate]["consumptionpeak"] = fVal
+                self.updateDataBeginEndDates(self.sUsagePointId, dtDate, "consumptionpeak")
         else:
-            self.dData[self.sUsagePointId][sDate]["data"] = True
+            self.dData[self.sUsagePointId]["data"][sShortDate]["hasconsoprod"] = True
+            self.dData[self.sUsagePointId]["data"][sShortDate]["consoproddate"] = dtDate.replace(hour=0, minute=0, second=0, microsecond=0)
+            bCost2 = self.isCost2(dtDate, bProduction)
             if bProduction:
                 if bCost2:
-                    pfData = self.dData[self.sUsagePointId][sDate]["production2_hours"]
+                    pfData = self.dData[self.sUsagePointId]["data"][sShortDate]["production2_hours"]
                 else:
-                    pfData = self.dData[self.sUsagePointId][sDate]["production1_hours"]
+                    pfData = self.dData[self.sUsagePointId]["data"][sShortDate]["production1_hours"]
+                self.updateDataBeginEndDates(self.sUsagePointId, dtDate, "production")
             else:
                 if bCost2:
-                    pfData = self.dData[self.sUsagePointId][sDate]["consumption2_hours"]
+                    pfData = self.dData[self.sUsagePointId]["data"][sShortDate]["consumption2_hours"]
                 else:
-                    pfData = self.dData[self.sUsagePointId][sDate]["consumption1_hours"]
-            pfData[dDate.hour] = fData
+                    pfData = self.dData[self.sUsagePointId]["data"][sShortDate]["consumption1_hours"]
+                self.updateDataBeginEndDates(self.sUsagePointId, dtDate, "consumption")
+            pfData[dtDate.hour] = fVal
+            #self.myDebug("Store consoprod " + str(fVal) + " at " + str(dtDate))
 
-    # Manage data in memory for hours
-    def manageDataHours(self, fData, dDate, bProduction=False):
-        sDateTime = datetimeToSQLDateTimeString(dDate)
-        bCost2 = self.isCost2(dDate, bProduction)
-        # Store hour
-        self.storeData(fData, sDateTime, dDate, bProduction, bCost2, False)
-        # Accumulate for day
-        dDate = dDate - timedelta(hours=1)
-        sDate = datetimeToSQLDateString(dDate)
-        self.storeData(fData, sDate, dDate, bProduction, bCost2, False)
-
-    # Manage data in memory for days
-    def manageDataDays(self, fData, dDate, bPeak=False, bProduction=False):
-        sDate = datetimeToSQLDateTimeString(dDate)
-        self.storeData(fData, sDate, dDate, bProduction, False, bPeak)
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data, bProduction=False):
@@ -1005,7 +1092,7 @@ class BasePlugin:
             else:
                 if dJson and ("meter_reading" in dJson):
                     try:
-                        sReceivedUsagePointId = dJson["meter_reading"]["usage_point_id"]
+                        sReceivedUsagePointId = str(dJson["meter_reading"]["usage_point_id"])
                     except:
                         self.showStepError(True, "Données reçues sans numéro de point de livraison")
                         return False
@@ -1025,16 +1112,17 @@ class BasePlugin:
                         if (val >= 0.0) and ("date" in data):
                             dataSeen = True
                             # cf. constructTime() call in WebServer.cpp to see if time shift needed
-                            #curDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
-                            curDate = enedisDateTimeToDatetime(data["date"])
+                            #dtCurDate = enedisDateTimeToDatetime(data["date"]) + timedelta(hours=1)
+                            dtCurDate = enedisDateTimeToDatetime(data["date"])
                             accumulation = accumulation + val
                             # self.myLog("Value " + str(val) + " " + datetimeToSQLDateTimeString(curDate))
-                            if curDate.minute == 0:
+                            if dtCurDate.minute == 0:
                                 # Check that we had enough data, as expected
                                 # self.myLog("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
                                 # if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                 # return False
-                                self.manageDataHours(accumulation / steps, curDate, bProduction)
+                                fVal = accumulation / steps
+                                self.storeData(fVal, dtCurDate, bProduction, False)
                                 accumulation = 0.0
                                 steps = 0.0
                             steps = steps + 1.0
@@ -1047,14 +1135,16 @@ class BasePlugin:
             self.showStepError(True, "Aucune donnée reçue")
         return False
 
+
     def resetCalculate(self, sUsagePointCurrentId):
         self.dCalculate[sUsagePointCurrentId] = {"consumption1": dict(), "consumption2": dict(), "production1": dict(),
                                                  "production2": dict(), "consumptionpeak": dict(),
                                                  "productionpeak": dict()}
 
+
     # Reset counters for power consumption
     def resetDayAccumulate(self):
-        self.curDay = self.savedDateEndDays2.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.curDay = self.savedDateEndDays2
         self.prevDay = self.curDay - timedelta(days=1)
         self.fdmonth = self.prevDay.replace(day=1)
         ldpmonth = self.fdmonth - timedelta(days=1)
@@ -1063,9 +1153,8 @@ class BasePlugin:
         ldpweek = self.fdweek - timedelta(days=1)
         self.fdpweek = ldpweek - timedelta(days=6)
         self.fdyear = self.prevDay.replace(day=1, month=1)
-        #self.myLog(
-        #    str(self.prevDay) + " " + str(self.curDay) + " " + str(self.fdmonth) + " " + str(self.fdpmonth) + " " + str(
-        #       self.fdweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
+        #self.myLog(str(self.prevDay) + " " + str(self.curDay) + " " + str(self.fdmonth) + " " + str(self.fdpmonth) + " " + str(self.fdweek) + " " + str(self.fdpweek) + " " + str(self.fdyear))
+
 
     # Calculate and store
     def modifyCalculation(self, dCalculation, sParameter, fVal):
@@ -1091,6 +1180,7 @@ class BasePlugin:
         sParameterComplete = "mean_" + sParameter
         dCalculation[sParameterComplete] = fCurrentVal / iCounter
 
+    # We consider data from midnight as data owned by the day before
     def doCalculation(self, dateCur, dCalculation, fVal):
         if (dateCur > self.fdweek):
             self.modifyCalculation(dCalculation, "cweek", fVal)
@@ -1105,19 +1195,23 @@ class BasePlugin:
         if (self.prevDay < dateCur <= self.curDay):
             self.modifyCalculation(dCalculation, "day", fVal)
 
-    # Accumulate power consumption
-    def dayAccumulate(self, sUsagePointCurrentId, dateCur, dVal):
-        if dVal["peak"]:
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumptionpeak"], dVal["consumptionpeak"])
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["productionpeak"], dVal["productionpeak"])
-        if dVal["data"]:
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumption1"], dVal["consumption1"])
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["production1"], dVal["production1"])
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumption2"], dVal["consumption2"])
-            self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["production2"], dVal["production2"])
+
+    # Accumulate power consumption for peaks
+    def dayAccumulatePeak(self, sUsagePointCurrentId, dateCur, consumptionpeak, productionpeak):
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumptionpeak"], consumptionpeak)
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["productionpeak"], productionpeak)
+
+
+    # Accumulate power consumption for consumption and production
+    def dayAccumulateConsoProd(self, sUsagePointCurrentId, dateCur, consumption1, consumption2, production1, production2):
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumption1"], consumption1)
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["consumption2"], consumption2)
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["production1"], production1)
+        self.doCalculation(dateCur, self.dCalculate[sUsagePointCurrentId]["production2"], production2)
+
 
     # Grab days data inside received JSON data for history
-    def exploreDataDays(self, Data, bPeak, bProduction=False):
+    def exploreDataPeaks(self, Data, bProduction=False):
         self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
@@ -1144,21 +1238,18 @@ class BasePlugin:
                     dataSeen = False
                     for index, data in enumerate(dJson["meter_reading"]["interval_reading"]):
                         try:
-                            val = float(data["value"])
+                            fVal = float(data["value"])
                         except:
-                            val = -1.0
-                        if (val >= 0.0) and ("date" in data):
+                            fVal = -1.0
+                        if (fVal >= 0.0) and ("date" in data):
                             dataSeen = True
-                            if bPeak:
-                                curDate = enedisDateTimeToDatetime(data["date"])
-                            else:
-                                curDate = enedisDateToDatetime(data["date"])
-                            #self.myLog("Value " + str(val) + " " + datetimeToSQLDateString(curDate))
+                            dtCurDate = enedisDateTimeToDatetime(data["date"])
+                            #self.myLog("Value " + str(fVal) + " " + datetimeToSQLDateString(dtCurDate))
                             # self.dumpDictToLog(values)
-                            # self.dayAccumulate(curDate, val)
-                            # if not self.createAndAddToDevice(val, datetimeToSQLDateString(curDate)):
+                            # self.dayAccumulate(dtCurDate, fVal)
+                            # if not self.createAndAddToDevice(fVal, datetimeToSQLDateString(dtCurDate)):
                             # return False
-                            self.manageDataDays(val, curDate, bPeak, bProduction)
+                            self.storeData(fVal, dtCurDate, bProduction, True)
                     if not dataSeen:
                         self.showStepError(False, "Données manquantes")
                     return dataSeen
@@ -1168,10 +1259,12 @@ class BasePlugin:
             self.showStepError(False, "Aucune donnée reçue")
         return False
 
+
     # Update dashboard with accumulated value
     def updateDashboard(self, oDevice, sUsagePointCurrentId):
         if not sUsagePointCurrentId in self.dCalculate:
             return False
+        self.dumpDictToLog(self.dData[sUsagePointCurrentId]["state"])
         self.dumpDictToLog(self.dCalculate[sUsagePointCurrentId])
 
         fConsoVal1 = -1
@@ -1265,9 +1358,11 @@ class BasePlugin:
             self.dUsagePointTimeout[sUsagePointCurrentId] = dtTimeout
             return self.updateDevice(oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2)
 
+
     # Calculate days and date left for next batch
     def resetDates(self, dDateEnd=None):
         if dDateEnd:
+            dDateEnd = dDateEnd.replace(hour=0, minute=0, second=0, microsecond=0)
             self.savedDateEndDays = dDateEnd
             self.savedDateEndDaysForHoursView = dDateEnd
             self.savedDateEndDays2 = dDateEnd
@@ -1287,14 +1382,15 @@ class BasePlugin:
         self.calculateDaysLeft()
         self.bFirstBatch = True
 
+
     # Calculate days and date left for next batch
     def calculateDaysLeft(self):
-        # No more than 365 days at once
-        self.iDaysLeft = self.iDaysLeft - 365
+        # No more than 1095 days at once
+        self.iDaysLeft = self.iDaysLeft - 1095
         if self.iDaysLeft <= 0:
-            daysToGet = self.iDaysLeft + 365
+            daysToGet = self.iDaysLeft + 1095
         else:
-            daysToGet = 365
+            daysToGet = 1095
         self.dateBeginDays = self.savedDateEndDays - timedelta(days=daysToGet)
         self.dateEndDays = self.savedDateEndDays
         self.savedDateEndDays = self.dateBeginDays
@@ -1315,12 +1411,14 @@ class BasePlugin:
 
         # self.myLog("Dates : " + datetimeToSQLDateTimeString(self.dateBeginHours) + " " + datetimeToSQLDateTimeString(self.dateEndHours) + " " + datetimeToSQLDateTimeString(self.savedDateEndDaysForHoursView))
 
+
     # Still data to get
     def stillDays(self, bPeak):
         if bPeak:
             return self.iDaysLeft > 0
         else:
             return self.iDaysLeftHoursView > 0
+
 
     # limit history days to prevent Enedis servers overload
     def setHistoryDays(self):
@@ -1343,12 +1441,14 @@ class BasePlugin:
                 self.iHistoryDaysForDaysView = iNbDaysLongHistory
             self.bHistoryDaysForDaysViewGrabAll = False
 
+
     # Save date of connection if successful
     def savePreviousSuccessfulConnectionDate(self, bError):
         iNbDaysLongHistory = NB_WEEKS_LONG_HISTORY * 7
         dtNow = datetime.now()
         if not bError:
             setConfigItem("previous_successful_connection_date", dtNow)
+            self.dtDataInMemory = dtNow
             if self.bHistoryDaysForDaysViewGrabAll:
                 dtGrab = dtNow + timedelta(days = self.iSavedHistoryDaysForDaysView / 2)
                 setConfigItem("next_history_grab_date", dtGrab)
@@ -1359,6 +1459,7 @@ class BasePlugin:
         if self.iSavedHistoryDaysForDaysView > iNbDaysLongHistory:
             dtGrab = datetime.fromtimestamp(getConfigItem("next_history_grab_date", datetime(2000, 1, 1)))
             self.myStatus("Prochaine récupération complète de l'historique : " + datetimeToSQLDateString(dtGrab))
+
 
     # Calculate next complete grab, for tomorrow between 8 and 9 am if tomorrow is true, for next hour otherwise, prevent connection between 10 pm and 8 am
     def setNextConnection(self, bTomorrow):
@@ -1375,22 +1476,25 @@ class BasePlugin:
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=iMinutesRand)
             if bForceTomorrow:
                 self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            # For test purpose
+            #self.dateNextConnection = dtNow + timedelta(minutes=1)
         # Randomize minutes to lower load on Enedis website
         # randint makes domoticz crash on RPI
         # self.dateNextConnection = self.dateNextConnection + timedelta(minutes=randint(0, 59), seconds=randint(0, 59))
         # We take microseconds to randomize
         return bTomorrow or bForceTomorrow
 
+
     # Calculate next connection after a few seconds, prevent connection between 10 pm and 8 am
     def setNextConnectionForLater(self, iInterval):
         bTomorrow = False
         dtNow = datetime.now()
         self.dateNextConnection = dtNow + timedelta(seconds=iInterval)
-        if self.dateNextConnection.hour >= 22: 
+        if self.dateNextConnection.hour >= 22:
             self.dateNextConnection = dtNow.replace(hour=8, minute=0)
             self.dateNextConnection = self.dateNextConnection + timedelta(days=1)
             bTomorrow = True
-        elif self.dateNextConnection.hour < 8: 
+        elif self.dateNextConnection.hour < 8:
             self.dateNextConnection = dtNow.replace(hour=8, minute=0)
             bTomorrow = True
         if bTomorrow:
@@ -1400,13 +1504,19 @@ class BasePlugin:
             self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         return bTomorrow
 
+
     def clearData(self):
-        self.iUsagePointIndex = 0
         self.dData = dict()
         self.dCalculate = dict()
+
+
+    def clearState(self):
+        self.iUsagePointIndex = 0
         self.bHasAFail = False
         self.bGlobalHasAFail = False
         self.bRefreshToken = False
+        self.sPrevUsagePointId = ""
+
 
     def disablePlugin(self):
         self.isEnabled = False
@@ -1416,21 +1526,89 @@ class BasePlugin:
         self.showSimpleStepError(
             "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
 
+    # return True if data already in memory or ask data and True if data in cache empty
+    def getDataHours(self, sUsagePointCurrentId, bProdMode, dtStart, dtEnd):
+        self.myDebug("getDataHours for " + datetimeToSQLDateString(dtStart) + " to " + datetimeToSQLDateString(dtEnd))
+
+        # check if we already have data in memory
+        try:
+            if bProdMode :
+                sType = "production"
+            else:
+                sType = "consumption"
+            pState = self.dData[sUsagePointCurrentId]["state"][sType]
+            dtStartPrev = dtStart
+            dtEndPrev = dtEnd
+            if ("isempty" in pState) and pState["isempty"]:
+                self.myDebug("Cache indicates no " + sType  + " data")
+                return True, True
+            dtStartMem = pState["begindate"]
+            dtEndMem = pState["enddate"] + timedelta(hours=1)
+            #self.myDebug("Dates 1 " + str(dtStart)  + " " + str(dtEnd)  + " " + str(dtStartMem)  + " " + str(dtEndMem))
+            #self.myDebug("Compare to " + datetimeToSQLDateString(dtStartMem) + " to " + datetimeToSQLDateString(dtEndMem))
+            if dtStart >= dtStartMem:
+                dtStart = dtEndMem
+            if dtEnd <= dtEndMem:
+                dtEnd = dtStartMem
+            #self.myDebug("Dates 2 " + str(dtStart)  + " " + str(dtEnd)  + " " + str(dtStartMem)  + " " + str(dtEndMem))
+            if dtStart >= dtEnd:
+                self.myDebug("Using " + sType  + " data in cache from " + datetimeToSQLDateString(dtStartPrev) + " to " + datetimeToSQLDateString(dtEndPrev))
+                return True, False
+            elif (dtStart != dtStartPrev) or (dtEnd != dtEndPrev):
+                self.myDebug("Using data partially in cache, asking data from " + datetimeToSQLDateString(dtStart) + " to " + datetimeToSQLDateString(dtEnd) + " only")
+        except:
+            pass
+        self.getData(API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE, dtStart, dtEnd)
+        return False, False
+
+
+    # return True if data already in memory or ask data and True if data in cache empty
+    def getDataPeaks(self, sUsagePointCurrentId, bProdMode, dtStart, dtEnd):
+        self.myDebug("getDataPeaks for " + datetimeToSQLDateString(dtStart) + " to " + datetimeToSQLDateString(dtEnd))
+        
+        # check if we already have data in memory
+        try:
+            if bProdMode :
+                sType = "productionpeak"
+            else:
+                sType = "consumptionpeak"
+            pState = self.dData[sUsagePointCurrentId]["state"][sType]
+            dtStartPrev = dtStart
+            dtEndPrev = dtEnd
+            if ("isempty" in pState) and pState["isempty"]:
+                self.myDebug("Cache indicates no " + sType  + " data")
+                return True, True
+            dtStartMem = pState["begindate"].replace(hour=0, minute=0, second=0, microsecond=0)
+            dtEndMem = pState["enddate"].replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            #self.myDebug("Compare to " + datetimeToSQLDateString(dtStartMem) + " to " + datetimeToSQLDateString(dtEndMem))
+            if dtStart >= dtStartMem:
+                dtStart = dtEndMem
+            if dtEnd <= dtEndMem:
+                dtEnd = dtStartMem
+            if dtStart >= dtEnd:
+                self.myDebug("Using " + sType  + " data in cache from " + datetimeToSQLDateString(dtStartPrev) + " to " + datetimeToSQLDateString(dtEndPrev))
+                return True, False
+            elif (dtStart != dtStartPrev) or (dtEnd != dtEndPrev):
+                self.myDebug("Using data partially in cache, asking data from " + datetimeToSQLDateString(dtStart) + " to " + datetimeToSQLDateString(dtEnd) + " only")
+        except:
+            pass
+        self.getData(API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER, dtStart, dtEnd)
+        return False, False
+
+
     # Handle the connection state machine
-    def handleConnection(self, Data=None):
+    def handleConnection(self, Data=None, bUseCache=False, bNoDataInCache=False):
         self.myDebug("Etape " + self.sConnectionStep)
+        #self.myDebug("bUseCache " + str(bUseCache) + " bNoDataInCache " + str(bNoDataInCache) + " bNoProduction " + str(self.bNoProduction) + " bNoConsumption " + str(self.bNoConsumption))
 
         # First and last step
         if self.sConnectionStep == "idle":
             self.setHistoryDays()
-            # Reset data
-            self.clearData()
-            self.resetDates(datetime(self.dateNextConnection.year, self.dateNextConnection.month, self.dateNextConnection.day) - timedelta(days=1))
+            # Reset state
+            self.clearState()
 
             # If we have access tokens, try do grab data, otherwise ask for tokens
             if getConfigItem("access_token", ""):
-                # self.sConnectionStep = "getdatadays"
-                # self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
                 self.sConnectionStep = "start"
             else:
                 self.sConnectionStep = "parsedevicecode"
@@ -1484,11 +1662,6 @@ class BasePlugin:
         elif self.sConnectionStep == "parseaccesstoken":
             result = self.parseAccessToken(Data)
             if result == "done":
-                # Ask data for days
-                # self.sConnectionStep = "getdatadays"
-                # self.getData(self.lUsagePointIndex[self.iUsagePointIndex], API_ENDPOINT_DATA_DAILY_CONSUMPTION, self.dateBeginDays, self.dateEndDays)
-                # Ask data for hours
-                # If we have access tokens, try do grab data, otherwise ask for tokens
                 self.sConnectionStep = "start"
             elif result == "retry":
                 self.sConnectionStep = "retry"
@@ -1503,16 +1676,22 @@ class BasePlugin:
         # Ask data for hours
         elif self.sConnectionStep == "getdatahours":
             # Check if access token still valid
-            iStatus = getStatus(Data)
-            #self.dumpDictToLog(Data)
-            sError, sErrorDescription, sErrorUri = getError(Data)
+            if bUseCache:
+                iStatus = 200
+                sError = ""
+                sErrorDescription = ""
+                sErrorUri = ""
+            else:
+                iStatus = getStatus(Data)
+                #self.dumpDictToLog(Data)
+                sError, sErrorDescription, sErrorUri = getError(Data)
             if (sError.lower() == "invalid_token") and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
-            elif (iStatus == 404) or self.bProdMode and (iStatus == 400):
+            elif bNoDataInCache or (iStatus == 404) or (self.bProdMode and (iStatus == 400)):
                 #self.showStatusError(True, Data, True)
                 if self.bFirstBatch:
                     if (self.bProdMode):
@@ -1534,7 +1713,7 @@ class BasePlugin:
                 self.bHasAFail = True
             else:
                 # Analyse data for hours
-                if not self.exploreDataHours(Data, self.bProdMode):
+                if (not bUseCache) and (not self.exploreDataHours(Data, self.bProdMode)):
                     self.bHasAFail = True
                 # self.sConnectionStep = "save"
 
@@ -1542,9 +1721,9 @@ class BasePlugin:
                 if self.stillDays(False):
                     self.calculateDaysLeft()
                     self.sConnectionStep = "getdatahours"
-                    self.getData(
-                        API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE,
-                        self.dateBeginHours, self.dateEndHours)
+                    bUseCache, bNoDataInCache = self.getDataHours(self.sUsagePointId, self.bProdMode, self.dateBeginHours, self.dateEndHours)
+                    if bUseCache:
+                        self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or save
                     # No production peak available yet in Enedis API
@@ -1554,15 +1733,21 @@ class BasePlugin:
                     else:
                         self.resetDates()
                         self.sConnectionStep = "getdatapeakdays"
-                        self.getData(
-                            API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER,
-                            self.dateBeginDays, self.dateEndDays)
+                        bUseCache, bNoDataInCache = self.getDataPeaks(self.sUsagePointId, self.bProdMode, self.dateBeginDays, self.dateEndDays)
+                        if bUseCache:
+                            self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
 
         # Ask data for peak data
         elif self.sConnectionStep == "getdatapeakdays":
             # Check if access token still valid
-            iStatus = getStatus(Data)
-            sError, sErrorDescription, sErrorUri = getError(Data)
+            if bUseCache:
+                iStatus = 200
+                sError = ""
+                sErrorDescription = ""
+                sErrorUri = ""
+            else:
+                iStatus = getStatus(Data)
+                sError, sErrorDescription, sErrorUri = getError(Data)
             if sError.lower() == "invalid_token" and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
@@ -1570,8 +1755,8 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
             # No peak available, it happens, ignore error silently
-            elif iStatus == 404:
-                self.showStatusError(True, Data, True)
+            elif bNoDataInCache or iStatus == 404:
+                self.showStatusError(False, Data, True)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
@@ -1582,16 +1767,15 @@ class BasePlugin:
                 self.sConnectionStep = "prod"
                 self.bHasAFail = True
             else:
-                if not self.exploreDataDays(Data, True, self.bProdMode):
+                if (not bUseCache) and (not self.exploreDataPeaks(Data, self.bProdMode)):
                     self.bHasAFail = True
                 # Still data to get, another batch ?
                 if self.stillDays(True):
                     self.calculateDaysLeft()
-                    # Normal data or peak data ?
                     self.sConnectionStep = "getdatapeakdays"
-                    self.getData(
-                        API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER,
-                        self.dateBeginDays, self.dateEndDays)
+                    bUseCache, bNoDataInCache = self.getDataPeaks(self.sUsagePointId, self.bProdMode, self.dateBeginDays, self.dateEndDays)
+                    if bUseCache:
+                        self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
                 else:
                     self.sConnectionStep = "prod"
 
@@ -1599,7 +1783,8 @@ class BasePlugin:
         if self.sConnectionStep == "start":
             self.lUsagePointIndex = getConfigItem("usage_points_id", [])
             if (len(self.lUsagePointIndex) > 0):
-                self.resetDates()
+                dtNow = datetime.now()
+                self.resetDates(datetime(dtNow.year, dtNow.month, dtNow.day))
                 self.resetDayAccumulate()
                 self.sConnectionStep = "nextcons"
             else:
@@ -1617,6 +1802,9 @@ class BasePlugin:
 
         # Next connection time depends on success
         if self.sConnectionStep == "save":
+            if not self.bHasAFail:
+                # If no error so far, we can mark cache memory as used or as empty
+                self.updateCacheState(self.sUsagePointId)
             if not self.saveDataToDb(self.sUsagePointId):
                 self.bHasAFail = True
             # check if another usage point to grab
@@ -1631,7 +1819,9 @@ class BasePlugin:
         # next consumption point
         if self.sConnectionStep == "nextcons":
             self.sUsagePointId = self.lUsagePointIndex[self.iUsagePointIndex].upper().strip()
-            self.myStatus("Traitement pour le point de livraison " + self.sUsagePointId)
+            if self.sUsagePointId != self.sPrevUsagePointId:
+                self.myStatus("Traitement pour le point de livraison " + self.sUsagePointId)
+                self.sPrevUsagePointId = self.sUsagePointId
             if self.bHasAFail:
                 self.bGlobalHasAFail = True
                 self.bHasAFail = False
@@ -1644,9 +1834,9 @@ class BasePlugin:
         if self.sConnectionStep == "next":
             self.resetDates()
             self.sConnectionStep = "getdatahours"
-            self.getData(
-                API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE if self.bProdMode else API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE,
-                self.dateBeginHours, self.dateEndHours)
+            bUseCache, bNoDataInCache = self.getDataHours(self.sUsagePointId, self.bProdMode, self.dateBeginHours, self.dateEndHours)
+            if bUseCache:
+                self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
 
         # Next connection time depends on success
         if self.sConnectionStep == "done":
@@ -1655,9 +1845,10 @@ class BasePlugin:
             if self.bGlobalHasAFail:
                 self.setNextConnection(False)
             self.savePreviousSuccessfulConnectionDate(self.bGlobalHasAFail)
-            self.clearData()
+            self.clearState()
             self.sConnectionStep = "idle"
             self.myStatus("Prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+
 
     def dumpDictToLog(self, dictToLog):
         if self.iDebugLevel:
@@ -1676,6 +1867,7 @@ class BasePlugin:
                         self.myDebug("--->'" + str(x) + "':'" + str(dictToLog[x]) + "'")
             else:
                 self.myDebug("Received no dict: " + str(dictToLog))
+
 
     def onStart(self):
         try:
@@ -1711,7 +1903,7 @@ class BasePlugin:
                 self.iAlternateDevice = 0
 
         # For test purpose
-        # self.iAlternateDevice = 1
+        #self.iAlternateDevice = 1
 
         if self.iAlternateDevice:
             self.myLog(
@@ -1723,7 +1915,7 @@ class BasePlugin:
             self.isEnabled = False
             return
 
-            # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
+        # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
         Parameters.pop("Username", None)
         Parameters.pop("Password", None)
 
@@ -1754,8 +1946,8 @@ class BasePlugin:
             self.iHistoryDaysForDaysView = int(self.iHistoryDaysForDaysView)
         except:
             self.iHistoryDaysForDaysView = 7
-        if self.iHistoryDaysForDaysView < 1:
-            self.iHistoryDaysForDaysView = 1
+        if self.iHistoryDaysForDaysView < 2:
+            self.iHistoryDaysForDaysView = 2
         elif self.iHistoryDaysForDaysView > 730:
             self.iHistoryDaysForDaysView = 730
 
@@ -1794,13 +1986,15 @@ class BasePlugin:
             "Nombre de jours à récupérer pour le calcul du pic mis à " + str(self.iHistoryDaysForPeakDaysView))
         self.myLog("Debug mis à " + str(self.iDebugLevel))
         if self.fDebug:
-            self.myStatus("Log dans le fichier " + self.fDebug.name + " pour la version " + str(Parameters["Version"]) + " du plugin")
+            self.myStatus("Log dans le fichier " + self.fDebug.name + " pour le matériel " + str(Parameters["Name"]) + " avec la version " + str(Parameters["Version"]) + " du plugin")
+            self.myDebug("Domoticz version " + str(Parameters["DomoticzVersion"]) + " " + str(Parameters["DomoticzHash"]) + " " + str(Parameters["DomoticzBuildTime"]), True)                        
 
         # Parameter for tarif 1/2
         self.parseHcParameter(self.sTarif)
 
         # most init
         self.__init__()
+        self.clearData()
 
         self.myLog(
             "Si vous ne voyez pas assez de données dans la vue par heures, augmentez le paramètre Log des capteurs qui se trouve dans Réglages / Paramètres / Historique des logs")
@@ -1824,12 +2018,14 @@ class BasePlugin:
         # Now we can enabling the plugin
         self.isStarted = True
 
+
     def onStop(self):
         Domoticz.Debug("onStop called")
         # prevent error messages during disabling plugin
         self.isStarted = False
         if self.fDebug:
             self.fDebug.flush()
+
 
     def onConnect(self, Connection, Status, Description):
         Domoticz.Debug("onConnect called")
@@ -1844,6 +2040,7 @@ class BasePlugin:
                 self.sConnectionStep = "nothingtosend"
                 self.handleConnection()
 
+
     def onMessage(self, Connection, Data):
         Domoticz.Debug("onMessage called")
 
@@ -1852,8 +2049,10 @@ class BasePlugin:
             self.sConnectionStep = self.sConnectionNextStep
             self.handleConnection(Data)
 
+
     def onDisconnect(self, Connection):
         Domoticz.Debug("onDisconnect called")
+
 
     def onHeartbeat(self):
         Domoticz.Debug("onHeartbeat() called")
@@ -1960,6 +2159,7 @@ def setRefreshTime(dtDate=None):
         dtDate = datetime.now()
     return dtDate + timedelta(seconds=50)
 
+
 # Get config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
 def getConfigItem(Key=None, Default={}):
     Value = Default
@@ -2005,9 +2205,16 @@ def resetTokens():
     setConfigItem("refresh_token", "")
     setConfigItem("access_token", "")
 
+def initInnerState():
+    return {"begindate": datetime(2300, 1, 1), "enddate": datetime(2000, 1, 1)}
 
-def initData(dDate):
-    return {"consumption1": 0, "consumption2": 0, "production1": 0, "production2": 0, "consumption1_hours": {}, "consumption2_hours": {}, "production1_hours": {}, "production2_hours": {}, "consumptionpeak": 0, "productionpeak": 0, "data": False, "peak": False, "date": dDate}
+
+def initState():
+    return {"consumption": initInnerState(), "production": initInnerState(), "consumptionpeak": initInnerState(), "productionpeak": initInnerState()}
+
+
+def initData():
+    return {"consumption1_hours": {}, "consumption2_hours": {}, "production1_hours": {}, "production2_hours": {}, "consumptionpeak": 0, "productionpeak": 0, "hasconsoprod": False, "haspeak": False, "consoproddate": datetime(2000, 1, 1), "peakdate": datetime(2000, 1, 1)}
 
 
 def dictToQuotedString(dParams):

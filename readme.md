@@ -40,11 +40,6 @@ Pour mettre à jour, écrasez plugin.py ou placez vous dans le sous répertoire 
 git pull
 ```
 
-Donnez la permission d'exécution si vous êtes sous Linux :
-```
-chmod ugo+x plugin.py
-```
-
 Redémarrez Domoticz.
 
 Si vous ne recevez pas de données ou obtenez des valeurs incohérentes, en particulier après une mise à jour, revérifiez que sont activés l'enregistrement et la collecte de la consommation horaire sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Enregistrement de la consommation horaire" et dans l'encart "Collecte de la consommation horaire" et attendez 2 jours.
@@ -208,11 +203,6 @@ git clone https://github.com/guillaumezin/DomoticzLinky
 To update, overwrite plugin.py or change directory to domoticz directory/plugins/DomoticzLinky and issue the following command:
 ```
 git pull
-```
-
-Give the execution permission, for Linux:
-```
-chmod ugo+x plugin.py
 ```
 
 Restart Domoticz.
