@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -903,11 +903,12 @@ class BasePlugin:
                         bHasData = True
                     # Here we can shift data for hours view
                     dDate2 = dDate + timedelta(hours = iHour)
+                    if bHasData:
+                        self.dayAccumulateConsoProd(sUsagePointCurrentId, dDate2, fValConso1, fValConso2, fValProd1, fValProd2)
                     if (dDate2 >= self.curDay):
                         break
                     if bHasData:
                         iHourCount = iHourCount + 1
-                        self.dayAccumulateConsoProd(sUsagePointCurrentId, dDate2, fValConso1, fValConso2, fValProd1, fValProd2)
                         #self.myDebug("date " + str(dDate) + " " + str(iHour) + " " + str(dDate2) + " " + str(self.iHistoryDaysForHoursView) + " " + str(self.dateBeginDaysHistoryView))
                         # We don't want the last day = today, it's incomplete and create a glitch in views
                         if (self.iHistoryDaysForHoursView > 0) and (dDate2 >= self.dateBeginDaysHistoryView):
@@ -1179,6 +1180,7 @@ class BasePlugin:
 
         sParameterComplete = "mean_" + sParameter
         dCalculation[sParameterComplete] = fCurrentVal / iCounter
+
 
     # We consider data from midnight as data owned by the day before
     def doCalculation(self, dateCur, dCalculation, fVal):
