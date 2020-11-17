@@ -74,7 +74,11 @@ Vous pouvez configurer les tarifs heures pleines (Coûts T1 pour la consommation
 ![Configuration du coût horaire](assets/costsettingfr.jpg)
 
 ### Obtention du consentement
-Commencez par surveiller l'onglet "Erreur" dans votre Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://enedis.domoticz.russandol.pro/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin. Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
+Commencez par surveiller l'onglet "Erreur" dans Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://enedis.domoticz.russandol.pro/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin.
+
+![Adresse pour le consentement](assets/getlinkfr.jpg)
+
+Si vous ne répondez pas dans les minutes qui suivent, le plugin est arrêté. Pour relancer le processus, rendez-vous dans Configuration / Matériel, cliquez sur le plugin et sur Modifier.
 
 ![Relancer le plugin](assets/updatehardwarefr.jpg)
 
@@ -239,7 +243,11 @@ You can configure the peak hour tariffs (Costs T1 for consumption and R1 for pro
 ![Set hour tariffs](assets/costsettingen.jpg)
 
 ### Give consent
-To start, go to "Error" tab in Setup / Log. At first connections, the plugin shall give you the web address https://enedis.domoticz.russandol.pro/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin. If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
+To start, go to "Error" tab in Setup / Log. At first connections, the plugin shall give you the web address https://enedis.domoticz.russandol.pro/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin.
+
+![Address to give consent](assets/getlinken.jpg)
+
+If you don't answer quickly, the plugin will stop. To relaunch the process, go to Setup / Hardware, click on the plugin then on Update.
 
 ![Restart the plugin](assets/updatehardwareen.jpg)
 
