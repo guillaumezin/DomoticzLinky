@@ -23,7 +23,7 @@ En cliquant sur le bouton "Rapport" :
 ![Exemple de rapport](assets/reportfr.jpg)
 
 ## Prérequis
-La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.14 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
+La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.1 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
 
 Le framework python 3 doit être installé, suivez le guide https://www.domoticz.com/wiki/Using_Python_plugins, en particulier faites attention à installer la version "dev" si vous ne voyez pas apparaître le plugin dans la liste dans l'onglet de configuration Configuration / Matériel après avoir redémarré Domoticz.
 
