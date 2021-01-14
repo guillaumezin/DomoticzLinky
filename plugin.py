@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -925,8 +925,8 @@ class BasePlugin:
                                     return False
                         # Here we can shift data for other views, choosing another hour as new date reference
                     if iHour == 0:
-                        # Check we have enough data
-                        if iHourCount >= 24:
+                        # Check we have enough data, at least half a day
+                        if iHourCount >= 12:
                             # Here we can shift day accordingly to iHour, to use date from beginning of data
                             sShortDate = datetimeToSQLDateString(dDate2 - timedelta(hours=iHourCount))
                             if not self.addToDevice(oDevice, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
