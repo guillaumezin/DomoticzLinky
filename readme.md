@@ -137,9 +137,9 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
 ![Vue du dispositif sur le tableau de bord](assets/dashboardfr.jpg)
 
-* sur la première ligne : il s'agit d'un pic de consommation instantané (Watt)
+* sur la première ligne : il s'agit d'un pic de consommation instantané (Watt). Cette ligne correspond au paramètre "Consommation à montrer sur le tableau de bord (affichage principal)" du plugin
 
-* sur les lignes suivantes : il s'agit d'une énergie consommée (kWh). La valeur "Aujourd'hui" qui précède reste à 0, c'est normal car Enedis ne fournit que la valeur de la veille
+* sur les lignes suivantes : il s'agit d'une énergie consommée (kWh). La valeur "Aujourd'hui" qui précède reste à 0, c'est normal car Enedis ne fournit que la valeur de la veille. Ces lignes corresponden au paramètre "Consommation à montrer sur le tableau de bord (affichage secondaire)" du plugin
 
 ### Nombre de jours à récupérer
 * Vous pouvez choisir le nombre de jours à récupérer pour la vue par heures. Vous pouvez mettre le nombre de jours à récupérer à 0 pour désactiver la récupération de données pour la vue par heures. Notez que Domoticz effacera chaque jour une partie des données de la vue par heures en se basant sur le paramètre Log des capteurs qui se trouve dans Configuration / Paramètres / Historique des logs, vous pouvez augmenter ce paramètre pour voir jusqu'à 7 jours d'historique
@@ -324,9 +324,9 @@ You can choose the number you want to see on the dashboard:
 
 ![Device on dashboard](assets/dashboarden.jpg)
 
-* on first line: it is the instant consumption (Watt)
+* on first line: it is the instant consumption (Watt). This line is linked to "Consommation à montrer sur le tableau de bord (affichage principal)" plugin parameter
 
-* on next lines: it is the energy consumption (kWh). The "Today" value before is always 0, because Enedis provides the value for the day before only
+* on next lines: it is the energy consumption (kWh). The "Today" value before is always 0, because Enedis provides the value for the day before only. These lines are linked to "Consommation à montrer sur le tableau de bord (affichage secondaire)" plugin parameter
 
 ### Data collect
 * You can choose the number of days to collect data for the short log (day). You can set the number of days to collect data for the short log (day) to 0 to disable data grabbing for this view. Note that Domoticz will clean every day data in the short log, based on the Short Log Sensors value the in Setup / Settings / Log History, you can increase the value there to get up to 7 days of short log history.
