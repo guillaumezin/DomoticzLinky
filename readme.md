@@ -73,6 +73,10 @@ Vous pouvez configurer les tarifs heures pleines (Coûts T1 pour la consommation
 
 ![Configuration du coût horaire](assets/costsettingfr.jpg)
 
+Dans ce même menu, en bas, vérifiez que "P1 Smart Meter" est bien de type "Avec des décimales".
+
+![Réglage des décimales](assets/decimalsettingfr.jpg)
+
 ### Obtention du consentement
 Commencez par surveiller l'onglet "Erreur" dans Configuration / Log. Aux premières connexions, le plugin doit vous donner l'adresse Web https://enedis.domoticz.russandol.pro/device à consulter et un code à y copier/coller pour obtenir le consentement du partage de données d'Enedis vers le plugin.
 
@@ -259,6 +263,10 @@ Add the Linky hardware in Domoticz Setup / Hardware configuration tab.
 You can configure the peak hour tariffs (Costs T1 for consumption and R1 for production) and off-peak hours (Costs T2 for consumption and R2 for production) in the Setup / Setup / Meters/Counters menu. In this menu, check that "Energy" is set to 1000.
 
 ![Set hour tariffs](assets/costsettingen.jpg)
+
+In this same menu, at the bottom, check that "P1 Smart Meter" is indeed of type "With Decimals". 
+
+![Set decimals](assets/decimalsettingen.jpg)
 
 ### Give consent
 To start, go to "Error" tab in Setup / Log. At first connections, the plugin shall give you the web address https://enedis.domoticz.russandol.pro/device to browse and a code to copy/paste to give Enedis authorizations to share your data with the plugin.
