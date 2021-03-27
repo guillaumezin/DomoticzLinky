@@ -153,21 +153,19 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 * Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. Si la valeur est supérieur à 35, le plugin ne fera la récupération que de temps en temps ou quand le paramètre est modifié, pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Dépannage
+### Les courbes affichent les données en jour de la semaine, du mois et de l'année mais pas les données en heures
+Vérifiez que vous avez bien suivi toutes les étapes du menu [Configuration](#configuration).
 
 ### Erreur "Données manquantes pour mettre à jour le tableau de bord"
-
 Cette erreur est liée à des données manquantes pour satisfaire les configurations d'affichage "Consommation à montrer sur le tableau de bord". Cette erreur doit être transitoire. Si elle persiste plusieurs jours de suite, essayez de changer la configuration "Consommation à montrer sur le tableau de bord". Si cela persiste encore, ouvrez une demande de support.
 
 ### Erreur "Serveurs inaccessibles à cette heure"
-
 Les serveurs d'Enedis sont inaccessibles la nuit, le plugin va de lui-même ré-essayer de récupérer vos données le lendemain matin après 8h.
 
 ### Erreur "Trop d'échecs de communication, le plugin réessaiera plus tard"
-
 Cela traduit en général un problème de quota : Enedis offre au plugin un certains nombre d'appels possibles vers son site pour l'ensemble des utilisateurs du plugin. Le plugin va de lui-même ré-essayer de récupérer vos données l'heure suivante. Si vous rencontrez souvent cette erreur, il vaut mieux diminuer le paramètre "Nombre de jours à récupérer pour les autres vues" à 7 pour diminuer le nombre d'appels.
 
 ### Les problèmes persistent
-
 Passez le paramètre "Debug" à "Simple". Observez le log de Domoticz, il vous indiquera le chemin vers un fichier log spécifique au plugin, par exemple /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Ouvrez ce fichier avec un éditeur de texte pour voir ce qui se trame. Si vous n'y comprenez rien, envoyez le fichier à l'adresse e-mail qui s'affiche sur https://github.com/guillaumezin (pour que l'adresse soit visible, il faut que vous ayez un compte github et que vous soyez connecté) et en parallèle ouvrez un ticket de support sur https://github.com/guillaumezin/DomoticzLinky/issues. N'essayez pas d'attachez le fichier log au ticket de support, ça ne passera pas.
 
 ## Auteurs
@@ -344,21 +342,19 @@ You can choose the number you want to see on the dashboard:
 * You can choose the number of days to collect data for week/month/year log. If the value is greater than 35, the plugin will grab data only from time to time or when the value is changed, so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 
 ## Troubleshooting
+### The curves display the data in days of the week, the month and the year but not the data in hours
+Check that you have followed all the steps in the menu [Configuration](#configuration-1).
 
 ### "Données manquantes pour mettre à jour le tableau de bord" error
-
 This error is related to missing data to satisfy the "Consommation à montrer sur le tableau de bord" display settings. This error must be transient. If it persists for several days in a row, try changing the "Consommation à montrer sur le tableau de bord" configuration. If this still persists, open a support request.
 
 ### "Serveurs inaccessibles à cette heure" error
-
 The Enedis servers are inaccessible at night, the plugin will try to retrieve your data by itself the next morning after 8am.
 
 ### "Trop d'échecs de communication, le plugin réessaiera plus tard" error
-
 This generally reflects a quota problem: Enedis gives the plugin a certain number of possible calls to its site for all users of the plugin. The plugin will on its own retry to retrieve your data the next hour. If you often encounter this error, it is better to decrease the "Nombre de jours à récupérer pour les autres vues" parameter to 7 to decrease the number of calls.
 
 ### Problems persist
-
 Change the "Debug" parameter to "Simple". Observe the Domoticz log, it will show you the path to a plugin specific log file, for example /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Open this file with a text editor to see what's going on. If you don't understand it, send the file to the email address that appears at https://github.com/guillaumezin (for the address to be visible, you must have a github account and you must be logged in) and at the same time open a support ticket on https://github.com/guillaumezin/DomoticzLinky/issues. Do not try to attach the log file to the support ticket, it will not work.
 
 ## Authors
