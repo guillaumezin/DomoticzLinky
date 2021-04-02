@@ -5,7 +5,7 @@
 #                       Modified (C) 2017 Asdepique777
 #                       Corrected (C) 2017 epierre
 #                       Modified (C) 2017 Asdepique777
-#                       Modified (C) 2018 Barberousse
+#                       Modified (C) 2018-2021 Barberousse
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -420,7 +420,7 @@ class BasePlugin:
         self.connectAndSendForAuthorize(sendData)
 
 
-    def showStatusError(self, hours, Data, bDebug=False):
+    def showStatusError(self, hours, Data, bStatus=False, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -432,10 +432,10 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
-        self.showStepError(hours, sErrorSentence, bDebug)
+        self.showStepError(hours, sErrorSentence, bStatus, bDebug)
 
 
-    def showSimpleStatusError(self, Data):
+    def showSimpleStatusError(self, Data, bStatus=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -447,7 +447,7 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
-        self.showSimpleStepError(sErrorSentence)
+        self.showSimpleStepError(sErrorSentence, bStatus)
 
 
     def parseDeviceCode(self, Data):
@@ -664,16 +664,18 @@ class BasePlugin:
 
 
     # Show error in state machine context
-    def showSimpleStepError(self, logMessage, bDebug=False):
+    def showSimpleStepError(self, logMessage, bStatus=False, bDebug=False):
         sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
+        elif bStatus:
+            self.myStatus(sMessage)
         else:
             self.myError(sMessage)
 
 
     # Show error in state machine context with dates
-    def showStepError(self, hours, logMessage, bDebug=False):
+    def showStepError(self, hours, logMessage, bStatus=False, bDebug=False):
         if hours:
             sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage
@@ -682,6 +684,8 @@ class BasePlugin:
                 self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
+        elif bStatus:
+            self.myStatus(sMessage)
         else:
             self.myError(sMessage)
 
@@ -1352,7 +1356,7 @@ class BasePlugin:
             fProdVal2 =0
 
         if (fConsoVal1 < 0) or (fConsoVal2 < 0) or (fProdVal1 < 0) or (fProdVal2 < 0) or (fSecVal1 < 0) or (fSecVal2 < 0):
-            self.showStepError(False, "Données manquantes pour mettre à jour le tableau de bord")
+            self.showStepError(False, "Données manquantes pour mettre à jour le tableau de bord", True)
             return False
         else:
             dtTimeout = setTimeout()
@@ -1477,7 +1481,7 @@ class BasePlugin:
             iMinutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=iMinutesRand)
             if bForceTomorrow:
-                self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+                self.myStatus("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
             # For test purpose
             #self.dateNextConnection = dtNow + timedelta(minutes=1)
         # Randomize minutes to lower load on Enedis website
@@ -1503,7 +1507,7 @@ class BasePlugin:
             minutesRand = round(dtNow.microsecond / 10000) % 60
             self.dateNextConnection = self.dateNextConnection + timedelta(minutes=minutesRand)
             self.sConnectionStep = "idle"
-            self.myError("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
+            self.myStatus("Serveurs inaccessibles à cette heure, prochaine connexion : " + datetimeToSQLDateTimeString(self.dateNextConnection))
         return bTomorrow
 
 
@@ -1644,7 +1648,7 @@ class BasePlugin:
         elif self.sConnectionStep == "askagainaccesscode":
             # We must stay connected until completion, otherwise = error
             if not self.httpLoginConn.Connected():
-                self.showSimpleStepError("Redemande du jeton d'accès")
+                self.showSimpleStepError("Redemande du jeton d'accès", True)
                 self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
@@ -1654,7 +1658,7 @@ class BasePlugin:
         # Retry
         elif self.sConnectionStep == "retry":
             if (self.iResendCount >= 3):
-                self.showSimpleStepError("Trop d'échecs de communication, le plugin réessaiera plus tard")
+                self.showSimpleStepError("Trop d'échecs de communication, le plugin réessaiera plus tard", True)
                 self.sConnectionStep = "done"
                 self.bHasAFail = True
             else:
@@ -1694,7 +1698,7 @@ class BasePlugin:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
             elif bNoDataInCache or (iStatus == 404) or (self.bProdMode and (iStatus == 400)):
-                #self.showStatusError(True, Data, True)
+                #self.showStatusError(True, Data, False, True)
                 if self.bFirstBatch:
                     if (self.bProdMode):
                         self.bNoProduction = True
@@ -1702,7 +1706,7 @@ class BasePlugin:
                         self.bNoConsumption = True
                     if self.bNoConsumption and self.bNoProduction:
                         #self.showStatusError(True, Data)
-                        self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?")
+                        self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
                         self.bHasAFail = True
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
@@ -1758,7 +1762,7 @@ class BasePlugin:
                 self.disablePlugin()
             # No peak available, it happens, ignore error silently
             elif bNoDataInCache or iStatus == 404:
-                self.showStatusError(False, Data, True)
+                self.showStatusError(False, Data)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
