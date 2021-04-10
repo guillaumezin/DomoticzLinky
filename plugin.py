@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -310,7 +310,7 @@ class BasePlugin:
         self.dtLastSend = datetime(2000, 1, 1)
 
 
-    def myDebug(self, message, bNoLog=False):
+    def myMessage(self, message, bNoLog=False):
         if (not bNoLog) and (self.iDebugLevel > 1):
             Domoticz.Log(message)
         if self.fDebug:
@@ -322,17 +322,21 @@ class BasePlugin:
 
     def myLog(self, message):
         Domoticz.Log(message)
-        self.myDebug(message, True)
+        self.myMessage(message, True)
+
+
+    def myDebug(self, message, bNoLog=False):
+        self.myMessage("Debug : " + message)
 
 
     def myStatus(self, message):
         Domoticz.Status(message)
-        self.myDebug("Status : " + message, True)
+        self.myMessage("Status : " + message, True)
 
 
     def myError(self, message):
         Domoticz.Error(message)
-        self.myDebug("Erreur : " + message, True)
+        self.myMessage("Erreur : " + message, True)
 
 
     # resend same data
@@ -420,7 +424,7 @@ class BasePlugin:
         self.connectAndSendForAuthorize(sendData)
 
 
-    def showStatusError(self, hours, Data, bStatus=False, bDebug=False):
+    def showStatusError(self, hours, Data, bWarningOnly=False, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -432,10 +436,10 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
-        self.showStepError(hours, sErrorSentence, bStatus, bDebug)
+        self.showStepError(hours, sErrorSentence, bWarningOnly, bDebug)
 
 
-    def showSimpleStatusError(self, Data, bStatus=False):
+    def showSimpleStatusError(self, Data, bWarningOnly=False, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
         if iStatus != 504:
@@ -447,7 +451,7 @@ class BasePlugin:
             sErrorSentence = sErrorSentence + " - description : " + sErrorDescription
         if sErrorUri:
             sErrorSentence = sErrorSentence + " - URI : " + sErrorUri
-        self.showSimpleStepError(sErrorSentence, bStatus)
+        self.showSimpleStepError(sErrorSentence, bWarningOnly, bDebug)
 
 
     def parseDeviceCode(self, Data):
@@ -664,18 +668,18 @@ class BasePlugin:
 
 
     # Show error in state machine context
-    def showSimpleStepError(self, logMessage, bStatus=False, bDebug=False):
+    def showSimpleStepError(self, logMessage, bWarningOnly=False, bDebug=False):
         sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
-        elif bStatus:
+        elif bWarningOnly:
             self.myStatus(sMessage)
         else:
             self.myError(sMessage)
 
 
     # Show error in state machine context with dates
-    def showStepError(self, hours, logMessage, bStatus=False, bDebug=False):
+    def showStepError(self, hours, logMessage, bWarningOnly=False, bDebug=False):
         if hours:
             sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage
@@ -684,7 +688,7 @@ class BasePlugin:
                 self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
-        elif bStatus:
+        elif bWarningOnly:
             self.myStatus(sMessage)
         else:
             self.myError(sMessage)
@@ -1706,8 +1710,12 @@ class BasePlugin:
                         self.bNoConsumption = True
                     if self.bNoConsumption and self.bNoProduction:
                         #self.showStatusError(True, Data)
-                        self.showStepError(True, "Pas de données disponibles, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
+                        self.showStepError(True, "Pas de données disponibles, ni en consommation, ni en production, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
                         self.bHasAFail = True
+                    elif self.bNoConsumption:
+                        self.showStepError(True, "Pas de données disponibles en consommation, récupération des données de production", True, True)
+                    elif self.bNoProduction:
+                        self.showStepError(True, "Pas de données disponibles en production", True, True)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
@@ -1993,7 +2001,7 @@ class BasePlugin:
         self.myLog("Debug mis à " + str(self.iDebugLevel))
         if self.fDebug:
             self.myStatus("Log dans le fichier " + self.fDebug.name + " pour le matériel " + str(Parameters["Name"]) + " avec la version " + str(Parameters["Version"]) + " du plugin")
-            self.myDebug("Domoticz version " + str(Parameters["DomoticzVersion"]) + " " + str(Parameters["DomoticzHash"]) + " " + str(Parameters["DomoticzBuildTime"]), True)                        
+            self.myDebug("Domoticz version " + str(Parameters["DomoticzVersion"]) + " " + str(Parameters["DomoticzHash"]) + " " + str(Parameters["DomoticzBuildTime"]))                        
 
         # Parameter for tarif 1/2
         self.parseHcParameter(self.sTarif)
