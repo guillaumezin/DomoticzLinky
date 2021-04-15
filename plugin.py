@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.3.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.3.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1770,7 +1770,7 @@ class BasePlugin:
                 self.disablePlugin()
             # No peak available, it happens, ignore error silently
             elif bNoDataInCache or iStatus == 404:
-                self.showStatusError(False, Data)
+                self.showStatusError(False, Data, False, True)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
             elif (iStatus == 429) or (iStatus == 500):
