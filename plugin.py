@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1563,9 +1563,9 @@ class BasePlugin:
             dtStart = dtStart + timedelta(hours=1)
             #self.myDebug("Dates 1 " + str(dtStart)  + " " + str(dtEnd)  + " " + str(dtStartMem)  + " " + str(dtEndMem))
             #self.myDebug("Compare to " + datetimeToSQLDateString(dtStartMem) + " to " + datetimeToSQLDateString(dtEndMem))
-            if dtStart >= dtStartMem:
+            if (dtStart >= dtStartMem) and (dtStart <= dtEndMem):
                 dtStart = dtEndMem
-            if dtEnd <= dtEndMem:
+            if (dtEnd >= dtStartMem) and (dtEnd <= dtEndMem):
                 dtEnd = dtStartMem
             #self.myDebug("Dates 2 " + str(dtStart)  + " " + str(dtEnd)  + " " + str(dtStartMem)  + " " + str(dtEndMem))
             if dtStart >= dtEnd:
@@ -1602,9 +1602,9 @@ class BasePlugin:
             dtStartMem = pState["begindate"].replace(hour=0, minute=0, second=0, microsecond=0)
             dtEndMem = pState["enddate"].replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             #self.myDebug("Compare to " + datetimeToSQLDateString(dtStartMem) + " to " + datetimeToSQLDateString(dtEndMem))
-            if dtStart >= dtStartMem:
+            if (dtStart >= dtStartMem) and (dtStart <= dtEndMem):
                 dtStart = dtEndMem
-            if dtEnd <= dtEndMem:
+            if (dtEnd >= dtStartMem) and (dtEnd <= dtEndMem):
                 dtEnd = dtStartMem
             if dtStart >= dtEnd:
                 self.myDebug("Utilise les données de " + sType  + " du cache de " + datetimeToSQLDateString(dtStartPrev) + " à " + datetimeToSQLDateString(dtEndPrev))
@@ -2187,7 +2187,10 @@ class BasePlugin:
         #self.dumpDictToLog(self.dData)
         bSerializedData = pickle.dumps(self.dData)
         sSerializedData = codecs.encode(bSerializedData, "base64").decode()
-        checksum = hashlib.blake2s(bSerializedData).hexdigest()
+        if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
+            checksum = hashlib.blake2s(bSerializedData).hexdigest()
+        else:
+            checksum = hashlib.sha512(bSerializedData).hexdigest()
         self.setConfigItem("cache", sSerializedData)
         self.setConfigItem("cache_checksum", checksum)
 
@@ -2198,7 +2201,10 @@ class BasePlugin:
         checksum1 = self.getConfigItem("cache_checksum", None)
         if sSerializedData and checksum1:
             bSerializedData = codecs.decode(sSerializedData.encode(), "base64")
-            checksum2 = hashlib.blake2s(bSerializedData).hexdigest()
+            if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
+                checksum2 = hashlib.blake2s(bSerializedData).hexdigest()
+            else:
+                checksum2 = hashlib.sha512(bSerializedData).hexdigest()
             if checksum1 != checksum2:
                 #self.myError("Cache incohérent, remise à 0 du cache (checksum calculé à " + checksum2 + " et checksum sur le disque à " + checksum1 + ")")
                 self.myError("Cache incohérent, remise à 0 du cache")
