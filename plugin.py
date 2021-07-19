@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -153,7 +153,7 @@ HEADERS = {
 
 USAGE_POINT_SEPARATOR = " / "
 NB_WEEKS_LONG_HISTORY = 5
-
+NO_STATUS_ERROR_CODE = 999
 
 class BasePlugin:
     # boolean: is plugin isEnabled
@@ -431,7 +431,7 @@ class BasePlugin:
     def showStatusError(self, hours, Data, bWarningOnly=False, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
-        if iStatus != 504:
+        if iStatus != NO_STATUS_ERROR_CODE:
             sErrorSentence = sErrorSentence + " status : " + str(getStatus(Data))
         sError, sErrorDescription, sErrorUri = getError(Data)
         if sError:
@@ -446,7 +446,7 @@ class BasePlugin:
     def showSimpleStatusError(self, Data, bWarningOnly=False, bDebug=False):
         sErrorSentence = "Erreur"
         iStatus = getStatus(Data)
-        if iStatus != 504:
+        if iStatus != NO_STATUS_ERROR_CODE:
             sErrorSentence = sErrorSentence + " status : " + str(getStatus(Data))
         sError, sErrorDescription, sErrorUri = getError(Data)
         if sError:
@@ -2349,9 +2349,9 @@ def getStatus(Data):
         try:
             return int(Data["Status"])
         except ValueError:
-            return 504
+            return NO_STATUS_ERROR_CODE
     else:
-        return 504
+        return NO_STATUS_ERROR_CODE
 
 
 # Convert Enedis datetime string to datetime object
