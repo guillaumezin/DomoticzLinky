@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -673,7 +673,7 @@ class BasePlugin:
 
     # Show error in state machine context
     def showSimpleStepError(self, logMessage, bWarningOnly=False, bDebug=False):
-        sMessage = "durant l'étape : " + self.sConnectionStep + " - " + logMessage
+        sMessage = "Durant l'étape : " + self.sConnectionStep + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
         elif bWarningOnly:
@@ -685,10 +685,10 @@ class BasePlugin:
     # Show error in state machine context with dates
     def showStepError(self, hours, logMessage, bWarningOnly=False, bDebug=False):
         if hours:
-            sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
+            sMessage = "Durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginHours) + " à " + datetimeToEnedisDateString(self.dateEndHours) + " - " + logMessage
         else:
-            sMessage = "durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
+            sMessage = "Durant l'étape " + self.sConnectionStep + " de " + datetimeToEnedisDateString(
                 self.dateBeginDays) + " à " + datetimeToEnedisDateString(self.dateEndDays) + " - " + logMessage
         if bDebug:
             self.myDebug(sMessage)
@@ -1556,7 +1556,7 @@ class BasePlugin:
             dtStartPrev = dtStart
             dtEndPrev = dtEnd
             if ("isempty" in pState) and pState["isempty"]:
-                self.myDebug("Le cache indique aucune de données de " + sType)
+                self.myDebug("Le cache indique aucune données de " + sType)
                 return True, True
             dtStartMem = pState["begindate"]
             dtEndMem = pState["enddate"] + timedelta(hours=1)
@@ -1620,6 +1620,10 @@ class BasePlugin:
     # Handle the connection state machine
     def handleConnection(self, Data=None, bUseCache=False, bNoDataInCache=False):
         self.myDebug("Etape " + self.sConnectionStep)
+
+        if self.iDebugLevel > 1 and Data:
+            self.dumpDictToLog(Data)
+
         #self.myDebug("bUseCache " + str(bUseCache) + " bNoDataInCache " + str(bNoDataInCache) + " bNoProduction " + str(self.bNoProduction) + " bNoConsumption " + str(self.bNoConsumption))
 
         # First and last step
@@ -1748,6 +1752,7 @@ class BasePlugin:
                     self.sConnectionStep = "getdatahours"
                     bUseCache, bNoDataInCache = self.getDataHours(self.sUsagePointId, self.bProdMode, self.dateBeginHours, self.dateEndHours)
                     if bUseCache:
+                        self.myDebug("Utilisation du cache")
                         self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
                 else:
                     # If at end of data for days and for peaks, continue to data for hours or save
@@ -1760,6 +1765,7 @@ class BasePlugin:
                         self.sConnectionStep = "getdatapeakdays"
                         bUseCache, bNoDataInCache = self.getDataPeaks(self.sUsagePointId, self.bProdMode, self.dateBeginDays, self.dateEndDays)
                         if bUseCache:
+                            self.myDebug("Utilisation du cache")
                             self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
 
         # Ask data for peak data
@@ -1800,6 +1806,7 @@ class BasePlugin:
                     self.sConnectionStep = "getdatapeakdays"
                     bUseCache, bNoDataInCache = self.getDataPeaks(self.sUsagePointId, self.bProdMode, self.dateBeginDays, self.dateEndDays)
                     if bUseCache:
+                        self.myDebug("Utilisation du cache")
                         self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
                 else:
                     self.sConnectionStep = "prod"
@@ -1861,6 +1868,7 @@ class BasePlugin:
             self.sConnectionStep = "getdatahours"
             bUseCache, bNoDataInCache = self.getDataHours(self.sUsagePointId, self.bProdMode, self.dateBeginHours, self.dateEndHours)
             if bUseCache:
+                self.myDebug("Utilisation du cache")
                 self.handleConnection(bUseCache = bUseCache, bNoDataInCache = bNoDataInCache)
 
         # Next connection time depends on success
@@ -2052,7 +2060,7 @@ class BasePlugin:
 
 
     def onStop(self):
-        Domoticz.Debug("onStop called")
+        self.myDebug("onStop called")
         # prevent error messages during disabling plugin
         self.isStarted = False
         if self.fDebug:
@@ -2060,7 +2068,7 @@ class BasePlugin:
 
 
     def onConnect(self, Connection, Status, Description):
-        Domoticz.Debug("onConnect called")
+        self.myDebug("onConnect called")
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)):
             if self.sBuffer:
                 self.iTimeoutCount = 0
@@ -2068,13 +2076,13 @@ class BasePlugin:
                 Connection.Send(self.sBuffer)
                 self.sBuffer = None
             else:
-                self.myDebug("Nothing to send")
+                self.myDebug("Rien à envoyer")
                 self.sConnectionStep = "nothingtosend"
                 self.handleConnection()
 
 
     def onMessage(self, Connection, Data):
-        Domoticz.Debug("onMessage called")
+        self.myDebug("onMessage called")
 
         # if started and not stopping
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)) and (self.sConnectionStep == "sending"):
@@ -2083,11 +2091,11 @@ class BasePlugin:
 
 
     def onDisconnect(self, Connection):
-        Domoticz.Debug("onDisconnect called")
+        self.myDebug("onDisconnect called")
 
 
     def onHeartbeat(self):
-        Domoticz.Debug("onHeartbeat() called")
+        self.myDebug("onHeartbeat called")
 
         if self.fDebug:
             self.fDebug.flush()
@@ -2117,8 +2125,10 @@ class BasePlugin:
             if dtNow > self.dateNextConnection:
                 # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
                 self.setNextConnection(True)
+                self.myDebug("Nouvelle connexion")
                 self.handleConnection()
             elif (self.sConnectionStep == "connecting") or (self.sConnectionStep == "sending"):
+                self.myDebug("Connexion bloquée")
                 self.handleConnection()
 
     # Get config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
