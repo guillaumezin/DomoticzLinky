@@ -2135,9 +2135,7 @@ class BasePlugin:
     def getConfigItem(self, Key=None, Default={}):
         Value = Default
         try:
-            self.myError("A")
             Config = Domoticz.Configuration()
-            self.myError("B")
             if (Key != None):
                 Value = Config[Key]  # only return requested key if there was one
             else:
