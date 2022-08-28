@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -2135,7 +2135,9 @@ class BasePlugin:
     def getConfigItem(self, Key=None, Default={}):
         Value = Default
         try:
+            self.myError("A")
             Config = Domoticz.Configuration()
+            self.myError("B")
             if (Key != None):
                 Value = Config[Key]  # only return requested key if there was one
             else:
@@ -2146,7 +2148,8 @@ class BasePlugin:
             except:
                 Value = Default
         except Exception as inst:
-            self.myError("Domoticz.Configuration read failed: '" + str(inst) + "'")
+            self.myError("Domoticz.Configuration read failed, it will be reset: '" + str(inst) + "'")
+            Domoticz.Configuration({})
         return Value
 
 
