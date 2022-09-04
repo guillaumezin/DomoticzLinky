@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -2131,43 +2131,68 @@ class BasePlugin:
                 self.myDebug("Connexion bloquée")
                 self.handleConnection()
 
-    # Get config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
-    def getConfigItem(self, Key=None, Default={}):
+    # Get config item from Domoticz DB, deserialize data to circumvent Domoticz bugs
+    def getConfigItemAndChecksum(self, Key=None, Default={}):
         Value = Default
+        checksum = 0
         try:
             Config = Domoticz.Configuration()
             if (Key != None):
-                Value = Config[Key]  # only return requested key if there was one
+                if Key in Config:
+                    s64Value = Config[Key]  # only return requested key if there was one
+                else:
+                    # We keep this ugly hack with the datetime.fromtimestamp elsewhere for backward compatibility
+                    try:
+                        Value = Value.timestamp()
+                    except:
+                        pass
+                    return Value, checksum
             else:
-                Value = Config  # return the whole configuration if no key
-        except KeyError:
+                s64Value = Config  # return the whole configuration if no key
+            # Try to get pickle data, if exception, old format instead
             try:
-                Value = Default.timestamp()
-            except:
-                Value = Default
-        except Exception as inst:
-            self.myError("Domoticz.Configuration read failed, it will be reset: '" + str(inst) + "'")
-            Domoticz.Configuration({})
-        return Value
-
-
-    # Set config item from Domoticz DB, convert DateTime to timestamp to circumvent a Domoticz bug
-    def setConfigItem(self, Key=None, Value=None):
-        Config = {}
-        try:
-            Config = Domoticz.Configuration()
+                bSerializedData = codecs.decode(s64Value.encode(), "base64")
+                if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
+                    checksum = hashlib.blake2s(bSerializedData).hexdigest()
+                else:
+                    checksum = hashlib.sha512(bSerializedData).hexdigest()
+                Value = pickle.loads(bSerializedData)
+            except Exception as inst:
+                Value = s64Value
+            # We keep this ugly hack with the datetime.fromtimestamp elsewhere for backward compatibility
             try:
                 Value = Value.timestamp()
             except:
                 pass
-            if (Key != None):
-                Config[Key] = Value
+        except Exception as inst:
+            self.myError("Domoticz.Configuration read failed for key \"" + str(Key) + "\", it will be reset: '" + str(inst) + "'")
+            Domoticz.Configuration({})
+        return Value, checksum
+
+    # Get config item from Domoticz DB
+    def getConfigItem(self, Key=None, Default={}):
+        Value, checksum = self.getConfigItemAndChecksum(Key, Default)
+        return Value
+
+    # Set config item from Domoticz DB, serialize data to circumvent Domoticz bugs
+    def setConfigItem(self, Key=None, Value=None):
+        Config = {}
+        try:
+            Config = Domoticz.Configuration()
+            bSerializedData = pickle.dumps(Value)
+            if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
+                checksum = hashlib.blake2s(bSerializedData).hexdigest()
             else:
-                Config = Value  # set whole configuration if no key specified
+                checksum = hashlib.sha512(bSerializedData).hexdigest()
+            s64Value = codecs.encode(bSerializedData, "base64").decode()
+            if (Key != None):
+                Config[Key] = s64Value
+            else:
+                Config = s64Value  # set whole configuration if no key specified
             Config = Domoticz.Configuration(Config)
         except Exception as inst:
-            self.myError("Domoticz.Configuration operation failed: '" + str(inst) + "'")
-        return Config
+            self.myError("Domoticz.Configuration operation failed: '" + str(inst) + "' for key \"" + str(Key) + "\" value \"" + str(Value) + "\"")
+        return checksum
 
 
     # Erase authorization tokens
@@ -2196,33 +2221,22 @@ class BasePlugin:
             self.dData.pop(sKey)
         # serialize and save
         #self.dumpDictToLog(self.dData)
-        bSerializedData = pickle.dumps(self.dData)
-        sSerializedData = codecs.encode(bSerializedData, "base64").decode()
-        if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
-            checksum = hashlib.blake2s(bSerializedData).hexdigest()
-        else:
-            checksum = hashlib.sha512(bSerializedData).hexdigest()
-        self.setConfigItem("cache", sSerializedData)
+        checksum = self.setConfigItem("cache", self.dData)
         self.setConfigItem("cache_checksum", checksum)
 
 
     # load cache from disk
     def loadCache(self):
-        sSerializedData = self.getConfigItem("cache", None)
+        dCache, checksum2 = self.getConfigItemAndChecksum("cache", None)
         checksum1 = self.getConfigItem("cache_checksum", None)
-        if sSerializedData and checksum1:
-            bSerializedData = codecs.decode(sSerializedData.encode(), "base64")
-            if hasattr(hashlib, 'blake2s') and callable(getattr(hashlib, 'blake2s')) :
-                checksum2 = hashlib.blake2s(bSerializedData).hexdigest()
-            else:
-                checksum2 = hashlib.sha512(bSerializedData).hexdigest()
+        if dCache and checksum1:
             if checksum1 != checksum2:
                 #self.myError("Cache incohérent, remise à 0 du cache (checksum calculé à " + checksum2 + " et checksum sur le disque à " + checksum1 + ")")
                 self.myError("Cache incohérent, remise à 0 du cache")
                 self.resetCache()
                 return False
             else:
-                self.dData = pickle.loads(bSerializedData)
+                self.dData = dCache
                 self.myLog("Cache chargé depuis le disque")
                 self.dumpDictToLog(self.dData)
                 return True
