@@ -142,6 +142,8 @@ configure les heures creuses pour les plages horaires "02h00-04h00 16h00-19h00" 
 ```
 configure les heures creuses pour la plage horaire "02h00-04h00", pour le week-end et pour les jours fériés.
 
+Pour appliquer les heures creuses aux anciennes données, passez le paramètre "Debug" à "Reset cache" et cliquez sur "Modifier", puis remettez "Debug" à son ancienne position et refaites "Modifier". 
+
 ### Affichage
 Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
@@ -171,8 +173,11 @@ Les serveurs d'Enedis sont inaccessibles la nuit, le plugin va de lui-même ré-
 ### Erreur "Trop d'échecs de communication, le plugin réessaiera plus tard"
 Cela traduit en général un problème de quota : Enedis offre au plugin un certains nombre d'appels possibles vers son site pour l'ensemble des utilisateurs du plugin. Le plugin va de lui-même ré-essayer de récupérer vos données l'heure suivante. Si vous rencontrez souvent cette erreur, il vaut mieux diminuer le paramètre "Nombre de jours à récupérer pour les autres vues" à 7 pour diminuer le nombre d'appels.
 
+### Problèmes relatifs à l'obtention du consentement
+Si vous avez des problèmes récurrents avec l'obtention du consentement, vous pouvez relancer l'étape en passant le paramètre "Debug" à "Reset consentement" et cliquez sur "Modifier", puis remettez "Debug" à son ancienne position et refaites "Modifier". Ensuite retournez lire le chapitre [Obtention du consentement](#obtention-du-consentement).
+
 ### Les problèmes persistent
-Passez le paramètre "Debug" à "Simple". Observez le log de Domoticz, il vous indiquera le chemin vers un fichier log spécifique au plugin, par exemple /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Ouvrez ce fichier avec un éditeur de texte pour voir ce qui se trame. Si vous n'y comprenez rien, envoyez le fichier à l'adresse e-mail qui s'affiche sur https://github.com/guillaumezin (pour que l'adresse soit visible, il faut que vous ayez un compte github et que vous soyez connecté) et en parallèle ouvrez un ticket de support sur https://github.com/guillaumezin/DomoticzLinky/issues. N'essayez pas d'attachez le fichier log au ticket de support, ça ne passera pas.
+Passez le paramètre "Debug" à "Simple" et cliquez sur "Modifier". Observez le log de Domoticz, il vous indiquera le chemin vers un fichier log spécifique au plugin, par exemple /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Ouvrez ce fichier avec un éditeur de texte pour voir ce qui se trame. Si vous n'y comprenez rien, envoyez le fichier à l'adresse e-mail qui s'affiche sur https://github.com/guillaumezin (pour que l'adresse soit visible, il faut que vous ayez un compte github et que vous soyez connecté) et en parallèle ouvrez un ticket de support sur https://github.com/guillaumezin/DomoticzLinky/issues. N'essayez pas d'attachez le fichier log au ticket de support, ça ne passera pas.
 
 ## Auteurs
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
@@ -222,7 +227,7 @@ Domoticz version must be at least 4.11070. Domoticz version must be at least 4.1
 
 The python 3 framework must be installed, follow the guide https://www.domoticz.com/wiki/Using_Python_plugins, in particular be careful to install the "dev" version if you do not see the plugin in the list in the Setup / Hardware configuration tab after restarting Domoticz.
 
-Check that the "EventSystem (Lua/Blockly/Scripts)" is enabled in dans "Steup / Settings / Other" :
+Check that the "EventSystem (Lua/Blockly/Scripts)" is enabled in dans "Setup / Settings / Other" :
 
 ![Paramètres / Autre](assets/parametersothersen.jpg)
 
@@ -337,6 +342,8 @@ configures the off-peak hours for the time slots "02:00-04:00 16:00-19:00" for c
 ```
 configures the off-peak hours for the time slot "02:00-04:00", during the week-end and during bank holidays.
 
+To apply off-peak hours to old data, change the "Debug" setting to "Reset cache" and click "Edit", then put "Debug" back to its old position and do "Update" again.
+
 ### Display
 You can choose the number you want to see on the dashboard:
 
@@ -366,8 +373,11 @@ The Enedis servers are inaccessible at night, the plugin will try to retrieve yo
 ### "Trop d'échecs de communication, le plugin réessaiera plus tard" error
 This generally reflects a quota problem: Enedis gives the plugin a certain number of possible calls to its site for all users of the plugin. The plugin will on its own retry to retrieve your data the next hour. If you often encounter this error, it is better to decrease the "Nombre de jours à récupérer pour les autres vues" parameter to 7 to decrease the number of calls.
 
+### Consent Obtaining Issues
+If you have recurring problems with obtaining consent, you can restart the step by changing the "Debug" parameter to "Reset consentement" and click on "Modify", then put "Debug" back to its old position and redo "Modify". Then go back to read the chapter [Give consent](#give-consent).
+
 ### Problems persist
-Change the "Debug" parameter to "Simple". Observe the Domoticz log, it will show you the path to a plugin specific log file, for example /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Open this file with a text editor to see what's going on. If you don't understand it, send the file to the email address that appears at https://github.com/guillaumezin (for the address to be visible, you must have a github account and you must be logged in) and at the same time open a support ticket on https://github.com/guillaumezin/DomoticzLinky/issues. Do not try to attach the log file to the support ticket, it will not work.
+Change the "Debug" parameter to "Simple" and click on "Modify". Observe the Domoticz log, it will show you the path to a plugin specific log file, for example /tmp/DomoticzLinky_2021_01_17_15_04_19_ukzvik3k.log. Open this file with a text editor to see what's going on. If you don't understand it, send the file to the email address that appears at https://github.com/guillaumezin (for the address to be visible, you must have a github account and you must be logged in) and at the same time open a support ticket on https://github.com/guillaumezin/DomoticzLinky/issues. Do not try to attach the log file to the support ticket, it will not work.
 
 ## Authors
 * **Baptiste Candellier** - *Kindle Linky plugin* - [linkindle](https://github.com/outadoc/linkindle)
