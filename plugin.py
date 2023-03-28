@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -134,21 +134,21 @@ LOGIN_BASE_PORT = ["443", "443"]
 LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
 API_ENDPOINT_DEVICE_CODE = ["/device/code", "/domoticzlinkyconnect/device/code"]
 API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/domoticzlinkyconnect/device/token"]
-API_ENDPOINT_PROXY = ["/device/proxy", "/domoticzlinkyconnect/device/proxy"]
 VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=",
                    "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
 
 API_BASE_PORT = ["443", "443"]
-API_BASE_URI = ["gw.prd.api.enedis.fr", "gw.hml.api.enedis.fr"]
-API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/v4/metering_data/consumption_load_curve'
-API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/v4/metering_data/daily_consumption_max_power'
-API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/v4/metering_data/daily_consumption'
-API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/v4/metering_data/production_load_curve'
-API_ENDPOINT_DATA_DAILY_PRODUCTION = '/v4/metering_data/daily_production'
+API_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
+API_ENDPOINT_DATA_URI = ["/data/proxy", "/domoticzlinkyconnect/data/proxy"]
+API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/metering_data_clc/v5/consumption_load_curve'
+API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/metering_data_dcmp/v5/daily_consumption_max_power'
+API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/metering_data_dc/v5/daily_consumption'
+API_ENDPOINT_DATA_PRODUCTION_LOAD_CURVE = '/metering_data_plc/v5/production_load_curve'
+API_ENDPOINT_DATA_DAILY_PRODUCTION = '/metering_data_dp/v5/daily_production'
 
 HEADERS = {
     "Accept": "application/json",
-    "Content-Type": "application/json"
+    "Content-Type": "application/x-www-form-urlencoded"
 }
 
 USAGE_POINT_SEPARATOR = " / "
@@ -275,8 +275,8 @@ class BasePlugin:
     dateNextConnection = None
     # integer: which device to use
     iAlternateDevice = 0
-    # integer: false customoer
-    iFalseCustomer = 0
+    # list: false customoer
+    lFalseCustomer = []
     # integer: which address to use (production or sandbox)
     iAlternateAddress = 0
     # to know that we come from refresh token step
@@ -411,7 +411,6 @@ class BasePlugin:
     def getDeviceCode(self):
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         postData = {
             "client_id": CLIENT_ID[self.iAlternateAddress]
@@ -476,9 +475,7 @@ class BasePlugin:
                     sUserCode = dJson["user_code"]
                     count = count + 1
                 if count == 2:
-                    sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode)
-                    if self.iFalseCustomer:
-                        sUrl = sUrl + "&state=" + str(self.iFalseCustomer)
+                    sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode) + "&state=-cg"
                     self.myError(
                         "Connectez-vous à l'adresse " + sUrl + " pour lancer la demande de consentement avec le code " + sUserCode)
                     return "done"
@@ -495,7 +492,6 @@ class BasePlugin:
     def getAccessToken(self):
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         postData = {
             "client_id": CLIENT_ID[self.iAlternateAddress],
@@ -518,17 +514,17 @@ class BasePlugin:
     def refreshToken(self):
         headers = self.initHeaders(
             LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
 
         postData = {
             "grant_type": "refresh_token",
             "client_id": CLIENT_ID[self.iAlternateAddress],
+            "usage_point_id": ','.join(self.getConfigItem("usage_points_id", [])),
             "refresh_token": self.getConfigItem("refresh_token", "")
         }
 
         sendData = {
             "Verb": "POST",
-            "URL": API_ENDPOINT_PROXY[self.iAlternateAddress],
+            "URL": API_ENDPOINT_DEVICE_TOKEN[self.iAlternateAddress],
             "Headers": headers,
             "Data": dictToQuotedString(postData)
         }
@@ -580,7 +576,10 @@ class BasePlugin:
                 if dJson and ("token_type" in dJson):
                     self.setConfigItem("token_type", dJson["token_type"])
                     count = count + 1
-                if count == 3:
+                if dJson and ("expires_in" in dJson):
+                    self.setConfigItem("expires_at", datetime.now() + timedelta(seconds=int(dJson["expires_in"])) - timedelta(minutes=10))
+                    count = count + 1
+                if count == 4:
                     return "done"
                 else:
                     self.showSimpleStepError("Pas assez de données reçue")
@@ -604,7 +603,7 @@ class BasePlugin:
 
         sendData = {
             "Verb": "GET",
-            "URL": uri + "?" + dictToQuotedString(query),
+            "URL": API_ENDPOINT_DATA_URI[self.iAlternateAddress] + uri + "?" + dictToQuotedString(query),
             "Headers": headers
         }
 
@@ -1655,7 +1654,7 @@ class BasePlugin:
 
 
     # Handle the connection state machine
-    def handleConnection(self, Data=None, bUseCache=False):
+    def handleConnection(self, Data=None, bUseCache=False, ):
         self.myDebug("Etape " + self.sConnectionStep)
 
         if self.iDebugLevel > 1 and Data:
@@ -1669,12 +1668,22 @@ class BasePlugin:
             # Reset state
             self.clearState()
 
-            # If we have access tokens, try do grab data, otherwise ask for tokens
-            if self.getConfigItem("access_token", ""):
+            if self.iAlternateAddress:
                 self.sConnectionStep = "start"
             else:
-                self.sConnectionStep = "parsedevicecode"
-                self.getDeviceCode()
+                # If we have still valid access tokens, try do grab data
+                # If we have old access tokens, renew them
+                # Otherwise, ask for consent
+                dtExpiresAt =  datetime.fromtimestamp(int(self.getConfigItem("expires_at", datetime(2000, 1, 1))))
+                if dtExpiresAt > datetime(2000, 1, 1):
+                    if datetime.now() < (dtExpiresAt - timedelta(minutes=10)):
+                        self.sConnectionStep = "start"
+                    else:
+                        self.sConnectionStep = "parseaccesstoken"
+                        self.refreshToken()
+                else:                
+                    self.sConnectionStep = "parsedevicecode"
+                    self.getDeviceCode()
 
         # We should never reach this
         elif (self.sConnectionStep == "connecting") or (self.sConnectionStep == "sending"):
@@ -1853,7 +1862,10 @@ class BasePlugin:
 
         # first step to grab data
         if self.sConnectionStep == "start":
-            self.lUsagePointIndex = self.getConfigItem("usage_points_id", [])
+            if self.iAlternateAddress :
+                self.lUsagePointIndex = self.lFalseCustomer
+            else:
+                self.lUsagePointIndex = self.getConfigItem("usage_points_id", [])
             if (len(self.lUsagePointIndex) > 0):
                 dtNow = datetime.now()
                 self.resetDates(datetime(dtNow.year, dtNow.month, dtNow.day))
@@ -1960,10 +1972,27 @@ class BasePlugin:
 
         if self.iDebugLevel >= 10:
             self.iAlternateAddress = 1
-            self.iFalseCustomer = self.iDebugLevel - 10
+            if self.iDebugLevel == 10:
+                self.lFalseCustomer =["22516914714270"]
+            elif self.iDebugLevel == 11:
+                self.lFalseCustomer = ["11453290002823"]
+            elif self.iDebugLevel == 12:
+                self.lFalseCustomer = ["32320647321714"]
+            elif self.iDebugLevel == 13:
+                self.lFalseCustomer = ["12345678901234","10284856584123"]
+            elif self.iDebugLevel == 14:
+                self.lFalseCustomer = ["42900589957123"]
+            elif self.iDebugLevel == 15:
+                self.lFalseCustomer = ["24880057139941"]
+            elif self.iDebugLevel == 16:
+                self.lFalseCustomer = ["12655648759651"]
+            elif self.iDebugLevel == 17:
+                self.lFalseCustomer = ["64975835695673","63695879465986","22315546958763"]
+            elif self.iDebugLevel == 18:
+                self.lFalseCustomer = ["26584978546985"]
         else:
             self.iAlternateAddress = 0
-            self.iFalseCustomer = 0
+            self.lFalseCustomer = []
 
         self.myDebug("onStart called")
 
@@ -2246,6 +2275,7 @@ class BasePlugin:
         self.setConfigItem("token_type", "")
         self.setConfigItem("refresh_token", "")
         self.setConfigItem("access_token", "")
+        self.setConfigItem("expires_at", datetime(2000,1,1))
 
 
     # Erase cache on disk
