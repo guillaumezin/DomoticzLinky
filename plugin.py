@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -459,7 +459,7 @@ class BasePlugin:
 
 
     def parseDeviceCode(self, Data):
-        self.dumpDictToLog(Data)
+        #self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         if iStatus == 200:
             if Data and ("Data" in Data):
@@ -540,7 +540,7 @@ class BasePlugin:
 
     # Parse access token
     def parseAccessToken(self, Data):
-        self.dumpDictToLog(Data)
+        #self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
         sError = sError.lower()
@@ -1102,7 +1102,7 @@ class BasePlugin:
 
     # Grab hours data inside received JSON data for short log
     def exploreDataHours(self, Data, bProduction=False):
-        self.dumpDictToLog(Data)
+        #self.dumpDictToLog(Data)
         if Data and ("Data" in Data):
             try:
                 dJson = json.loads(Data["Data"].decode())
@@ -1239,7 +1239,7 @@ class BasePlugin:
 
     # Grab days data inside received JSON data for history
     def exploreDataPeaks(self, Data, bProduction=False):
-        self.dumpDictToLog(Data)
+        #self.dumpDictToLog(Data)
         if Data and "Data" in Data:
             try:
                 dJson = json.loads(Data["Data"].decode())
@@ -1657,9 +1657,7 @@ class BasePlugin:
     # Handle the connection state machine
     def handleConnection(self, Data=None, bUseCache=False):
         self.myDebug("Etape " + self.sConnectionStep)
-
-        if self.iDebugLevel > 1 and Data:
-            self.dumpDictToLog(Data)
+        self.dumpDictToLog(Data)
 
         #self.myDebug("bUseCache " + str(bUseCache) + " bNoProduction " + str(self.bNoProduction) + " bNoConsumption " + str(self.bNoConsumption))
 
@@ -1761,15 +1759,18 @@ class BasePlugin:
                     else:
                         self.bNoConsumption = True
                     if self.bNoConsumption and self.bNoProduction:
-                        self.setCacheEmpty(False, self.sUsagePointId, self.bProdMode)
+                        self.setCacheEmpty(False, self.sUsagePointId, False)
+                        self.setCacheEmpty(False, self.sUsagePointId, True)
                         #self.showStatusError(True, Data)
                         self.showStepError(True, "Pas de données disponibles, ni en consommation, ni en production, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
                         self.bHasAFail = True
                     elif self.bNoConsumption:
-                        self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
+                        if sError.lower() == 'adam-err0069':
+                            self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en consommation, récupération des données de production", True, True)
                     elif self.bNoProduction:
-                        self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
+                        if sError.lower() == 'adam-err0069':
+                            self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en production", True, True)
                 self.sConnectionStep = "prod"
             # If status 429 or 500, retry later
@@ -1922,7 +1923,7 @@ class BasePlugin:
 
 
     def dumpDictToLog(self, dictToLog):
-        if self.iDebugLevel:
+        if self.iDebugLevel and dictToLog:
             if isinstance(dictToLog, dict):
                 self.myDebug("Détails du dict (" + str(len(dictToLog)) + "):")
                 for x in dictToLog:
