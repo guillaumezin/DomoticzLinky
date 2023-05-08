@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -156,10 +156,8 @@ NB_WEEKS_LONG_HISTORY = 5
 NO_STATUS_ERROR_CODE = 999
 
 class BasePlugin:
-    # boolean: is plugin isEnabled
-    isEnabled = True
     # boolean: to check that we are started, to prevent error messages when disabling or restarting the plugin
-    isStarted = None
+    isStarted = False
     # object: http connection for login
     httpLoginConn = None
     # object: http connection for data
@@ -226,7 +224,7 @@ class BasePlugin:
     # integer: number of other view (peak)
     iHistoryDaysForPeakDaysView = None
     # boolean: debug mode
-    iDebugLevel = None
+    iDebugLevel = 0
     # previous day
     prevDay = None
     # current day
@@ -1547,12 +1545,14 @@ class BasePlugin:
 
 
     def disablePlugin(self):
-        self.isEnabled = False
+        self.isStarted = False
         self.resetTokens()
         for oDevice in Devices.values():
             oDevice.Update(nValue=oDevice.nValue, sValue=oDevice.sValue, TimedOut=1)
         self.showSimpleStepError(
             "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
+        if self.fDebug:
+            self.fDebug.flush()
 
 
     # set empty data in cache
@@ -1987,7 +1987,9 @@ class BasePlugin:
         if iVersion < 4011070:
             self.myError(
                 "Votre version de Domoticz est trop ancienne")
-            self.isEnabled = False
+            self.isStarted = False
+            if self.fDebug:
+                self.fDebug.flush()
             return
 
         # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
@@ -2101,12 +2103,13 @@ class BasePlugin:
         self.dtGlobalTimeout = setTimeout(dtNow)
         self.setNextConnectionForLater(0)
 
-        # Now we can enabling the plugin
+        # Now we can enable the plugin
         self.isStarted = True
 
 
     def onStop(self):
-        self.myDebug("onStop called")
+        if self.isStarted:
+            self.myDebug("onStop called")
         # prevent error messages during disabling plugin
         self.isStarted = False
         if self.fDebug:
@@ -2114,7 +2117,9 @@ class BasePlugin:
 
 
     def onConnect(self, Connection, Status, Description):
-        self.myDebug("onConnect called")
+        if self.isStarted:
+            self.myDebug("onConnect called")
+            
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)):
             if self.sBuffer:
                 self.iTimeoutCount = 0
@@ -2128,7 +2133,8 @@ class BasePlugin:
 
 
     def onMessage(self, Connection, Data):
-        self.myDebug("onMessage called")
+        if self.isStarted:
+            self.myDebug("onMessage called")
 
         # if started and not stopping
         if self.isStarted and ((Connection == self.httpLoginConn) or (Connection == self.httpDataConn)) and (self.sConnectionStep == "sending"):
@@ -2137,16 +2143,17 @@ class BasePlugin:
 
 
     def onDisconnect(self, Connection):
-        self.myDebug("onDisconnect called")
+        if self.isStarted:
+            self.myDebug("onDisconnect called")
 
 
     def onHeartbeat(self):
-        self.myDebug("onHeartbeat called")
-
-        if self.fDebug:
-            self.fDebug.flush()
-
-        if self.isEnabled:
+        if self.isStarted:
+            self.myDebug("onHeartbeat called")
+            
+            if self.fDebug:
+                self.fDebug.flush()
+                
             dtNow = datetime.now()
 
             if dtNow > self.dtNextRefresh:
