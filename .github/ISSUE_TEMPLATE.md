@@ -17,7 +17,7 @@
 
 ----------------------------------------------------------------
 
-* Before posting a message here, start by consulting the [status of Enedis services (API in production: Authorize and Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). In case of error, the plugin will not be able to work either, it will be necessary to wait for the restoration of services.
+* Before posting a message here, first consult the [status of Enedis services (API in production: Authorize and Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). In case of error, the plugin will not be able to work either, it will be necessary to wait for the restoration of services.
 
 * Before posting a message here, please always check that your data are visible on the Enedis website, in the days view and in the hours view. If it does not work with the Enedis website, it will not work with the plugin either. Don't forget to allow hours data collect, it's explained in the readme.
 
