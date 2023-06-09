@@ -1,4 +1,4 @@
-* Avant de poster un message ici, commencez par consulter l'[état des services Enedis (API en production : Authorize et Customer v4)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
+* Avant de poster un message ici, commencez par consulter l'[état des services Enedis (API en production : Authorize et Metering v4)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
 
 * Avant de poster un message ici, veuillez toujours vérifiez que vos données sont visibles sur le site d'Enedis, dans la vue par jours et dans la vue par heures. Si ça ne fonctionne pas avec le site d'Enedis, ça ne fonctionnera pas non plus avec le plugin. N'oubliez pas de demander la collecte des données, c'est expliqué dans le readme.
 

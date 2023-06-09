@@ -162,7 +162,7 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
 ## Dépannage
 ### Etat des services
-Commencez par consulter l'[état des services Enedis (API en production : Authorize et Customer v4)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
+Commencez par consulter l'[état des services Enedis (API en production : Authorize et Metering v4)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
 
 ### Les courbes affichent les données en jour de la semaine, du mois et de l'année mais pas les données en heures
 Vérifiez que vous avez bien suivi toutes les étapes du menu [Configuration](#configuration).
