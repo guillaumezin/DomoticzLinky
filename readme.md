@@ -161,6 +161,9 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 * Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. Si la valeur est supérieur à 35, le plugin ne fera la récupération que de temps en temps ou quand le paramètre est modifié, pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Dépannage
+### Etat des services
+Commencez par consulter l'[état des services Enedis (API en production : Authorize et Customer v4)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
+
 ### Les courbes affichent les données en jour de la semaine, du mois et de l'année mais pas les données en heures
 Vérifiez que vous avez bien suivi toutes les étapes du menu [Configuration](#configuration).
 
