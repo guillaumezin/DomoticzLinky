@@ -364,6 +364,9 @@ You can choose the number you want to see on the dashboard:
 * You can choose the number of days to collect data for week/month/year log. If the value is greater than 35, the plugin will grab data only from time to time or when the value is changed, so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 
 ## Troubleshooting
+### Service Status
+first consult the [status of Enedis services (API in production: Authorize and Metering v4)](https://datahub-enedis.fr/services-api/etat-des-services/) . In case of error, the plugin will not be able to work either, it will be necessary to wait for the restoration of services.
+
 ### The curves display the data in days of the week, the month and the year but not the data in hours
 Check that you have followed all the steps in the menu [Configuration](#configuration-1).
 
