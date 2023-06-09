@@ -161,6 +161,9 @@ Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 * Vous pouvez choisir le nombre de jours à récupérer pour les autres vues. Si la valeur est supérieur à 35, le plugin ne fera la récupération que de temps en temps ou quand le paramètre est modifié, pour ne pas surcharger les serveurs d'Enedis. Une fois les données récupérées, elles sont stockées et persistent dans la base de données de Domoticz
 
 ## Dépannage
+### Etat des services
+Commencez par consulter l'[état des services Enedis (API en production : Authorize et Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
+
 ### Les courbes affichent les données en jour de la semaine, du mois et de l'année mais pas les données en heures
 Vérifiez que vous avez bien suivi toutes les étapes du menu [Configuration](#configuration).
 
@@ -361,6 +364,9 @@ You can choose the number you want to see on the dashboard:
 * You can choose the number of days to collect data for week/month/year log. If the value is greater than 35, the plugin will grab data only from time to time or when the value is changed, so as not to overload the Enedis servers. After getting data, they are stored and persist in Domoticz database
 
 ## Troubleshooting
+### Service Status
+Start by consulting the [status of Enedis services (API in production: Authorize and Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). In case of error, the plugin will not be able to work either, it will be necessary to wait for the restoration of services.
+
 ### The curves display the data in days of the week, the month and the year but not the data in hours
 Check that you have followed all the steps in the menu [Configuration](#configuration-1).
 

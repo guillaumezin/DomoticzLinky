@@ -1,3 +1,5 @@
+* Avant de poster un message ici, commencez par consulter l'[état des services Enedis (API en production : Authorize et Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). En cas d'erreur, le plugin ne pourra pas fonctionner non plus, il faudra attendre le rétablissement des services.
+
 * Avant de poster un message ici, veuillez toujours vérifiez que vos données sont visibles sur le site d'Enedis, dans la vue par jours et dans la vue par heures. Si ça ne fonctionne pas avec le site d'Enedis, ça ne fonctionnera pas non plus avec le plugin. N'oubliez pas de demander la collecte des données, c'est expliqué dans le readme.
 
 * La version de Domoticz doit être 3.9517 ou plus récente, mais la vue par heures ne fonctionnera pas avec la release version 4.9700 (vous aurez besoin d'une version release ou beta plus récente si vous avez déjà installé la version 4.9700 pour que la vue par heures fonctionne). La version de Domoticz doit être 4.11774, 2020.14 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit.
@@ -14,6 +16,8 @@
   * Type d'ordinateur (PC/Raspberry Pi 3 B+/etc.)
 
 ----------------------------------------------------------------
+
+* Before posting a message here, start by consulting the [status of Enedis services (API in production: Authorize and Metering Data v5)](https://datahub-enedis.fr/services-api/etat-des-services/). In case of error, the plugin will not be able to work either, it will be necessary to wait for the restoration of services.
 
 * Before posting a message here, please always check that your data are visible on the Enedis website, in the days view and in the hours view. If it does not work with the Enedis website, it will not work with the plugin either. Don't forget to allow hours data collect, it's explained in the readme.
 
