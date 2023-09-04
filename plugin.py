@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.4.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.4.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -1751,7 +1751,7 @@ class BasePlugin:
             elif iStatus == 403:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
-            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)):
+            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)) or (self.bProdMode and (iStatus == 500)):
                 #self.showStatusError(True, Data, False, True)
                 if self.bFirstBatch:
                     if (self.bProdMode):
