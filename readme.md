@@ -23,7 +23,7 @@ En cliquant sur le bouton "Rapport" :
 ![Exemple de rapport](assets/reportfr.jpg)
 
 ## Prérequis
-La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.1 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit. Attention, le plugin n'est pas compatible avec la version 2023.2 release de Domoticz (régression dans le code de Domoticz), vous devez avoir une version plus ancienne, ou une version beta plus récente où la régression a été corrigée.
+La version de Domoticz doit être 4.11070 ou plus récente. La version de Domoticz doit être 4.11774, 2020.1 ou plus récente pour pouvoir visualiser l'énergie produite et la différentiation jour / nuit. Attention, le plugin n'est pas compatible avec la version 2023.2 release de Domoticz (régression dans le code de Domoticz), vous devez avoir une version plus ancienne, ou une version beta ou release plus récente où la régression a été corrigée.
 
 Le framework python 3 doit être installé, suivez le guide https://www.domoticz.com/wiki/Using_Python_plugins, en particulier faites attention à installer la version "dev" si vous ne voyez pas apparaître le plugin dans la liste dans l'onglet de configuration Configuration / Matériel après avoir redémarré Domoticz.
 
@@ -226,7 +226,7 @@ When clicking on "Report" button:
 ![Exemple de rapport](assets/reporten.jpg)
 
 ## Prerequisites
-Domoticz version must be at least 4.11070. Domoticz version must be at least 4.11774 or 2020.1 to see energy production and day / night tariff differences. Please note, the plugin is not compatible with version 2023.2 release of Domoticz (regression in the Domoticz code), you must have an older version, or a more recent beta version where the regression has been corrected.
+Domoticz version must be at least 4.11070. Domoticz version must be at least 4.11774 or 2020.1 to see energy production and day / night tariff differences. Please note, the plugin is not compatible with version 2023.2 release of Domoticz (regression in the Domoticz code), you must have an older version, or a more recent beta or release version where the regression has been corrected.
 
 The python 3 framework must be installed, follow the guide https://www.domoticz.com/wiki/Using_Python_plugins, in particular be careful to install the "dev" version if you do not see the plugin in the list in the Setup / Hardware configuration tab after restarting Domoticz.
 
