@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.2" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.3" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -473,7 +473,7 @@ class BasePlugin:
                     sUserCode = dJson["user_code"]
                     count = count + 1
                 if count == 2:
-                    sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode) + "&state=-cg"
+                    sUrl = VERIFY_CODE_URI[self.iAlternateAddress] + quote(sUserCode)
                     self.myError(
                         "Connectez-vous à l'adresse " + sUrl + " pour lancer la demande de consentement avec le code " + sUserCode)
                     return "done"
@@ -516,7 +516,7 @@ class BasePlugin:
         postData = {
             "grant_type": "refresh_token",
             "client_id": CLIENT_ID[self.iAlternateAddress],
-            "usage_point_id": ','.join(self.getConfigItem("usage_points_id", [])),
+            "usage_points_id": ','.join(self.getConfigItem("usage_points_id", [])),
             "refresh_token": self.getConfigItem("refresh_token", "")
         }
 
@@ -538,7 +538,7 @@ class BasePlugin:
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
         sError = sError.lower()
-        if (sError == "unauthorized") or (sError == "invalid_grant"):
+        if (sError == "unauthorized") or (sError == "invalid_grant") or (sError == "invalid_request"):
             self.showSimpleStatusError(Data)
             return "error"
         if sError == "authorization_pending":
@@ -603,6 +603,7 @@ class BasePlugin:
             "Verb": "GET",
             "URL": API_ENDPOINT_DATA_URI[self.iAlternateAddress] + uri + "?" + dictToQuotedString(query),
             "Headers": headers
+            #"Data": dictToQuotedString(query)
         }
 
         self.dumpDictToLog(sendData)
@@ -1760,7 +1761,7 @@ class BasePlugin:
             elif iStatus == 403:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
-            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)):
+            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)) or (self.bProdMode and (iStatus == 500))  or (self.bProdMode and (sError.lower() == "adam-err0123")):
                 #self.showStatusError(True, Data, False, True)
                 if self.bFirstBatch:
                     if (self.bProdMode):
@@ -1774,11 +1775,11 @@ class BasePlugin:
                         self.showStepError(True, "Pas de données disponibles, ni en consommation, ni en production, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
                         self.bHasAFail = True
                     elif self.bNoConsumption:
-                        if sError.lower() == 'adam-err0069':
+                        if (sError.lower() == 'adam-err0069') or (sError.lower() == 'adam-err0123'):
                             self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en consommation, récupération des données de production", True, True)
                     elif self.bNoProduction:
-                        if sError.lower() == 'adam-err0069':
+                        if (sError.lower() == 'adam-err0069') or (sError.lower() == 'adam-err0123'):
                             self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en production", True, True)
                 self.sConnectionStep = "prod"
