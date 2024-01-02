@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.4" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -460,8 +460,6 @@ class BasePlugin:
         iStatus = getStatus(Data)
         if iStatus == 200:
             if Data and ("Data" in Data):
-                if "error" in Data:
-                    showSimpleStatusError(Data)
                 try:
                     dJson = json.loads(Data["Data"].decode())
                 except ValueError as err:
@@ -546,8 +544,6 @@ class BasePlugin:
         if sError == "authorization_pending":
             self.myDebug("pending")
             if Data and ("Data" in Data):
-                if "error" in Data:
-                    showSimpleStatusError(Data)
                 try:
                     dJson = json.loads(Data["Data"].decode())
                 except ValueError as err:
@@ -561,8 +557,6 @@ class BasePlugin:
             return "pending"
         elif iStatus == 200:
             if Data and ("Data" in Data):
-                if "error" in Data:
-                    showSimpleStatusError(Data)
                 try:
                     dJson = json.loads(Data["Data"].decode())
                 except ValueError as err:
@@ -1108,8 +1102,6 @@ class BasePlugin:
     def exploreDataHours(self, Data, bProduction=False):
         #self.dumpDictToLog(Data)
         if Data and ("Data" in Data):
-            if "error" in Data:
-                showSimpleStatusError(Data)
             try:
                 dJson = json.loads(Data["Data"].decode())
             except ValueError as err:
@@ -1162,7 +1154,10 @@ class BasePlugin:
                         self.showStepError(True, "Données manquantes")
                     return dataSeen
                 else:
-                    self.showStepError(True, "Erreur à la réception de données JSON")
+                    if dJson and ("error" in dJson):
+                        self.showStatusError(True, Data)
+                    else:
+                        self.showStepError(True, "Erreur à la réception de données JSON")
         else:
             self.showStepError(True, "Aucune donnée reçue")
         return False
@@ -1247,8 +1242,6 @@ class BasePlugin:
     def exploreDataPeaks(self, Data, bProduction=False):
         #self.dumpDictToLog(Data)
         if Data and "Data" in Data:
-            if "error" in Data:
-                showSimpleStatusError(Data)
             try:
                 dJson = json.loads(Data["Data"].decode())
             except ValueError as err:
@@ -1289,7 +1282,10 @@ class BasePlugin:
                         self.showStepError(False, "Données manquantes")
                     return dataSeen
                 else:
-                    self.showStepError(False, "Erreur à la réception de données JSON")
+                    if dJson and ("error" in dJson):
+                        self.showStatusError(False, Data)
+                    else:
+                        self.showStepError(False, "Erreur à la réception de données JSON")
         else:
             self.showStepError(False, "Aucune donnée reçue")
         return False
