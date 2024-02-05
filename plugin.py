@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.5" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -407,8 +407,10 @@ class BasePlugin:
 
     # get access token
     def getDeviceCode(self):
-        headers = self.initHeaders(
-            LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
+        if ((int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 80) or (int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 443)) :
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress])
+        else:
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
 
         postData = {
             "client_id": CLIENT_ID[self.iAlternateAddress]
@@ -488,8 +490,10 @@ class BasePlugin:
 
     # get access token
     def getAccessToken(self):
-        headers = self.initHeaders(
-            LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
+        if ((int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 80) or (int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 443)) :
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress])
+        else:
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
 
         postData = {
             "client_id": CLIENT_ID[self.iAlternateAddress],
@@ -510,8 +514,10 @@ class BasePlugin:
 
     # Refresh token
     def refreshToken(self):
-        headers = self.initHeaders(
-            LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
+        if ((int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 80) or (int(LOGIN_BASE_PORT[self.iAlternateAddress]) == 443)) :
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress])
+        else:
+            headers = self.initHeaders(LOGIN_BASE_URI[self.iAlternateAddress] + ":" + LOGIN_BASE_PORT[self.iAlternateAddress])
 
         postData = {
             "grant_type": "refresh_token",
@@ -590,7 +596,11 @@ class BasePlugin:
 
     # Get data
     def getData(self, uri, dtStart, dtEnd):
-        headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress] + ":" + API_BASE_PORT[self.iAlternateAddress])
+        if ((int(API_BASE_PORT[self.iAlternateAddress]) == 80) or (int(API_BASE_PORT[self.iAlternateAddress]) == 443)) :
+            headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress])
+        else:
+            headers = self.initHeaders(API_BASE_URI[self.iAlternateAddress] + ":" + API_BASE_PORT[self.iAlternateAddress])
+
         headers["Authorization"] = self.getConfigItem("token_type", "") + " " + self.getConfigItem("access_token", "")
 
         query = {
