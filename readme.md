@@ -48,6 +48,15 @@ git pull
 
 Redémarrez Domoticz.
 
+Si vous ne voyez pas le plugin dans l'onglet Configuration / Matériel, accordez à tout le monde l'autorisation de lecture du plugin et l'autorisation de lecture et d'exécution du répertoire, pour Linux :
+```
+cd lerepertoire/plugins
+chmod ugo+rx DomoticzEbusd
+chmod ugo+r DomoticzEbusd/plugin.py
+```
+
+Redémarrez Domoticz.
+
 Si vous ne recevez pas de données ou obtenez des valeurs incohérentes, en particulier après une mise à jour, revérifiez que sont activés l'enregistrement et la collecte de la consommation horaire sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Enregistrement de la consommation horaire" et dans l'encart "Collecte de la consommation horaire" et attendez 2 jours.
 
 ![Menu "Gérer l'accès à mes données"](assets/enedisaccess.jpg)
@@ -240,13 +249,23 @@ You need to have a Linky meter, create a user account on [Enedis](http://www.ene
 
 ## Installing
 Copy the plugin.py to domoticz directory/plugins/DomoticzLinky or change directory to domoticz directory/plugins and issue the following command:
+
 ```
 git clone https://github.com/guillaumezin/DomoticzLinky
 ```
 
 To update, overwrite plugin.py or change directory to domoticz directory/plugins/DomoticzLinky and issue the following command:
+
 ```
 git pull
+```
+
+If you don't see the plugin in the hardware configuration tab, give for everyone read permission to plugin and read and execute permission for directory, for Linux:
+
+```
+cd whatever/plugins
+chmod ugo+rx DomoticzEbusd
+chmod ugo+r DomoticzEbusd/plugin.py
 ```
 
 Restart Domoticz.
