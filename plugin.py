@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="3.0.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -109,7 +109,7 @@
 
 # https://www.domoticz.com/wiki/Developing_a_Python_plugin
 
-import Domoticz
+import DomoticzEx as Domoticz
 import sys
 import json
 import copy
@@ -166,14 +166,14 @@ class BasePlugin:
     sDeviceName = "Linky"
     # string: description of the Linky device
     sDescription = "Compteur Linky"
-    # list of integer: type (pTypeP1Power or pTypeGeneral)
-    lType = [0xfa, 0xf3]
-    # list of integer: subtype (sTypeP1Power or sTypeManagedCounter)
-    lSubType = [0x01, 0x21]
+    # list of integer: type (pTypeP1Power)
+    iType = 0xfa
+    # list of integer: subtype (sTypeP1Power)
+    iSubType = 0x01
     # list of integer: switch type (Energy)
-    lSwitchType = [0, 0]
+    iSwitchType = 0
     # list of dict: options
-    lOptions = [{"DisableLogAutoUpdate": "true", "AddDBLogEntry": "true"}, {}]
+    dOptions = {"DisableLogAutoUpdate": "true", "AddDBLogEntry": "true"}
     # string: step name of the state machine
     sConnectionStep = None
     # string: memory of step name of the state machine during connection
@@ -271,8 +271,6 @@ class BasePlugin:
     dCalculate = None
     # datetime
     dateNextConnection = None
-    # integer: which device to use
-    iAlternateDevice = 0
     # list: false customoer
     lFalseCustomer = []
     # integer: which address to use (production or sandbox)
@@ -281,8 +279,8 @@ class BasePlugin:
     bRefreshToken = None
     # dict of timeout
     dUsagePointTimeout = None
-    # global timeout
-    dtGlobalTimeout = None
+    # dict of bool for usage point updated
+    dUsagePointSeen = None
     # last refresh
     dtNextRefresh = None
     # debug file
@@ -309,6 +307,7 @@ class BasePlugin:
         self.iUsagePointIndex = 0
         self.lUsagePointIndex = []
         self.dUsagePointTimeout = {}
+        self.dUsagePointSeen = {}
         self.dtLastSend = datetime(2000, 1, 1)
 
 
@@ -621,61 +620,54 @@ class BasePlugin:
 
 
     # get and create if needed Domoticz device
-    def getOrCreateDevice(self, sUsagePointCurrentId):
-        for iIndexUnit, oDevice in Devices.items():
-            if sUsagePointCurrentId == oDevice.DeviceID:
-                return oDevice
-
-        for iIndexUnit in range(1, 256):
-            if iIndexUnit == 256:
-                self.showSimpleStepError(
-                    "Ne peut ajouter de dispositif Linky à la base de données. Trop de dispositifs déjà présents, faites le ménage SVP")
-                return None
-            if iIndexUnit not in Devices:
-                Domoticz.Device(Name=self.sDeviceName + " " + sUsagePointCurrentId, DeviceID=sUsagePointCurrentId,
-                                Unit=iIndexUnit, Type=self.lType[self.iAlternateDevice],
-                                Subtype=self.lSubType[self.iAlternateDevice],
-                                Switchtype=self.lSwitchType[self.iAlternateDevice],
-                                Description=self.sDescription + " " + sUsagePointCurrentId,
-                                Options=self.lOptions[self.iAlternateDevice], Used=1).Create()
-                if iIndexUnit not in Devices:
-                    self.showSimpleStepError(
-                        "Ne peut ajouter de dispositif Linky à la base de données. Vérifiez dans les paramètres de Domoticz que l'ajout de nouveaux dispositifs est autorisé")
-                    return None
-                else:
-                    return Devices[iIndexUnit]
+    def getOrCreateUnit(self, sUsagePointCurrentId):
+        if sUsagePointCurrentId in Devices:
+            oUnit = next(iter(Devices[sUsagePointCurrentId].Units.values()), None)
+            if oUnit:
+                return oUnit
+            
+        Domoticz.Unit(Name=self.sDeviceName + " " + sUsagePointCurrentId, DeviceID=sUsagePointCurrentId,
+                        Unit=1, Type=self.iType,
+                        Subtype=self.iSubType,
+                        Switchtype=self.iSwitchType,
+                        Description=self.sDescription + " " + sUsagePointCurrentId,
+                        Options=self.dOptions, Used=1).Create()
+        if (sUsagePointCurrentId not in Devices) or (1 not in Devices[sUsagePointCurrentId].Units):
+            self.showSimpleStepError(
+                "Ne peut ajouter de dispositif Linky à la base de données. Vérifiez dans les paramètres de Domoticz que l'ajout de nouveaux dispositifs est autorisé")
+            return None
+        else:
+            return Devices[sUsagePointCurrentId].Units[1]
 
 
     # insert usage in Domoticz DB
-    def addToDevice(self, oDevice, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
-        if self.iAlternateDevice:
-            sValue = "-1.0;" + str(fConsumption1 + fConsumption2) + ";" + sDate
-        else:
-            sValue = str(fConsumption1) + ";" + str(fConsumption2) + ";" + str(fProduction1) + ";" + str(
-                fProduction2) + ";0;0;" + sDate
+    def addToUnit(self, oUnit, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
+        sValue = str(fConsumption1) + ";" + str(fConsumption2) + ";" + str(fProduction1) + ";" + str(
+            fProduction2) + ";0;0;" + sDate
         self.myDebug("Mets dans la BDD la valeur " + sValue)
-        oDevice.Update(nValue=0, sValue=sValue,
-            Type=self.lType[self.iAlternateDevice],
-            Subtype=self.lSubType[self.iAlternateDevice],
-            Switchtype=self.lSwitchType[self.iAlternateDevice],
-            Options=self.lOptions[self.iAlternateDevice])
+        oUnit.nValue=0
+        oUnit.sValue=sValue
+        oUnit.Type=self.iType
+        oUnit.SubType=self.iSubType
+        oUnit.SwitchType=self.iSwitchType
+        oUnit.Options=self.dOptions
+        oUnit.Update(Log=False)
         return True
 
 
     # Update value shown on Domoticz dashboard
-    def updateDevice(self, oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
-        if self.iAlternateDevice:
-            sValue = "-1.0;" + str(fSecVal1 + fSecVal2)
-        else:
-            sValue = str(fConsoVal1) + ";" + str(fConsoVal2) + ";" + str(fProdVal1) + ";" + str(fProdVal2) + ";" + str(
-                fSecVal1) + ";" + str(fSecVal2)
+    def updateUnit(self, oUnit, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
+        sValue = str(fConsoVal1) + ";" + str(fConsoVal2) + ";" + str(fProdVal1) + ";" + str(fProdVal2) + ";" + str(
+            fSecVal1) + ";" + str(fSecVal2)
         self.myDebug("Mets sur le tableau de bord la valeur " + sValue)
-        oDevice.Update(nValue=0, sValue=sValue,
-            Type=self.lType[self.iAlternateDevice],
-            Subtype=self.lSubType[self.iAlternateDevice],
-            Switchtype=self.lSwitchType[self.iAlternateDevice],
-            Options=self.lOptions[self.iAlternateDevice],
-            TimedOut=0)
+        oUnit.nValue=0
+        oUnit.sValue=sValue
+        oUnit.Type=self.iType
+        oUnit.SubType=self.iSubType
+        oUnit.SwitchType=self.iSwitchType
+        oUnit.Options=self.dOptions
+        oUnit.Parent.TimedOut=0
+        oUnit.Update(Log=True)
         return True
 
 
@@ -869,8 +861,8 @@ class BasePlugin:
         if sUsagePointCurrentId not in self.dData:
             return False
         
-        oDevice = self.getOrCreateDevice(sUsagePointCurrentId)
-        if not oDevice:
+        oUnit = self.getOrCreateUnit(sUsagePointCurrentId)
+        if not oUnit:
             return False
 
         dUsagePointData = self.dData[sUsagePointCurrentId]["data"]
@@ -967,23 +959,13 @@ class BasePlugin:
                         # We don't want the last day = today, it's incomplete and create a glitch in views
                         if (self.iHistoryDaysForHoursView > 0) and (dDate2 >= self.dateBeginDaysHistoryView):
                             sLongDate = datetimeToSQLDateTimeString(dDate2)
-                            if self.iAlternateDevice:
-                                if not self.addToDevice(oDevice, fValConso1, fValConso2, fValProd1, fValProd2, sLongDate):
-                                    return False
-                            else:
-                                iConsumption1 = iConsumption1 + fValConso1
-                                iConsumption2 = iConsumption2 + fValConso2
-                                iProduction1 = iProduction1 + fValProd1
-                                iProduction2 = iProduction2 + fValProd2
-                                if not self.addToDevice(oDevice, iConsumption1, iConsumption2, iProduction1, iProduction2, sLongDate):
-                                    return False
                         # Here we can shift data for other views, choosing another hour as new date reference
                     if iHour == 0:
                         # Check we have enough data, at least half a day
                         if iHourCount >= 12:
                             # Here we can shift day accordingly to iHour, to use date from beginning of data
                             sShortDate = datetimeToSQLDateString(dDate2 - timedelta(hours=iHourCount))
-                            if not self.addToDevice(oDevice, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
+                            if not self.addToUnit(oUnit, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
                                 return False
                         iDConsumption1 = 0
                         iDConsumption2 = 0
@@ -997,13 +979,13 @@ class BasePlugin:
         if bHasConsoProd and (iHourCount >= 1) and (dDate <= self.curDay):
             # Here we can shift day accordingly to iHour, to use date from beginning of data
             sShortDate = datetimeToSQLDateString(dDate2 - timedelta(hours=iHourCount))
-            if not self.addToDevice(oDevice, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
+            if not self.addToUnit(oUnit, iDConsumption1, iDConsumption2, iDProduction1, iDProduction2, sShortDate):
                 return False                    
 
             # if we have not 24 hours per day, day is incomplete, ignore and go next
         # self.dumpDictToLog(self.dCalculate)
         # Do not return an error if dashboard update is not possible, to prevent retries all day long
-        self.updateDashboard(oDevice, sUsagePointCurrentId)
+        self.updateDashboard(oUnit, sUsagePointCurrentId)
         return True
 
 
@@ -1153,7 +1135,7 @@ class BasePlugin:
                             if dtCurDate.minute == 0:
                                 # Check that we had enough data, as expected
                                 # self.myLog("accumulation " + str(accumulation / steps) + " " + datetimeToSQLDateTimeString(curDate))
-                                # if not self.createAndAddToDevice(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
+                                # if not self.createAndAddToUnit(accumulation / steps, datetimeToSQLDateTimeString(curDate)):
                                 # return False
                                 fVal = accumulation / steps
                                 self.storeData(fVal, dtCurDate, bProduction, False)
@@ -1285,7 +1267,7 @@ class BasePlugin:
                             #self.myLog("Value " + str(fVal) + " " + datetimeToSQLDateString(dtCurDate))
                             # self.dumpDictToLog(values)
                             # self.dayAccumulate(dtCurDate, fVal)
-                            # if not self.createAndAddToDevice(fVal, datetimeToSQLDateString(dtCurDate)):
+                            # if not self.createAndAddToUnit(fVal, datetimeToSQLDateString(dtCurDate)):
                             # return False
                             self.storeData(fVal, dtCurDate, bProduction, True)
                     if not dataSeen:
@@ -1302,7 +1284,7 @@ class BasePlugin:
 
 
     # Update dashboard with accumulated value
-    def updateDashboard(self, oDevice, sUsagePointCurrentId):
+    def updateDashboard(self, oUnit, sUsagePointCurrentId):
         if not sUsagePointCurrentId in self.dCalculate:
             return False
         self.dumpDictToLog(self.dCalculate[sUsagePointCurrentId])
@@ -1393,10 +1375,9 @@ class BasePlugin:
             self.showStepError(False, "Données manquantes pour mettre à jour le tableau de bord", True)
             return False
         else:
-            dtTimeout = setTimeout()
-            self.dtGlobalTimeout = dtTimeout
-            self.dUsagePointTimeout[sUsagePointCurrentId] = dtTimeout
-            return self.updateDevice(oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2)
+            self.dUsagePointTimeout[sUsagePointCurrentId] = setTimeout()
+            self.dUsagePointSeen[sUsagePointCurrentId] = True
+            return self.updateUnit(oUnit, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2)
 
 
     # Calculate days and date left for next batch
@@ -1564,7 +1545,7 @@ class BasePlugin:
         self.isStarted = False
         self.resetTokens()
         for oDevice in Devices.values():
-            oDevice.Update(nValue=oDevice.nValue, sValue=oDevice.sValue, TimedOut=1)
+            oDevice.TimedOut=1
         self.showSimpleStepError(
             "Le plugin va être arrêté. Relancez le en vous rendant dans Configuration/Matériel, en cliquant sur le plugin puis sur Modifier. Surveillez les logs pour obtenir le lien afin de renouveler le consentement pour la récupération des données auprès d'Enedis")
         if self.fDebug:
@@ -2014,29 +1995,18 @@ class BasePlugin:
 
         self.myDebug("onStart called")
 
-        self.iAlternateDevice = 1
         matchVersions = re.search(r"(\d+)\.(\d+)", Parameters["DomoticzVersion"])
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
             iVersion = (iVersionMaj * 1000000) + iVersionMin
-            if iVersion >= 4011774:
-                self.iAlternateDevice = 0
-
-        # For test purpose
-        #self.iAlternateDevice = 1
-
-        if self.iAlternateDevice:
-            self.myLog(
-                "Ce plugin est compatible avec Domoticz version 4.11070 mais la visualisation d'énergie produite et de tarification horaire ne peuvent fonctionner qu'à partir de la version 4.11774")
-
-        if iVersion < 4011070:
-            self.myError(
-                "Votre version de Domoticz est trop ancienne")
-            self.isStarted = False
-            if self.fDebug:
-                self.fDebug.flush()
-            return
+            if iVersion < 2024000001:
+                self.myError(
+                    "Votre version de Domoticz est trop ancienne")
+                self.isStarted = False
+                if self.fDebug:
+                    self.fDebug.flush()
+                return
 
         # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
         Parameters.pop("Username", None)
@@ -2146,7 +2116,6 @@ class BasePlugin:
 
         dtNow = datetime.now()
         self.dtNextRefresh = setRefreshTime(dtNow)
-        self.dtGlobalTimeout = setTimeout(dtNow)
         self.setNextConnectionForLater(0)
 
         # Now we can enable the plugin
@@ -2199,22 +2168,18 @@ class BasePlugin:
 
             if dtNow > self.dtNextRefresh:
                 self.dtNextRefresh = setRefreshTime(dtNow)
-                if dtNow > self.dtGlobalTimeout:
-                    bHasGlobalTimeout = True
-                else:
-                    bHasGlobalTimeout = False
 
                 for oDevice in Devices.values():
-                    bHasLocalTimeout = False
                     if oDevice.DeviceID in self.dUsagePointTimeout:
-                        #self.myLog(str(bHasGlobalTimeout) + " " + str(bHasLocalTimeout) + " " + str(self.dUsagePointTimeout[oDevice.DeviceID]) + " " + str(self.dtGlobalTimeout) + " " + str(self.dtNextRefresh))
+                        #self.myLog(str(bHasGlobalTimeout) + " " + str(self.dUsagePointTimeout[oDevice.DeviceID]) + " " + str(self.dtNextRefresh))
                         if dtNow > self.dUsagePointTimeout[oDevice.DeviceID]:
-                            bHasLocalTimeout = True
-                    # Update the device at a regular basis to prevent usage to be shown at 0
-                    if bHasGlobalTimeout or bHasLocalTimeout:
-                        oDevice.Update(nValue=oDevice.nValue, sValue=oDevice.sValue, TimedOut=1)
+                            oDevice.TimedOut=1
+                        elif oDevice.DeviceID in self.dUsagePointSeen:
+                            # Update the device at a regular basis to prevent usage to be shown at 0
+                            for oUnit in oDevice.Units.values():
+                                oUnit.Touch()
                     else:
-                        oDevice.Touch()
+                        self.dUsagePointTimeout[oDevice.DeviceID] = setTimeout()
 
             if dtNow > self.dateNextConnection:
                 # We immediatly program next connection for tomorrow, if there is a problem, we will reprogram it sooner
@@ -2364,20 +2329,19 @@ def onMessage(Connection, Data):
     _plugin.onMessage(Connection, Data)
 
 
-def onCommand(Unit, Command, Level, Hue):
-    global _plugin
-    _plugin.onCommand(Unit, Command, Level, Hue)
-
-
-def onDeviceAdded(Unit):
+def onCommand(DeviceID, Unit, Command, Level, Hue):
     global _plugin
 
 
-def onDeviceModified(Unit):
+def onDeviceAdded(DeviceID, Unit):
     global _plugin
 
 
-def onDeviceRemoved(Unit):
+def onDeviceModified(DeviceID, Unit):
+    global _plugin
+
+
+def onDeviceRemoved(DeviceID, Unit):
     global _plugin
 
 
