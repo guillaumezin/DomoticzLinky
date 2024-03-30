@@ -48,6 +48,15 @@ git pull
 
 Redémarrez Domoticz.
 
+Si vous ne voyez pas le plugin dans l'onglet Configuration / Matériel, accordez à tout le monde l'autorisation de lecture du plugin et l'autorisation de lecture et d'exécution du répertoire, pour Linux :
+```
+cd lerepertoire/plugins
+chmod ugo+rx DomoticzEbusd
+chmod ugo+r DomoticzEbusd/plugin.py
+```
+
+Redémarrez Domoticz.
+
 Si vous ne recevez pas de données ou obtenez des valeurs incohérentes, en particulier après une mise à jour, revérifiez que sont activés l'enregistrement et la collecte de la consommation horaire sur votre compte Enedis sur "Gérer l'accès à mes données" dans l'encart "Enregistrement de la consommation horaire" et dans l'encart "Collecte de la consommation horaire" et attendez 2 jours.
 
 ![Menu "Gérer l'accès à mes données"](assets/enedisaccess.jpg)
@@ -251,6 +260,14 @@ git pull
 
 Restart Domoticz.
 
+If you don't see the plugin in the hardware configuration tab, give for everyone read permission to plugin and read and execute permission for directory, for Linux:
+```
+cd whatever/plugins
+chmod ugo+rx DomoticzEbusd
+chmod ugo+r DomoticzEbusd/plugin.py
+```
+
+Restart Domoticz.
 If you do not receive any data or get inconsistent values, in particular after an update, double-check that the recording and collection of data per hour are enabled on your Enedis account on "Gérer l'accès à mes données" in "Enregistrement de la consommation horaire" area and in "Collecte de la consommation horaire" area and wait 2 days.
 
 !["Gérer l'accès à mes données" menu](assets/enedisaccess.jpg)
