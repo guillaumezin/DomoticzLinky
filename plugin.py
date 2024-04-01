@@ -959,6 +959,12 @@ class BasePlugin:
                         # We don't want the last day = today, it's incomplete and create a glitch in views
                         if (self.iHistoryDaysForHoursView > 0) and (dDate2 >= self.dateBeginDaysHistoryView):
                             sLongDate = datetimeToSQLDateTimeString(dDate2)
+                            iConsumption1 = iConsumption1 + fValConso1
+                            iConsumption2 = iConsumption2 + fValConso2
+                            iProduction1 = iProduction1 + fValProd1
+                            iProduction2 = iProduction2 + fValProd2
+                            if not self.addToUnit(oUnit, iConsumption1, iConsumption2, iProduction1, iProduction2, sLongDate):
+                                return False
                         # Here we can shift data for other views, choosing another hour as new date reference
                     if iHour == 0:
                         # Check we have enough data, at least half a day
