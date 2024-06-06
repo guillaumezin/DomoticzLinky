@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="3.0.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="3.0.1" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -129,17 +129,25 @@ import codecs
 import hashlib
 
 CLIENT_ID = ["d198fd52-61c0-4b77-8725-06a1ef90da9f", "9c551777-9d1b-447c-9e68-bfe6896ee002"]
+# CLIENT_ID = ["0f5d1d80-1999-42e8-9ffa-15707d079315", "0f5d1d80-1999-42e8-9ffa-15707d079315"]
 
 LOGIN_BASE_PORT = ["443", "443"]
 LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
+# LOGIN_BASE_URI = ["enedis.domoticz.russandol.pro", "test.domoticz.russandol.pro"]
 API_ENDPOINT_DEVICE_CODE = ["/device/code", "/domoticzlinkyconnect/device/code"]
+# API_ENDPOINT_DEVICE_CODE = ["/device/code", "/device/code"]
 API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/domoticzlinkyconnect/device/token"]
+# API_ENDPOINT_DEVICE_TOKEN = ["/device/token", "/device/token"]
 VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=",
                    "https://" + LOGIN_BASE_URI[1] + "/domoticzlinkyconnect/device?code="]
+# VERIFY_CODE_URI = ["https://" + LOGIN_BASE_URI[0] + "/device?code=",
+                   # "https://" + LOGIN_BASE_URI[1] + "/device?code="]
 
 API_BASE_PORT = ["443", "443"]
 API_BASE_URI = ["enedis.domoticz.russandol.pro", "opensrcdev.alwaysdata.net"]
+# API_BASE_URI = ["enedis.domoticz.russandol.pro", "test.domoticz.russandol.pro"]
 API_ENDPOINT_DATA_URI = ["/data/proxy", "/domoticzlinkyconnect/data/proxy"]
+# API_ENDPOINT_DATA_URI = ["/data/proxy", "/data/proxy"]
 API_ENDPOINT_DATA_CONSUMPTION_LOAD_CURVE = '/metering_data_clc/v5/consumption_load_curve'
 API_ENDPOINT_DATA_CONSUMPTION_MAX_POWER = '/metering_data_dcmp/v5/daily_consumption_max_power'
 API_ENDPOINT_DATA_DAILY_CONSUMPTION = '/metering_data_dc/v5/daily_consumption'
@@ -292,7 +300,8 @@ class BasePlugin:
     # should we grab all days for day view?
     bHistoryDaysForDaysViewGrabAll = False
     # datetime of last successfull connection in memory
-
+    iVersion = 0
+    # integer version of Domoticz
 
     def __init__(self):
         self.isStarted = False
@@ -651,7 +660,10 @@ class BasePlugin:
         oUnit.SubType=self.iSubType
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
-        oUnit.Update(Log=False)
+        if (self.iVersion > 2024000004) :
+            oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
+        else:
+            oUnit.Update(Log=False)
         return True
 
 
@@ -667,7 +679,10 @@ class BasePlugin:
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
         oUnit.Parent.TimedOut=0
-        oUnit.Update(Log=True)
+        if (self.iVersion > 2024000004) :
+            oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
+        else:
+            oUnit.Update(Log=False)
         return True
 
 
@@ -2005,8 +2020,8 @@ class BasePlugin:
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
-            iVersion = (iVersionMaj * 1000000) + iVersionMin
-            if iVersion < 2024000001:
+            self.iVersion = (iVersionMaj * 1000000) + iVersionMin
+            if self.iVersion < 2024000001:
                 self.myError(
                     "Votre version de Domoticz est trop ancienne")
                 self.isStarted = False
