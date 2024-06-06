@@ -10,7 +10,7 @@ Si vous le souhaitez, vous pouvez également faire un don pour encourager le dé
 [![Faire un don pour pour le développement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=92UJFSAJTMBBL&item_name=Plugin+Domoticz+Linky+%28d%C3%A9veloppement%29&currency_code=EUR)
 
 # Plugin Linky pour Domoticz
-Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
+Ceci est un plugin pour [Domoticz](https://domoticz.com), récupérant les données Linky pour les comptes particuliers. Cela ne *fonctionne pas* avec les comptes professionnels, c'est une limitation de l'API Enedis Data Connect sur laquelle s'appuie le plugin. Pour ces comptes professionnels, il faudrait s'appuyer sur une API différente beaucoup plus lourde à mettre en place et en-dehors du périmètre de ce plugin. Les données sont collectées du compte utilisateur [Enedis](http://www.enedis.fr) et stockées dans le log d'un dispositif compteur électrique.
 
 ![Vue du dispositif sur le tableau de bord](assets/dashboardfr.jpg)
 
@@ -222,7 +222,7 @@ If you wish, you can also donate to encourage the development of the plugin by c
 [![Faire un don pour pour le développement](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=92UJFSAJTMBBL&item_name=Domoticz+Linky+plugin+%28development%29&currency_code=EUR)
 
 # Linky plugin for Domoticz
-This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
+This is a plugin for [Domoticz](https://domoticz.com), to grab data from french smartgrid meter Linky for personnal accounts. This does *not work* with professional accounts, it is a limitation of the Enedis Data Connect API on which the plugin relies. For these professional accounts, it would be necessary to rely on a different API that is much more cumbersome to set up and outside the scope of this plugin. It grabs data from [Enedis](http://www.enedis.fr) user account and store them inside a counter device log.
 
 ![Device on dashboard](assets/dashboarden.jpg)
 
