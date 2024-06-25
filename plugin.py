@@ -299,9 +299,10 @@ class BasePlugin:
     bHistoryDaysForDaysViewChanged = False
     # should we grab all days for day view?
     bHistoryDaysForDaysViewGrabAll = False
-    # datetime of last successfull connection in memory
-    iVersion = 0
     # integer version of Domoticz
+    iVersion = 0
+    # integer build of Domoticz
+    iBuild = 0
 
     def __init__(self):
         self.isStarted = False
@@ -660,7 +661,7 @@ class BasePlugin:
         oUnit.SubType=self.iSubType
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
-        if (self.iVersion > 2024000004) :
+        if (self.iBuild > 16100) :
             oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
         else:
             oUnit.Update(Log=False)
@@ -679,7 +680,7 @@ class BasePlugin:
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
         oUnit.Parent.TimedOut=0
-        if (self.iVersion > 2024000004) :
+        if (self.iBuild >= 16100) :
             oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
         else:
             oUnit.Update(Log=False)
@@ -2016,10 +2017,11 @@ class BasePlugin:
 
         self.myDebug("onStart called")
 
-        matchVersions = re.search(r"(\d+)\.(\d+)", Parameters["DomoticzVersion"])
+        matchVersions = re.search(r"(\d+)\.(\d+) \(build (\d+)\)", Parameters["DomoticzVersion"])
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
+            self.iBuild = int(matchVersions.group(3))
             self.iVersion = (iVersionMaj * 1000000) + iVersionMin
             if self.iVersion < 2024000001:
                 self.myError(
