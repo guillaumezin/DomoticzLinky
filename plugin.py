@@ -2017,7 +2017,7 @@ class BasePlugin:
 
         self.myDebug("onStart called")
 
-        matchVersions = re.search(r"(\d+)\.(\d+) \(build (\d+)\)", Parameters["DomoticzVersion"])
+        matchVersions = re.search(r"(\d+).*?(\d+).*?(\d+)", Parameters["DomoticzVersion"])
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
@@ -2030,7 +2030,7 @@ class BasePlugin:
                 if self.fDebug:
                     self.fDebug.flush()
                 return
-
+            
         # Even if not used, Username and Password may still be in database because of previous versions. We don't want them, as it triggers an unwanted HTTP basic autorization header in old Domoticz Python Framework
         Parameters.pop("Username", None)
         Parameters.pop("Password", None)
