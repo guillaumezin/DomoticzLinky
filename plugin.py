@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.6" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -543,7 +543,7 @@ class BasePlugin:
         #self.dumpDictToLog(Data)
         iStatus = getStatus(Data)
         sError, sErrorDescription, sErrorUri = getError(Data)
-        sError = sError.lower()
+        sError = sError.casefold()
         if (sError == "unauthorized") or (sError == "invalid_grant") or (sError == "invalid_request"):
             self.showSimpleStatusError(Data)
             return "error"
@@ -713,7 +713,7 @@ class BasePlugin:
         iWeekday = 7
         sProd = "all"
         
-        sHcParameter = sHcParameter.lower().strip()
+        sHcParameter = sHcParameter.casefold().strip()
 
         # Exemple 963222123213 12h30-14h00
         # https://regex101.com/r/cMWfqj/11
@@ -726,10 +726,10 @@ class BasePlugin:
                 #Domoticz.Log(sLocalUsagePointId)
             sMG2 = matchHc.group(2)
             if sMG2:
-                sMG2 = sMG2.lower().strip()
+                sMG2 = sMG2.casefold().strip()
                 sMG3 = matchHc.group(3)
                 if sMG3:
-                    sMG3 = sMG3.lower().strip()
+                    sMG3 = sMG3.casefold().strip()
                     sDay = sMG3
                 else:
                     sDay = sMG2
@@ -1771,13 +1771,13 @@ class BasePlugin:
                 iStatus = getStatus(Data)
                 #self.dumpDictToLog(Data)
                 sError, sErrorDescription, sErrorUri = getError(Data)
-            if (sError.lower() == "invalid_token") and (not self.bRefreshToken):
+            if (sError.casefold() == "invalid_token") and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
                 self.showSimpleStatusError(Data)
                 self.disablePlugin()
-            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)) or (self.bProdMode and (iStatus == 500))  or (self.bProdMode and (sError.lower() == "adam-err0123")):
+            elif self.getCacheNoData(self.sUsagePointId, self.bProdMode) or (iStatus == 404) or (self.bProdMode and (iStatus == 400)) or (self.bProdMode and (iStatus == 500))  or (self.bProdMode and (sError.casefold() == "adam-err0123")):
                 #self.showStatusError(True, Data, False, True)
                 if self.bFirstBatch:
                     if (self.bProdMode):
@@ -1791,11 +1791,11 @@ class BasePlugin:
                         self.showStepError(True, "Pas de données disponibles, ni en consommation, ni en production, avez-vous associé un compteur à votre compte et demandé l'enregistrement et la collecte des données horaire sur le site d'Enedis (dans \"Gérer l'accès à mes données\") ?", True)
                         self.bHasAFail = True
                     elif self.bNoConsumption:
-                        if (sError.lower() == 'adam-err0069') or (sError.lower() == 'adam-err0123'):
+                        if (sError.casefold() == 'adam-err0069') or (sError.casefold() == 'adam-err0123'):
                             self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en consommation, récupération des données de production", True, True)
                     elif self.bNoProduction:
-                        if (sError.lower() == 'adam-err0069') or (sError.lower() == 'adam-err0123'):
+                        if (sError.casefold() == 'adam-err0069') or (sError.casefold() == 'adam-err0123'):
                             self.setCacheEmpty(True, self.sUsagePointId, self.bProdMode)
                         self.showStepError(True, "Pas de données disponibles en production", True, True)
                 self.sConnectionStep = "prod"
@@ -1846,7 +1846,7 @@ class BasePlugin:
             else:
                 iStatus = getStatus(Data)
                 sError, sErrorDescription, sErrorUri = getError(Data)
-            if sError.lower() == "invalid_token" and (not self.bRefreshToken):
+            if sError.casefold() == "invalid_token" and (not self.bRefreshToken):
                 self.sConnectionStep = "parseaccesstoken"
                 self.refreshToken()
             elif iStatus == 403:
