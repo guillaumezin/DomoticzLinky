@@ -661,7 +661,7 @@ class BasePlugin:
         oUnit.SubType=self.iSubType
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
-        if (self.iBuild > 16100) :
+        if (self.iBuild >= 16100) or (self.iVersion > 2024000004) :
             oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
         else:
             oUnit.Update(Log=False)
@@ -680,7 +680,7 @@ class BasePlugin:
         oUnit.SwitchType=self.iSwitchType
         oUnit.Options=self.dOptions
         oUnit.Parent.TimedOut=0
-        if (self.iBuild >= 16100) :
+        if (self.iBuild >= 16100) or (self.iVersion > 2024000004) :
             oUnit.Update(Log=False, UpdateProperties=True, UpdateOptions=True)
         else:
             oUnit.Update(Log=False)
@@ -2021,8 +2021,12 @@ class BasePlugin:
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
-            self.iBuild = int(matchVersions.group(3))
+            if matchVersions.group(3) :
+                self.iBuild = int(matchVersions.group(3))
+            else :
+                self.iBuild = 0
             self.iVersion = (iVersionMaj * 1000000) + iVersionMin
+            # self.myError(str(iVersionMaj) + "/" + str(iVersionMin) + "/" + str(self.iBuild) + "/" + str(self.iVersion))
             if self.iVersion < 2024000001:
                 self.myError(
                     "Votre version de Domoticz est trop ancienne")
