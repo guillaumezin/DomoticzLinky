@@ -2017,7 +2017,7 @@ class BasePlugin:
 
         self.myDebug("onStart called")
 
-        matchVersions = re.search(r"(\d+).*?(\d+).*?(\d+)", Parameters["DomoticzVersion"])
+        matchVersions = re.search(r"(\d+)[^\d]+(\d+)[^\d]*(\d*)", Parameters["DomoticzVersion"])
         if (matchVersions):
             iVersionMaj = int(matchVersions.group(1))
             iVersionMin = int(matchVersions.group(2))
