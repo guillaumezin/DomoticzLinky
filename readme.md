@@ -186,6 +186,7 @@ Les serveurs d'Enedis sont inaccessibles la nuit, le plugin va de lui-même ré-
 
 ### Erreur "Trop d'échecs de communication, le plugin réessaiera plus tard"
 Cela traduit en général un problème de quota : Enedis offre au plugin un certains nombre d'appels possibles vers son site pour l'ensemble des utilisateurs du plugin. Le plugin va de lui-même ré-essayer de récupérer vos données l'heure suivante. Si vous rencontrez souvent cette erreur, il vaut mieux diminuer le paramètre "Nombre de jours à récupérer pour les autres vues" à 7 pour diminuer le nombre d'appels.
+Dans certains cas, il s'agit d'un problème avec le jeton de consentement. Si vous mettez "Debug" à "Avancé", puis faites "Modifier", le log de Domoticz va vous donner un chemin vers un fichier de debug. En ouvrant ce fichier avec un éditeur de texte, si vous constatez de nombreuses "Technical error. Please try later.", vous pouvez essayer de faire un reset consentement comme décrit ci-dessous. N'oubliez pas de remettre ensuite "Debug" sur son ancienne valeur et de faire "Modifier".
 
 ### Problèmes relatifs à l'obtention du consentement
 Si vous avez des problèmes récurrents avec l'obtention du consentement, vous pouvez relancer l'étape en passant le paramètre "Debug" à "Reset consentement" et cliquez sur "Modifier", puis remettez "Debug" à son ancienne position et refaites "Modifier". Ensuite retournez lire le chapitre [Obtention du consentement](#obtention-du-consentement).
@@ -401,6 +402,7 @@ The Enedis servers are inaccessible at night, the plugin will try to retrieve yo
 
 ### "Trop d'échecs de communication, le plugin réessaiera plus tard" error
 This generally reflects a quota problem: Enedis gives the plugin a certain number of possible calls to its site for all users of the plugin. The plugin will on its own retry to retrieve your data the next hour. If you often encounter this error, it is better to decrease the "Nombre de jours à récupérer pour les autres vues" parameter to 7 to decrease the number of calls.
+In some cases, it is a problem with the consent token. If you set "Debug" to "Avancé", then do "Modify", the Domoticz log will give you a path to a debug file. By opening this file with a text editor, if you see many "Technical error. Please try later.", you can try to reset consent as described below. Don't forget to then put "Debug" back to its old value and do "Modify".
 
 ### Consent Obtaining Issues
 If you have recurring problems with obtaining consent, you can restart the step by changing the "Debug" parameter to "Reset consentement" and click on "Modify", then put "Debug" back to its old position and redo "Modify". Then go back to read the chapter [Give consent](#give-consent).
