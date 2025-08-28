@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.7" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -718,25 +718,22 @@ class BasePlugin:
         # Exemple 963222123213 12h30-14h00
         # https://regex101.com/r/cMWfqj/11
         for matchHc in re.finditer(r"(?:(\d+)(?:$|\s))?(?:([a-zéè]+)(?:$|\s))?(?:([a-zéè]+)(?:$|\s))?(?:(\d+)\s*[h:]\s*(\d+)?\s*(?:[-_aà]|to)+\s*(\d+)\s*[h:]\s*(\d+)?)?", sHcParameter):
-            #Domoticz.Log("match " + matchHc.group(1) + " "  + matchHc.group(2) + " "  + matchHc.group(3) + " " + matchHc.group(4) + " " + matchHc.group(5) + " " + matchHc.group(6) + " " + matchHc.group(7))
+            #Domoticz.Log("match " + str(matchHc.group(1)) + " "  + str(matchHc.group(2)) + " "  + str(matchHc.group(3)) + " " + str(matchHc.group(4)) + " " + str(matchHc.group(5)) + " " + str(matchHc.group(6)) + " " + str(matchHc.group(7)))
             if matchHc.group(1):
-                sLocalUsagePointId = matchHc.group(1).upper().strip()
+                sLocalUsagePointId = matchHc.group(1).upper()
                 sProd = "all"
                 iWeekday = 7
-                #Domoticz.Log(sLocalUsagePointId)
+                #Domoticz.Log("g1" + sLocalUsagePointId)
             sMG2 = matchHc.group(2)
             if sMG2:
-                sMG2 = sMG2.casefold().strip()
                 sMG3 = matchHc.group(3)
                 if sMG3:
-                    sMG3 = sMG3.casefold().strip()
                     sDay = sMG3
                 else:
                     sDay = sMG2
                 if sMG2.startswith("p"):
                     sProd = "prod"
                     iWeekday = 7
-                #Domoticz.Log(sDay)
                 if sDay.startswith("lu") or sDay.startswith("mo"):
                     iWeekday = 0
                 elif sDay.startswith("ma") or sDay.startswith("tu"):
@@ -755,7 +752,9 @@ class BasePlugin:
                     iWeekday = 8
                 else:
                     iWeekday = 7
-                #Domoticz.Log(sLocalUsagePointId)
+            #Domoticz.Log("UsagePoint " + sLocalUsagePointId)
+            #Domoticz.Log("sProd " + sProd)
+            #Domoticz.Log("iWeekday " + str(iWeekday))
             if not sLocalUsagePointId in self.dHc:
                 self.dHc[sLocalUsagePointId] = {}
             if not sProd in self.dHc[sLocalUsagePointId]:
@@ -801,7 +800,7 @@ class BasePlugin:
                 datetimeEnd = datetime(2010, 1, 1, iHoursEnd, iMinutesEnd)
                 timeBegin = datetimeBegin.time()
                 timeEnd = datetimeEnd.time()
-                if datetimeEnd <  datetimeBegin:
+                if datetimeEnd < datetimeBegin:
                     self.dHc[sLocalUsagePointId][sProd][iWeekday].append([timeBegin, time(23,59,59,999999)])
                     self.dHc[sLocalUsagePointId][sProd][iWeekday].append([time(), timeEnd])
                 else:
@@ -943,7 +942,7 @@ class BasePlugin:
                             iDConsumption1 = iDConsumption1 + fValConso1
                     if iHour in dOneData["production1_hours"]:
                         bHasData = True                    
-                        if bCost2Cons:
+                        if bCost2Prod:
                             fValProd2 = dOneData["production1_hours"][iHour]
                             iDProduction2 = iDProduction2 + fValProd2
                         else:
@@ -951,7 +950,7 @@ class BasePlugin:
                             iDProduction1 = iDProduction1 + fValProd1
                     if iHour in dOneData["production2_hours"]:
                         bHasData = True                    
-                        if bCost2Cons:
+                        if bCost2Prod:
                             fValProd2 = dOneData["production2_hours"][iHour]
                             iDProduction2 = iDProduction2 + fValProd2
                         else:
@@ -1960,6 +1959,7 @@ class BasePlugin:
                         self.myDebug("--->'" + str(x) + " (" + str(len(dictToLog[x])) + "):")
                         for y in dictToLog[x]:
                             if isinstance(dictToLog[x][y], dict):
+                                self.myDebug("------>'" + str(y) + " (" + str(len(dictToLog[x][y])) + "):")
                                 for z in dictToLog[x][y]:
                                     self.myDebug("----------->'" + str(z) + "':'" + str(dictToLog[x][y][z]) + "'")
                             else:
