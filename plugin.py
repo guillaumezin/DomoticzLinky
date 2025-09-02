@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.8" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.5.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
@@ -2471,34 +2471,35 @@ def getStatus(Data):
 
 
 # Convert Enedis datetime string to datetime object
-def enedisDateTimeToDatetime(datetimeStr):
+def enedisDateTimeToDatetime(sDatetime):
     # Buggy
-    # return datetime.strptime(datetimeStr, "%d/%m/%Y")
+    # return datetime.strptime(sDatetime, "%d/%m/%Y")
     # Not buggy ?
-    return datetime(*(strptime(datetimeStr[:19], "%Y-%m-%d %H:%M:%S")[0:6]))
+    sDateTime2 = sDatetime[:10] + " " + sDateTime[11:19]
+    return datetime(*(strptime(sDateTime2, "%Y-%m-%d %H:%M:%S")[0:6]))
 
 
 # Convert Enedis date string to datetime object
-def enedisDateToDatetime(datetimeStr):
+def enedisDateToDatetime(sDatetime):
     # Buggy
-    # return datetime.strptime(datetimeStr, "%d/%m/%Y")
+    # return datetime.strptime(sDatetime, "%d/%m/%Y")
     # Not buggy ?
-    return datetime(*(strptime(datetimeStr[:10], "%Y-%m-%d")[0:6]))
+    return datetime(*(strptime(sDatetime[:10], "%Y-%m-%d")[0:6]))
 
 
 # Convert datetime object to Enedis date string
-def datetimeToEnedisDateString(datetimeObj):
-    return datetimeObj.strftime("%Y-%m-%d")
+def datetimeToEnedisDateString(oDatetime):
+    return oDatetime.strftime("%Y-%m-%d")
 
 
 # Convert datetime object to Domoticz date string
-def datetimeToSQLDateString(datetimeObj):
-    return datetimeObj.strftime("%Y-%m-%d")
+def datetimeToSQLDateString(oDatetime):
+    return oDatetime.strftime("%Y-%m-%d")
 
 
 # Convert datetime object to Domoticz date and time string
-def datetimeToSQLDateTimeString(datetimeObj):
-    return datetimeObj.strftime("%Y-%m-%d %H:%M:%S")
+def datetimeToSQLDateTimeString(oDatetime):
+    return oDatetime.strftime("%Y-%m-%d %H:%M:%S")
 
 
 # The JoursFeries class code after that comes from https://github.com/etalab/jours-feries-france and here is its original license:
