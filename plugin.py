@@ -22,7 +22,7 @@
 # <http://www.gnu.org/licenses/>.
 #
 """
-<plugin key="linky" name="Linky" author="Barberousse" version="2.5.9" externallink="https://github.com/guillaumezin/DomoticzLinky">
+<plugin key="linky" name="Linky" author="Barberousse" version="2.6.0" externallink="https://github.com/guillaumezin/DomoticzLinky">
     <params>
         <param field="Mode4" label="Heures creuses (vide pour désactiver, cf. readme pour la syntaxe)" width="500px" required="false" default="">
 <!--        <param field="Mode4" label="Heures creuses" width="500px">
