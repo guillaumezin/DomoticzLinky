@@ -2475,7 +2475,7 @@ def enedisDateTimeToDatetime(sDatetime):
     # Buggy
     # return datetime.strptime(sDatetime, "%d/%m/%Y")
     # Not buggy ?
-    sDateTime2 = sDatetime[:10] + " " + sDateTime[11:19]
+    sDateTime2 = sDatetime[:10] + " " + sDatetime[11:19]
     return datetime(*(strptime(sDateTime2, "%Y-%m-%d %H:%M:%S")[0:6]))
 
 
