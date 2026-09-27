@@ -50,6 +50,12 @@
             </options>
 -->
         </param>
+        <param field="Port" label="Ordre des index (Utilisation 1 / Utilisation 2)" width="300px" required="false" default="0">
+            <options>
+                <option label="Heures pleines puis heures creuses" value="0" default="true" />
+                <option label="Heures creuses puis heures pleines" value="1" />
+            </options>
+        </param>
         <param field="Mode5" label="Consommation à montrer sur le tableau de bord (affichage principal)" width="500px">
             <options>
                 <option label="Pic consommation journée dernière" value="peak_day" />
@@ -293,6 +299,8 @@ class BasePlugin:
     bHistoryDaysForDaysViewChanged = False
     # should we grab all days for day view?
     bHistoryDaysForDaysViewGrabAll = False
+    # order of indexes: False = peak hours first (default), True = off-peak hours first
+    bOffPeakFirst = False
     # datetime of last successfull connection in memory
 
 
@@ -648,6 +656,9 @@ class BasePlugin:
 
     # insert usage in Domoticz DB
     def addToDevice(self, oDevice, fConsumption1, fConsumption2, fProduction1, fProduction2, sDate):
+        if self.bOffPeakFirst:
+            fConsumption1, fConsumption2 = fConsumption2, fConsumption1
+            fProduction1, fProduction2 = fProduction2, fProduction1
         if self.iAlternateDevice:
             sValue = "-1.0;" + str(fConsumption1 + fConsumption2) + ";" + sDate
         else:
@@ -664,6 +675,9 @@ class BasePlugin:
 
     # Update value shown on Domoticz dashboard
     def updateDevice(self, oDevice, fConsoVal1, fConsoVal2, fProdVal1, fProdVal2, fSecVal1, fSecVal2):
+        if self.bOffPeakFirst:
+            fConsoVal1, fConsoVal2 = fConsoVal2, fConsoVal1
+            fProdVal1, fProdVal2 = fProdVal2, fProdVal1
         if self.iAlternateDevice:
             sValue = "-1.0;" + str(fSecVal1 + fSecVal2)
         else:
@@ -2045,6 +2059,9 @@ class BasePlugin:
         self.iHistoryDaysForHoursView = Parameters["Mode1"]
         self.iHistoryDaysForDaysView = Parameters["Mode2"]
         self.sTarif = Parameters["Mode4"]
+        # Order of indexes: 0 = peak hours first (default, historical behaviour),
+        # 1 = off-peak hours first (to match other meters, e.g. a TICMeter through Zigbee for Domoticz)
+        self.bOffPeakFirst = str(Parameters.get("Port", "0")).strip() == "1"
         self.sConsumptionType1 = Parameters["Mode6"]
         self.sConsumptionType2 = Parameters["Mode5"]
 

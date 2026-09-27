@@ -169,6 +169,12 @@ configure les heures creuses pour la plage horaire "02h00-04h00", pour le week-e
 
 Pour appliquer les heures creuses aux anciennes données, passez le paramètre "Debug" à "Reset cache" et cliquez sur "Modifier", puis remettez "Debug" à son ancienne position et refaites "Modifier". 
 
+
+### Ordre des index
+Par défaut, le plugin range les heures pleines dans "Utilisation 1" (Coûts T1) et les heures creuses dans "Utilisation 2" (Coûts T2). Domoticz n'impose pas d'ordre, et d'autres compteurs font l'inverse (par exemple un TICMeter via le plugin Zigbee for Domoticz). Le paramètre "Ordre des index" permet de choisir "Heures creuses puis heures pleines" pour que tous vos compteurs utilisent le même ordre, et donc les mêmes coûts T1 / T2.
+
+Attention : ce choix ne modifie pas l'historique déjà enregistré. Pour un historique cohérent, changez-le avant de récupérer l'historique, ou effacez le dispositif et retéléchargez l'historique (voir plus haut).
+
 ### Affichage
 Vous pouvez choisir le nombre à afficher sur le tableau de bord :
 
