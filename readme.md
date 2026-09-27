@@ -169,7 +169,6 @@ configure les heures creuses pour la plage horaire "02h00-04h00", pour le week-e
 
 Pour appliquer les heures creuses aux anciennes données, passez le paramètre "Debug" à "Reset cache" et cliquez sur "Modifier", puis remettez "Debug" à son ancienne position et refaites "Modifier". 
 
-
 ### Ordre des index
 Par défaut, le plugin range les heures pleines dans "Utilisation 1" (Coûts T1) et les heures creuses dans "Utilisation 2" (Coûts T2). Domoticz n'impose pas d'ordre, et d'autres compteurs font l'inverse (par exemple un TICMeter via le plugin Zigbee for Domoticz). Le paramètre "Ordre des index" permet de choisir "Heures creuses puis heures pleines" pour que tous vos compteurs utilisent le même ordre, et donc les mêmes coûts T1 / T2.
 
@@ -389,6 +388,11 @@ configures the off-peak hours for the time slots "02:00-04:00 16:00-19:00" for c
 configures the off-peak hours for the time slot "02:00-04:00", during the week-end and during bank holidays.
 
 To apply off-peak hours to old data, change the "Debug" setting to "Reset cache" and click "Edit", then put "Debug" back to its old position and do "Update" again.
+
+### Index Order
+By default, the plugin assigns peak-rate hours to "Usage 1" (T1 costs) and off-peak hours to "Usage 2" (T2 costs). Domoticz does not enforce a specific order, and other meters may use the reverse (for example, a TICMeter via the Zigbee for Domoticz plugin). The "Index Order" setting allows you to select "Off-peak then peak hours" so that all your meters use the same order—and therefore the same T1/T2 cost assignments.
+
+Note: This setting does not alter previously recorded history. To ensure consistent historical data, change the setting before retrieving the history, or delete the device and re-download the history (see above).
 
 ### Display
 You can choose the number you want to see on the dashboard:
